@@ -64,18 +64,12 @@ public class JwtProvider {
     public Authentication getAuthentication(String accessToken) {
         // 토큰 복호화
         Claims claims = parseClaims(accessToken);
-        if (claims.get("auth") == null) {
-            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
-        }
 
         // claim에서 권한 정보 가져오기 / claim : 토큰을 복호화 한 것. 유저/토큰의 정보가 들어있음
         Collection<? extends GrantedAuthority> authorities =
                 Arrays.stream(claims.get("auth").toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
-        for (GrantedAuthority authority : authorities) {
-            System.out.println(authority.getAuthority());
-        }
         // UserDetails 객체를 만들어서 Authentication 리턴 / Authentication :
         UserDetails principal = new User(claims.getSubject(), "", authorities);
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
@@ -101,7 +95,11 @@ public class JwtProvider {
 
     private Claims parseClaims(String accessToken) {
         try {
-            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
+            Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
+            if (claims.get("auth") == null) {
+                throw new RuntimeException("권한 정보가 없는 토큰입니다.");
+            }
+            return claims;
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }

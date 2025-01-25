@@ -36,10 +36,7 @@ public class AuthExceptionHandlerFilter extends OncePerRequestFilter {
         }
     }
 
-    private void setErrorResponse(
-            HttpServletResponse response,
-            ErrorCode errorCode
-    ) {
+    private void setErrorResponse(HttpServletResponse response, ErrorCode errorCode) {
         ObjectMapper objectMapper = new ObjectMapper();
         response.setStatus(errorCode.getHttpStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=utf-8");

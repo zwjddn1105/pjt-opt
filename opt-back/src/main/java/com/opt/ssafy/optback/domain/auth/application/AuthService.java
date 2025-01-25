@@ -35,15 +35,16 @@ public class AuthService {
     }
 
     public SignInResponse signIn(SignInRequest request) {
-        Authentication authentication = authenticate(request);
+        Member member = memberRepository.findByEmail(request.getEmail()).orElseThrow(MemberNotFoundException::new);
+        Authentication authentication = authenticate(member);
         String accessToken = jwtProvider.generateAccessToken(authentication);
         String refreshToken = jwtProvider.generateRefreshToken(authentication);
-        Member member = memberRepository.findByEmail(request.getEmail()).orElseThrow(MemberNotFoundException::new);
         return SignInResponse.from(member, accessToken, refreshToken);
     }
 
-    private Authentication authenticate(SignInRequest request) {
-        User user = new User(request.getEmail(), "", Collections.singletonList(new SimpleGrantedAuthority("USER")));
+    private Authentication authenticate(Member member) {
+        User user = new User(member.getEmail(), "",
+                Collections.singletonList(new SimpleGrantedAuthority(member.getRole().name())));
         return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
     }
 

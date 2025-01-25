@@ -73,7 +73,9 @@ public class JwtProvider {
                 Arrays.stream(claims.get("auth").toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
-
+        for (GrantedAuthority authority : authorities) {
+            System.out.println(authority.getAuthority());
+        }
         // UserDetails 객체를 만들어서 Authentication 리턴 / Authentication :
         UserDetails principal = new User(claims.getSubject(), "", authorities);
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);

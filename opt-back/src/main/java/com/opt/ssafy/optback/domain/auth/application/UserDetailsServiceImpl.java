@@ -31,7 +31,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private Collection<? extends GrantedAuthority> getAuthorities(Member member) {
         // 권한 정보를 GrantedAuthority 객체의 컬렉션으로 변환
-        return Collections.singletonList(new SimpleGrantedAuthority(member.getRole()));
+        return Collections.singletonList(new SimpleGrantedAuthority(member.getRole().name()));
     }
 
     public Member getMemberByContextHolder() {

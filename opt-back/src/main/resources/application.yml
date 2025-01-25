@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/opt?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: #본인 패스워드
+
+  data:
+    mongodb:
+      uri: mongodb+srv://<유저이름>:<비밀번호>@<클러스터이름>.ergif.mongodb.net/<데이터베이스이름>?retryWrites=true&w=majority

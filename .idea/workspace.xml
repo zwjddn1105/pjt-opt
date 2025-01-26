@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ef8e8df8-8188-4cf8-87f0-9c209f095a50" name="Changes" comment="init: 프로젝트 생성">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/c7d8d567-24d2-4b39-ab35-58755413950b.xml" beforeDir="false" />
-    </list>
+    <list default="true" id="ef8e8df8-8188-4cf8-87f0-9c209f095a50" name="Changes" comment="init: 프로젝트 생성" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -36,9 +34,9 @@
     "RunOnceActivity.git.unshallow": "true",
     "WebServerToolWindowFactoryState": "false",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "be-feature/login",
+    "git-widget-placeholder": "BackEnd",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/seung-u/Documents/S12P11A309",
+    "last_opened_file_path": "C:/Users/SSAFY/Desktop",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -54,24 +52,11 @@
     ]
   }
 }]]></component>
-  <component name="RunManager">
-    <configuration default="true" type="JetRunConfigurationType">
-      <module name="S12P11A309" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
-      <module name="S12P11A309" />
-      <option name="filePath" />
-      <method v="2" />
-    </configuration>
-  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.22562.218" />
-        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-IU-243.22562.218" />
+        <option value="bundled-jdk-9823dce3aa75-125ca727e0f0-intellij.indexing.shared.core-IU-243.23654.117" />
+        <option value="bundled-js-predefined-d6986cc7102b-822845ee3bb5-JavaScript-IU-243.23654.117" />
       </set>
     </attachedChunks>
   </component>
@@ -88,6 +73,7 @@
       <workItem from="1737678271309" duration="4022000" />
       <workItem from="1737684885309" duration="682000" />
       <workItem from="1737769712374" duration="232000" />
+      <workItem from="1737876538357" duration="25000" />
     </task>
     <task id="LOCAL-00001" summary="docs: 250115_SOLID_이승우">
       <option name="closed" value="true" />

@@ -71,4 +71,9 @@ public class Member {
     public void updateNickname(String nickname) {
         this.nickname = nickname;
     }
+
+    public void updateProfileImage(String imagePath) {
+        this.imagePath = imagePath;
+    }
+
 }

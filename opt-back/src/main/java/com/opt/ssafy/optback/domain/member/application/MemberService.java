@@ -7,9 +7,13 @@ import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.member.exception.DuplicatedNicknameException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import com.opt.ssafy.optback.global.application.S3Service;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -18,6 +22,10 @@ public class MemberService {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final MemberRepository memberRepository;
+    private final S3Service s3Service;
+
+    @Value("${profile.image.bucket.name}")
+    private String profileImageBucketName;
 
     public void updateIntro(UpdateIntroRequest request) {
         Member member = userDetailsService.getMemberByContextHolder();
@@ -31,6 +39,17 @@ public class MemberService {
             throw new DuplicatedNicknameException();
         }
         member.updateNickname(request.getNickname());
+    }
+
+    public void updateProfileImage(MultipartFile image) {
+        try {
+            String imagePath = s3Service.uploadImageFile(image, profileImageBucketName);
+            Member member = userDetailsService.getMemberByContextHolder();
+            member.updateProfileImage(imagePath);
+        } catch (IOException e) {
+            System.err.println("업로드 실패 : " + e.getMessage());
+        }
+
     }
 
 }

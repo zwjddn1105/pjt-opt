@@ -10,7 +10,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
     private final MemberService memberService;
+    private static final String UPDATE_SUCCESS_MESSAGE = "수정되었습니다";
 
     // 소개글 수정
     @PreAuthorize("hasRole('TRAINER')")
@@ -25,7 +28,7 @@ public class MemberController {
     public ResponseEntity<SuccessResponse> updateIntro(@RequestBody UpdateIntroRequest request) {
         memberService.updateIntro(request);
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("수정되었습니다")
+                .message(UPDATE_SUCCESS_MESSAGE)
                 .build());
     }
 
@@ -33,7 +36,15 @@ public class MemberController {
     public ResponseEntity<SuccessResponse> updateNickname(@RequestBody UpdateNicknameRequest request) {
         memberService.updateNickname(request);
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("수정되었습니다")
+                .message(UPDATE_SUCCESS_MESSAGE)
+                .build());
+    }
+
+    @PatchMapping("/profile-image")
+    public ResponseEntity<SuccessResponse> updateProfileImage(@RequestPart MultipartFile image) {
+        memberService.updateProfileImage(image);
+        return ResponseEntity.ok(SuccessResponse.builder()
+                .message(UPDATE_SUCCESS_MESSAGE)
                 .build());
     }
 

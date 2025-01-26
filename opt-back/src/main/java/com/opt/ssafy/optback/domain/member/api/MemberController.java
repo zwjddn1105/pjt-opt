@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.member.api;
 
 import com.opt.ssafy.optback.domain.member.application.MemberService;
 import com.opt.ssafy.optback.domain.member.dto.UpdateIntroRequest;
+import com.opt.ssafy.optback.domain.member.dto.UpdateNicknameRequest;
 import com.opt.ssafy.optback.global.dto.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,14 @@ public class MemberController {
     @PatchMapping("/intro")
     public ResponseEntity<SuccessResponse> updateIntro(@RequestBody UpdateIntroRequest request) {
         memberService.updateIntro(request);
+        return ResponseEntity.ok(SuccessResponse.builder()
+                .message("수정되었습니다")
+                .build());
+    }
+
+    @PatchMapping("/nickname")
+    public ResponseEntity<SuccessResponse> updateNickname(@RequestBody UpdateNicknameRequest request) {
+        memberService.updateNickname(request);
         return ResponseEntity.ok(SuccessResponse.builder()
                 .message("수정되었습니다")
                 .build());

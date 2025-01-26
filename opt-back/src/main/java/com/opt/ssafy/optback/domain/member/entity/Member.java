@@ -67,4 +67,8 @@ public class Member {
 
     @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private TrainerDetail trainerDetail;
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }

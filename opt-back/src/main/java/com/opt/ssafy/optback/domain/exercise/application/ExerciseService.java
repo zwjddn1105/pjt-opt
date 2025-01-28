@@ -6,12 +6,19 @@ import com.opt.ssafy.optback.domain.exercise.dto.ExerciseFavoriteRequest;
 import com.opt.ssafy.optback.domain.exercise.dto.ExerciseInfoResponse;
 import com.opt.ssafy.optback.domain.exercise.entity.Exercise;
 import com.opt.ssafy.optback.domain.exercise.entity.FavoriteExercise;
+import com.opt.ssafy.optback.domain.exercise.entity.QExercise;
 import com.opt.ssafy.optback.domain.exercise.exception.ExerciseNotFoundException;
 import com.opt.ssafy.optback.domain.exercise.repository.ExerciseFavoriteRepository;
 import com.opt.ssafy.optback.domain.exercise.repository.ExerciseRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +30,37 @@ public class ExerciseService {
     private final UserDetailsServiceImpl userDetailsService;
     private final ExerciseRepository exerciseRepository;
     private final ExerciseFavoriteRepository exerciseFavoriteRepository;
+    private final JPAQueryFactory queryFactory;
 
-    public List<ExerciseInfoResponse> getAllExerciseInfos() {
-        List<Exercise> exercises = exerciseRepository.findAll();
-        return exercises.stream().map(ExerciseInfoResponse::from).toList();
+    public Page<ExerciseInfoResponse> getFilteredExerciseInfos(String bodyPart, Pageable pageable) {
+        QExercise qExercise = QExercise.exercise;
+        BooleanBuilder filterBuilder = new BooleanBuilder();
+
+        if (bodyPart != null) {
+            ExerciseQueryHelper.addBodyPartFilter(bodyPart, qExercise, filterBuilder);
+        }
+
+        long totalCount = queryFactory.selectFrom(qExercise)
+                .where(filterBuilder)
+                .fetchCount();
+
+        List<Integer> favoriteIds = new ArrayList<>();
+        if (!userDetailsService.isAnonymous()) {
+            Member member = userDetailsService.getMemberByContextHolder();
+            favoriteIds = member.getFavoriteExercises().stream()
+                    .map(favoriteExercise -> favoriteExercise.getExercise().getId()).toList();
+        }
+
+        List<Integer> finalFavoriteIds = favoriteIds;
+        List<ExerciseInfoResponse> exerciseInfos = queryFactory.selectFrom(qExercise)
+                .where(filterBuilder)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch()
+                .stream().map((exercise) -> ExerciseInfoResponse.from(exercise, finalFavoriteIds))
+                .toList();
+
+        return new PageImpl<>(exerciseInfos, pageable, totalCount);
     }
 
     public ExerciseDetailResponse getExerciseDetailById(Integer id) {

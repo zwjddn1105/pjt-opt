@@ -5,9 +5,11 @@ import com.opt.ssafy.optback.domain.exercise.dto.ExerciseDetailResponse;
 import com.opt.ssafy.optback.domain.exercise.dto.ExerciseFavoriteRequest;
 import com.opt.ssafy.optback.domain.exercise.dto.ExerciseInfoResponse;
 import com.opt.ssafy.optback.global.dto.SuccessResponse;
+import jakarta.annotation.Nullable;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,9 +28,9 @@ public class ExerciseController {
     private final ExerciseService exerciseService;
 
     @GetMapping
-    public ResponseEntity<List<ExerciseInfoResponse>> getAllExercises(@RequestParam String bodyPart,
-                                                                      Pageable pageable) {
-        List<ExerciseInfoResponse> exerciseInfos = exerciseService.getAllExerciseInfos();
+    public ResponseEntity<Slice<ExerciseInfoResponse>> getFilteredExercises(@Nullable @RequestParam String bodyPart,
+                                                                            Pageable pageable) {
+        Slice<ExerciseInfoResponse> exerciseInfos = exerciseService.getFilteredExerciseInfos(bodyPart, pageable);
         return ResponseEntity.ok(exerciseInfos);
     }
 

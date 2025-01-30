@@ -45,4 +45,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
+    public boolean isAnonymous() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        return authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal());
+    }
+
 }

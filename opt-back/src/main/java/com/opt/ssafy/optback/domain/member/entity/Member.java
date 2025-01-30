@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.member.entity;
 
+import com.opt.ssafy.optback.domain.exercise.entity.FavoriteExercise;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -85,5 +86,8 @@ public class Member {
         this.memberInterests.clear();
         this.memberInterests.addAll(newInterests);
     }
+
+    @OneToMany(mappedBy = "member")
+    private List<FavoriteExercise> favoriteExercises;
 
 }

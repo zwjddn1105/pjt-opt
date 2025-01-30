@@ -48,4 +48,33 @@ public class S3Service {
             inputStream.close();
         }
     }
+
+
+    public String uploadVideoFile(MultipartFile video, String bucketName) throws IOException {
+        String fileName = video.getOriginalFilename();
+        String extension = fileName.substring(fileName.lastIndexOf(".") + 1);
+        String uploadFileName = UUID.randomUUID().toString() + "." + extension;
+
+        InputStream inputStream = video.getInputStream();
+        byte[] bytes = IOUtils.toByteArray(inputStream);
+
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType("video/" + extension);
+        metadata.setContentLength(bytes.length);
+
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        try {
+            PutObjectRequest putObjectRequest =
+                    new PutObjectRequest(bucketName, uploadFileName, byteArrayInputStream, metadata)
+                            .withCannedAcl(CannedAccessControlList.PublicRead);
+            amazonS3.putObject(putObjectRequest);
+
+            return amazonS3.getUrl(bucketName, uploadFileName).toString();
+        } catch (Exception e) {
+            throw new RuntimeException("동영상 업로드 실패", e);
+        } finally {
+            byteArrayInputStream.close();
+            inputStream.close();
+        }
+    }
 }

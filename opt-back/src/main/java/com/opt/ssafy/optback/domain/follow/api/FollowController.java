@@ -2,37 +2,44 @@ package com.opt.ssafy.optback.domain.follow.api;
 
 import com.opt.ssafy.optback.domain.follow.application.FollowService;
 import com.opt.ssafy.optback.domain.follow.dto.FollowDto;
+import com.opt.ssafy.optback.domain.follow.entity.Follow;
+import com.opt.ssafy.optback.domain.member.entity.Member;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/follows")
+@RequiredArgsConstructor
 public class FollowController {
 
     private final FollowService followService;
 
-    public FollowController(FollowService followService) {
-        this.followService = followService;
-    }
-
     @GetMapping("/following")
-    public List<FollowDto> getFollowingList(@RequestParam Long memberId) {
-        return followService.getFollowingList(memberId);
+    public ResponseEntity<List<FollowDto>> getFollowing() {
+        return ResponseEntity.ok(followService.getFollowingList().stream()
+                .map(FollowDto::fromEntity)
+                .toList());
     }
 
     @GetMapping("/follower")
-    public List<FollowDto> getFollowerList(@RequestParam Long memberId) {
-        return followService.getFollowerList(memberId);
+    public ResponseEntity<List<FollowDto>> getFollower() {
+        return ResponseEntity.ok(followService.getFollowerList().stream()
+                .map(FollowDto::fromEntity)
+                .toList());
     }
+
 
     @PostMapping
-    public void addFollow(@RequestBody FollowDto followDto) {
-        followService.addFollow(followDto);
+    public ResponseEntity<Void> follow(@RequestParam int targetId) {
+        followService.follow(targetId);
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{followId}")
-    public void removeFollow(@PathVariable Long followId) {
-        followService.removeFollow(followId);
+    @DeleteMapping("/{targetId}")
+    public ResponseEntity<Void> unfollow(@PathVariable int targetId) {
+        followService.unfollow(targetId);
+        return ResponseEntity.ok().build();
     }
 }

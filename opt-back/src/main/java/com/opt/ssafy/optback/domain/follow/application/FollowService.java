@@ -1,44 +1,56 @@
 package com.opt.ssafy.optback.domain.follow.application;
 
-import com.opt.ssafy.optback.domain.follow.dto.Follow;
-import com.opt.ssafy.optback.domain.follow.dto.FollowDto;
-import com.opt.ssafy.optback.domain.follow.dto.FollowRepository;
+import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
+import com.opt.ssafy.optback.domain.follow.entity.Follow;
+import com.opt.ssafy.optback.domain.follow.repository.FollowRepository;
+import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
+import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class FollowService {
 
     private final FollowRepository followRepository;
+    private final MemberRepository memberRepository;
+    private final UserDetailsServiceImpl userDetailsService;
 
-    public FollowService(FollowRepository followRepository) {
-        this.followRepository = followRepository;
+    @Transactional(readOnly = true)
+    public List<Follow> getFollowingList() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        return followRepository.findByMember(member);
     }
 
-    public List<FollowDto> getFollowingList(Long memberId) {
-        return followRepository.findByFollowerId(memberId)
-                .stream()
-                .map(follow -> new FollowDto(follow.getFollowerId(), follow.getFollowingId()))
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public List<Follow> getFollowerList() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        System.out.println("@@@@@");
+        return followRepository.findByTarget(member);
     }
 
-    public List<FollowDto> getFollowerList(Long memberId) {
-        return followRepository.findByFollowingId(memberId)
-                .stream()
-                .map(follow -> new FollowDto(follow.getFollowerId(), follow.getFollowingId()))
-                .collect(Collectors.toList());
+    @Transactional
+    public void follow(int targetId) {
+        Member member = userDetailsService.getMemberByContextHolder();
+        Member target = memberRepository.findById(targetId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        // 이미 팔로우하고 있는지 체크 후 저장
+        if (followRepository.findByMember(member).stream().noneMatch(f -> f.getTarget().equals(target))) {
+            followRepository.save(Follow.builder().member(member).target(target).build());
+        }
     }
 
-    public void addFollow(FollowDto followDto) {
-        Follow follow = new Follow();
-        follow.setFollowerId(followDto.getFollowerId());
-        follow.setFollowingId(followDto.getFollowingId());
-        followRepository.save(follow);
+    @Transactional
+    public void unfollow(int targetId) {
+        Member member = userDetailsService.getMemberByContextHolder();
+        Member target = memberRepository.findById(targetId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        followRepository.deleteByMemberAndTarget(member, target);
     }
 
-    public void removeFollow(Long followId) {
-        followRepository.deleteById(followId);
-    }
 }

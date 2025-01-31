@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ef8e8df8-8188-4cf8-87f0-9c209f095a50" name="Changes" comment="init: 프로젝트 생성" />
+    <list default="true" id="ef8e8df8-8188-4cf8-87f0-9c209f095a50" name="Changes" comment="init: 프로젝트 생성">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -34,7 +36,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "WebServerToolWindowFactoryState": "false",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "BackEnd",
+    "git-widget-placeholder": "be-feature/exercise",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/SSAFY/Desktop",
     "node.js.detected.package.eslint": "true",
@@ -42,7 +44,10 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "project.structure.last.edited": "Global Libraries",
+    "project.structure.proportion": "0.19035846",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle",
     "show.migrate.to.gradle.popup": "false",
     "vue.rearranger.settings.migration": "true"
   },
@@ -52,6 +57,22 @@
     ]
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="S12P11A309" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Unnamed" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="openjdk-23" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <module name="S12P11A309" />
+      <option name="SPRING_BOOT_MAIN_CLASS" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -73,7 +94,8 @@
       <workItem from="1737678271309" duration="4022000" />
       <workItem from="1737684885309" duration="682000" />
       <workItem from="1737769712374" duration="232000" />
-      <workItem from="1737876538357" duration="25000" />
+      <workItem from="1737985393024" duration="507000" />
+      <workItem from="1737985912732" duration="706000" />
     </task>
     <task id="LOCAL-00001" summary="docs: 250115_SOLID_이승우">
       <option name="closed" value="true" />

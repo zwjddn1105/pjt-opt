@@ -43,10 +43,13 @@ public class ExerciseRecordService {
                 .sets(request.getSet())
                 .weight(request.getWeight())
                 .build());
-        saveExerciseMedias(exerciseRecord.getId(), medias);
+        if (medias != null && !medias.isEmpty()) {
+            saveExerciseMedias(exerciseRecord.getId(), medias);
+        }
     }
 
     private void saveExerciseMedias(Integer exerciseRecordId, List<MultipartFile> medias) throws IOException {
+        ExerciseRecord exerciseRecord = exerciseRecordRepository.findById(exerciseRecordId).orElseThrow();
         for (MultipartFile media : medias) {
             String fileName = media.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
@@ -54,7 +57,7 @@ public class ExerciseRecordService {
             if (List.of("jpg", "jpeg", "png", "gif").contains(extension)) {
                 String path = s3Service.uploadImageFile(media, bucketName);
                 ExerciseRecordMedia recordMedia = ExerciseRecordMedia.builder()
-                        .exerciseRecordId(exerciseRecordId)
+                        .exerciseRecord(exerciseRecord)
                         .mediaType("IMAGE")
                         .mediaPath(path)
                         .build();
@@ -63,7 +66,7 @@ public class ExerciseRecordService {
             if (List.of("mp4", "avi", "mov", "mkv").contains(extension)) {
                 String path = s3Service.uploadVideoFile(media, bucketName);
                 ExerciseRecordMedia recordMedia = ExerciseRecordMedia.builder()
-                        .exerciseRecordId(exerciseRecordId)
+                        .exerciseRecord(exerciseRecord)
                         .mediaType("VIDEO")
                         .mediaPath(path)
                         .build();
@@ -71,6 +74,13 @@ public class ExerciseRecordService {
             }
             exerciseRecordMediaRepository.saveAll(recordMedias);
         }
+    }
+
+    public void deleteExerciseRecord(Integer id) {
+        ExerciseRecord exerciseRecord = exerciseRecordRepository.findById(id).orElseThrow();
+        List<ExerciseRecordMedia> medias = exerciseRecord.getMedias();
+        medias.forEach(exerciseRecordMedia -> s3Service.deleteMedia(exerciseRecordMedia.getMediaPath(), bucketName));
+        exerciseRecordRepository.delete(exerciseRecord);
     }
 
 }

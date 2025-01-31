@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.exercise.application;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.exercise.dto.CreateExerciseRecordRequest;
+import com.opt.ssafy.optback.domain.exercise.dto.UpdateExerciseRecordRequest;
 import com.opt.ssafy.optback.domain.exercise.entity.Exercise;
 import com.opt.ssafy.optback.domain.exercise.entity.ExerciseRecord;
 import com.opt.ssafy.optback.domain.exercise.entity.ExerciseRecordMedia;
@@ -17,10 +18,12 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ExerciseRecordService {
 
     private final S3Service s3Service;
@@ -81,6 +84,25 @@ public class ExerciseRecordService {
         List<ExerciseRecordMedia> medias = exerciseRecord.getMedias();
         medias.forEach(exerciseRecordMedia -> s3Service.deleteMedia(exerciseRecordMedia.getMediaPath(), bucketName));
         exerciseRecordRepository.delete(exerciseRecord);
+    }
+
+    public void updateExerciseRecord(Integer exerciseRecordId,
+                                     UpdateExerciseRecordRequest request,
+                                     List<MultipartFile> newMedias)
+            throws IOException {
+        ExerciseRecord exerciseRecord = exerciseRecordRepository.findById(exerciseRecordId).orElseThrow();
+        List<ExerciseRecordMedia> medias = exerciseRecord.getMedias();
+        for (ExerciseRecordMedia media : medias) {
+            if (request.getMediaIdsToDelete().contains(media.getId())) {
+                s3Service.deleteMedia(media.getMediaPath(), bucketName);
+            }
+        }
+        if (request.getMediaIdsToDelete() != null && !request.getMediaIdsToDelete().isEmpty()) {
+            medias.removeIf(media -> request.getMediaIdsToDelete().contains(media.getId()));
+        }
+        if (newMedias != null && !newMedias.isEmpty()) {
+            saveExerciseMedias(exerciseRecord.getId(), newMedias);
+        }
     }
 
 }

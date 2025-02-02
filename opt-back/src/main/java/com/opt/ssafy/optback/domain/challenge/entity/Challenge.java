@@ -20,14 +20,21 @@ public class Challenge {
     @Column(name = "type", length = 10)
     private String type;
 
-    @Column(name = "title", length = 50)
+    // DB에서는 char(50)로 선언되어 있으므로, columnDefinition을 사용하거나 길이 제한을 줄 수 있음
+    @Column(name = "title", columnDefinition = "char(50)")
     private String title;
 
-    @Column(name = "description", length = 255)
+    @Column(name = "description", columnDefinition = "char(255)")
     private String description;
 
-    @Column(name = "reward", length = 100)
-    private String reward;
+    @Column(name = "template_id")
+    private int templateId;
+
+    @Column(name = "host_id")
+    private int hostId;
+
+    @Column(name = "winner_id")
+    private Integer winnerId; // null 가능
 
     @Temporal(TemporalType.DATE)
     @Column(name = "start_date")
@@ -37,7 +44,35 @@ public class Challenge {
     @Column(name = "end_date")
     private Date endDate;
 
-    @Column(name = "status", length = 10)
+    @Column(name = "status", columnDefinition = "char(10)")
     private String status;
 
+    @Column(name = "reward", columnDefinition = "char(100)")
+    private String reward;
+
+    // DB에서 default CURRENT_TIMESTAMP로 생성되므로 insert/update는 하지 않음.
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private Date createdAt;
+
+    @Column(name = "current_participants")
+    private Integer currentParticipants;
+
+    @Column(name = "max_participants")
+    private int maxParticipants;
+
+    @Column(name = "frequency")
+    private int frequency;
+
+    @Column(name = "progress")
+    private Float progress;
+
+    @Column(name = "image_path", columnDefinition = "char(255)")
+    private String imagePath;
+
+    @Column(name = "exercise_type", length = 10)
+    private String exerciseType;
+
+    @Column(name = "exercise_count")
+    private int exerciseCount;
 }

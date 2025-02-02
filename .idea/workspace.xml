@@ -34,9 +34,9 @@
     "RunOnceActivity.git.unshallow": "true",
     "WebServerToolWindowFactoryState": "false",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "BackEnd",
+    "git-widget-placeholder": "be-feature/challenge",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/SSAFY/Desktop/project1/opt-back",
+    "last_opened_file_path": "C:/Users/SSAFY/Desktop/project/opt-back",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -56,11 +56,6 @@
   }
 }]]></component>
   <component name="RunManager">
-    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
-      <module name="S12P11A309" />
-      <option name="filePath" />
-      <method v="2" />
-    </configuration>
     <configuration name="Unnamed" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <option name="ALTERNATIVE_JRE_PATH" value="openjdk-23" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
@@ -95,6 +90,7 @@
       <workItem from="1737985393024" duration="507000" />
       <workItem from="1737985912732" duration="706000" />
       <workItem from="1738295108589" duration="14000" />
+      <workItem from="1738459739437" duration="17000" />
     </task>
     <task id="LOCAL-00001" summary="docs: 250115_SOLID_이승우">
       <option name="closed" value="true" />

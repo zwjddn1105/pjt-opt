@@ -24,16 +24,8 @@ public class CounselExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .message(ex.getMessage())
                 .build();
-        // 트레이너가 존재하지 않으면 400 (Bad Request) 또는 상황에 따라 다른 상태 코드를 사용할 수 있습니다.
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        // 트레이너가 존재하지 않으면 404 (NOT_FOUND)
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
-    // 그 외의 모든 예외를 처리하는 핸들러 (선택 사항)
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .message("Internal Server Error: " + ex.getMessage())
-                .build();
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
 }

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class TrainerReviewResponseDto {
+public class TrainerReviewResponse {
 
     private int trainerId;
     private String comment;
@@ -18,7 +18,7 @@ public class TrainerReviewResponseDto {
     private int rate;
     private List<String> imageUrls;
 
-    public TrainerReviewResponseDto(TrainerReview trainerReview) {
+    public TrainerReviewResponse(TrainerReview trainerReview) {
         this.trainerId = trainerReview.getTrainerId();
         this.comment = trainerReview.getComment();
         this.createdAt = trainerReview.getCreatedAt();

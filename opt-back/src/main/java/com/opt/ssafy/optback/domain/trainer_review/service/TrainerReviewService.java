@@ -2,7 +2,7 @@ package com.opt.ssafy.optback.domain.trainer_review.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
-import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequestDto;
+import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequest;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotFoundException;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotSaveException;
@@ -24,7 +24,7 @@ public class TrainerReviewService {
 
     // 리뷰 저장
     @Transactional
-    public TrainerReview saveReviewWithImages(TrainerReviewRequestDto reviewRequestDto, List<MultipartFile> images) {
+    public TrainerReview saveReviewWithImages(TrainerReviewRequest reviewRequestDto, List<MultipartFile> images) {
         // 로그인 멤버
         Member member = userDetailsService.getMemberByContextHolder();
         int reviewerId = member.getId();
@@ -42,11 +42,11 @@ public class TrainerReviewService {
 
     // 리뷰 텍스트 저장
     @Transactional
-    public TrainerReview saveReviewText(TrainerReviewRequestDto trainerReviewRequestDto) {
+    public TrainerReview saveReviewText(TrainerReviewRequest trainerReviewRequestDto) {
         // 로그인 멤버
         Member member = userDetailsService.getMemberByContextHolder();
         int reviewerId = member.getId();
-        
+
         TrainerReview newTrainerReview = TrainerReview.builder()
                 .reviewerId(reviewerId)
                 .trainerId(trainerReviewRequestDto.getTrainerId())

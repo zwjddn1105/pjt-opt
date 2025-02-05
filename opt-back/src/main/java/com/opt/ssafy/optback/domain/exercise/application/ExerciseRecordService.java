@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.exercise.application;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.exercise.dto.CreateExerciseRecordRequest;
+import com.opt.ssafy.optback.domain.exercise.dto.ExerciseRecordResponse;
 import com.opt.ssafy.optback.domain.exercise.dto.UpdateExerciseRecordRequest;
 import com.opt.ssafy.optback.domain.exercise.entity.Exercise;
 import com.opt.ssafy.optback.domain.exercise.entity.ExerciseRecord;
@@ -13,6 +14,7 @@ import com.opt.ssafy.optback.domain.exercise.repository.ExerciseRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.global.application.S3Service;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,15 @@ public class ExerciseRecordService {
     private final ExerciseRecordMediaRepository exerciseRecordMediaRepository;
     @Value("${exercise.media.bucket.name}")
     private String bucketName;
+
+    public List<ExerciseRecordResponse> findExerciseRecordsByDate(LocalDate date) {
+        Member member = userDetailsService.getMemberByContextHolder();
+
+        return member.getExerciseRecords().stream()
+                .filter(exerciseRecord -> exerciseRecord.getCreatedAt().isEqual(date))
+                .map(ExerciseRecordResponse::from)
+                .toList();
+    }
 
     public void createExerciseRecord(CreateExerciseRecordRequest request, List<MultipartFile> medias)
             throws IOException {

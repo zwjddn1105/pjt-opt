@@ -32,7 +32,4 @@ public class ChallengeMember {
     private Date joinAt;
 
     // 도메인 메서드: 챌린지 탈퇴 시 status를 "END"으로 변경
-    public void quit() {
-        this.status = "END";
-    }
 }

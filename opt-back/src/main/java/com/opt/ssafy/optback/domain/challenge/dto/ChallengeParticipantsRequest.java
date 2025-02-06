@@ -5,7 +5,6 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class ChallengeRecordRequest {
+public class ChallengeParticipantsRequest {
     private int challengeId;
-    private int count;
 }

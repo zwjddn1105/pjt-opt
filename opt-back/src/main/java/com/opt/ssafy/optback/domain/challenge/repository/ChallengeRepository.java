@@ -19,4 +19,6 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
     List<Challenge> findByStartDateGreaterThan(Date startDateIsGreaterThan);
 
     List<Challenge> findByIdIn(List<Integer> challengeIds);
+
+//    Challenge findById(int id);
 }

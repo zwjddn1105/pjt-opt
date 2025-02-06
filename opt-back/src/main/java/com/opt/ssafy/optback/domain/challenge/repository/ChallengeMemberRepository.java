@@ -1,13 +1,14 @@
 package com.opt.ssafy.optback.domain.challenge.repository;
 
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeMember;
+import jakarta.transaction.Transactional;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ChallengeMemberRepository extends JpaRepository<ChallengeMember, Integer> {
@@ -20,4 +21,12 @@ public interface ChallengeMemberRepository extends JpaRepository<ChallengeMember
 
     @Query("SELECT cm.challengeId FROM ChallengeMember cm WHERE cm.memberId = :memberId")
     List<Integer> findChallengeIdsByMemberId(@Param("memberId") int memberId);
+
+    // challenge_id와 member_id를 이용해 특정 챌린지 멤버 삭제
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM ChallengeMember cm WHERE cm.challengeId = :challengeId AND cm.memberId = :memberId")
+    void deleteByChallengeIdAndMemberId(@Param("challengeId") int challengeId, @Param("memberId") int memberId);
+
+    boolean existsByChallengeIdAndMemberId(int id, int id1);
 }

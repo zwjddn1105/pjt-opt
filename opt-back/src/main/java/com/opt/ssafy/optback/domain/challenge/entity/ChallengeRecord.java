@@ -1,9 +1,21 @@
 package com.opt.ssafy.optback.domain.challenge.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.util.Date;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
@@ -16,6 +28,11 @@ public class ChallengeRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
+    // ChallengeMember를 직접 참조하도록 변경
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "challenge_member_id", nullable = false)
+    private ChallengeMember challengeMember;
 
     // 챌린지와 다대일 관계
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,4 +52,8 @@ public class ChallengeRecord {
 
     @Column(name = "is_passed")
     private boolean isPassed;
+
+    public void setCount(int counts) {
+        count = counts;
+    }
 }

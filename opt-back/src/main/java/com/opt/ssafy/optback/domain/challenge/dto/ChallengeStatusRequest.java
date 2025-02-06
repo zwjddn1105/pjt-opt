@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class ChallengeRecordRequest {
+public class ChallengeStatusRequest {
     private int challengeId;
-    private int count;
+    private String status; // 변경할 챌린지 상태
 }

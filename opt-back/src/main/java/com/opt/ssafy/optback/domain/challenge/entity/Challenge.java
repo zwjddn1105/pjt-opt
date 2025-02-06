@@ -1,9 +1,20 @@
 package com.opt.ssafy.optback.domain.challenge.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.util.Date;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
@@ -75,4 +86,27 @@ public class Challenge {
 
     @Column(name = "exercise_count")
     private int exerciseCount;
+
+    @OneToMany
+    private List<ChallengeMember> members;
+
+    public Boolean isPossibleJoin() {
+        return true;
+    }
+
+    public void setWinner(Integer id) {
+        winnerId = id;
+    }
+
+    public void setCurrentParticipants(int i) {
+        currentParticipants = i;
+    }
+
+    public void setProgress(float newProgress) {
+        progress = newProgress;
+    }
+
+    public void setStatus(String newStatus) {
+        status = newStatus;
+    }
 }

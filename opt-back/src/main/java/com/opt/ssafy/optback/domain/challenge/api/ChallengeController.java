@@ -2,12 +2,9 @@ package com.opt.ssafy.optback.domain.challenge.api;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.challenge.application.ChallengeService;
-import com.opt.ssafy.optback.domain.challenge.dto.ChallengeParticipantsRequest;
-import com.opt.ssafy.optback.domain.challenge.dto.ChallengeProgressRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeResponse;
-import com.opt.ssafy.optback.domain.challenge.dto.ChallengeStatusRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeWinnerRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.JoinChallengeRequest;
@@ -116,14 +113,6 @@ public class ChallengeController {
                 .build());
     }
 
-    @PatchMapping("/status")
-    public ResponseEntity<SuccessResponse> updateChallengeStatus(@RequestBody ChallengeStatusRequest request) {
-        challengeService.updateChallengeStatus(request.getChallengeId(), request.getStatus());
-        return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Challenge status updated successfully")
-                .build());
-    }
-
 
     // GET /challenges/created - 내(트레이너)가 생성한 챌린지 목록
     @GetMapping("/created")
@@ -179,35 +168,4 @@ public class ChallengeController {
                 .message("Winner updated successfully")
                 .build());
     }
-
-    // 참가자 수 증가
-    @PatchMapping("/current-participants/increase")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<SuccessResponse> increaseParticipants(@RequestBody ChallengeParticipantsRequest request) {
-        challengeService.increaseParticipants(request.getChallengeId());
-        return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Participants count increased")
-                .build());
-    }
-
-    // 참가자 수 감소
-    @PatchMapping("/current-participants/decrease")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<SuccessResponse> decreaseParticipants(@RequestBody ChallengeParticipantsRequest request) {
-        challengeService.decreaseParticipants(request.getChallengeId());
-        return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Participants count decreased")
-                .build());
-    }
-
-    // 챌린지 진행도 업데이트
-    @PatchMapping("/progress")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<SuccessResponse> updateProgress(@RequestBody ChallengeProgressRequest request) {
-        challengeService.updateProgress(request.getChallengeId(), request.getProgress());
-        return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Challenge progress updated")
-                .build());
-    }
-
 }

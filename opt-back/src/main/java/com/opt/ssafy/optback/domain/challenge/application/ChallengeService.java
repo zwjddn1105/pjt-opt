@@ -157,7 +157,9 @@ public class ChallengeService {
         if (!challenge.getStatus().equals("OPEN")) {
             throw new IllegalStateException("Challenge has not been opened.");
         }
-        
+
+        increaseParticipants(request.getChallengeId());
+
         ChallengeMember challengeMember = ChallengeMember.builder()
                 .challengeId(challenge.getId())
                 .memberId(member.getId())
@@ -185,7 +187,33 @@ public class ChallengeService {
             throw new IllegalStateException("Cannot leave a challenge that is in progress.");
         }
 
+        decreaseParticipants(challengeId);
+
         challengeMemberRepository.deleteByChallengeIdAndMemberId(challengeId, member.getId());
+    }
+
+    public void increaseParticipants(int challengeId) {
+        Challenge challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
+
+        if (challenge.getCurrentParticipants() >= challenge.getMaxParticipants()) {
+            throw new IllegalStateException("Maximum participants reached.");
+        }
+
+        challenge.setCurrentParticipants(challenge.getCurrentParticipants() + 1);
+        challengeRepository.save(challenge);
+    }
+
+    public void decreaseParticipants(int challengeId) {
+        Challenge challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
+
+        if (challenge.getCurrentParticipants() <= 0) {
+            throw new IllegalStateException("No participants to remove.");
+        }
+
+        challenge.setCurrentParticipants(challenge.getCurrentParticipants() - 1);
+        challengeRepository.save(challenge);
     }
 
     // [추가] 내(트레이너)가 생성한 챌린지 목록
@@ -280,32 +308,6 @@ public class ChallengeService {
 //        }
 
         challenge.setWinner(winnerId);
-        challengeRepository.save(challenge);
-    }
-
-    @Transactional
-    public void increaseParticipants(int challengeId) {
-        Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
-
-        if (challenge.getCurrentParticipants() >= challenge.getMaxParticipants()) {
-            throw new IllegalStateException("Maximum participants reached.");
-        }
-
-        challenge.setCurrentParticipants(challenge.getCurrentParticipants() + 1);
-        challengeRepository.save(challenge);
-    }
-
-    @Transactional
-    public void decreaseParticipants(int challengeId) {
-        Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
-
-        if (challenge.getCurrentParticipants() <= 0) {
-            throw new IllegalStateException("No participants to remove.");
-        }
-
-        challenge.setCurrentParticipants(challenge.getCurrentParticipants() - 1);
         challengeRepository.save(challenge);
     }
 

@@ -6,5 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Integer> {
-    // 필요에 따라 추가 커스텀 메서드 선언
+//    List<Session> findByTicketTrainerId(int id);
+//
+//    List<Session> findByTicketStudentId(int id);
 }

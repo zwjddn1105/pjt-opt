@@ -1,10 +1,10 @@
 package com.opt.ssafy.optback.domain.challenge.dto;
 
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Setter
+@NoArgsConstructor
 public class ChallengeRecordRequest {
     private int challengeId;
     private int count;

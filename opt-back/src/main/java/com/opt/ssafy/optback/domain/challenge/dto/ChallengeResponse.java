@@ -1,8 +1,8 @@
 package com.opt.ssafy.optback.domain.challenge.dto;
 
+import java.util.Date;
 import lombok.Builder;
 import lombok.Getter;
-import java.util.Date;
 
 @Getter
 @Builder

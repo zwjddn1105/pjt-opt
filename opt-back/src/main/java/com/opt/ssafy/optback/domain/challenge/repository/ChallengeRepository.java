@@ -1,18 +1,19 @@
 package com.opt.ssafy.optback.domain.challenge.repository;
 
 import com.opt.ssafy.optback.domain.challenge.entity.Challenge;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
     List<Challenge> findByHostId(int hostId);
 
-    List<Challenge> findByStartDateLessThanEqualAndEndDateGreaterThanEqual(Date startDateIsLessThan, Date endDateIsGreaterThan);
+    List<Challenge> findByStartDateLessThanEqualAndEndDateGreaterThanEqual(Date startDateIsLessThan,
+                                                                           Date endDateIsGreaterThan);
 
     List<Challenge> findByEndDateLessThan(Date endDateIsLessThan);
 
@@ -20,5 +21,7 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
 
     List<Challenge> findByIdIn(List<Integer> challengeIds);
 
-//    Challenge findById(int id);
+    @Query("SELECT c FROM Challenge c WHERE c.endDate = :targetDate")
+    List<Challenge> findByEndDate(@Param("targetDate") Date targetDate);
+
 }

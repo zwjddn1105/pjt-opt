@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -20,5 +22,12 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     Optional<ChallengeRecord> findByChallengeMember(ChallengeMember challengeMember);
 
     Optional<ChallengeRecord> findByChallengeMemberAndCreatedAt(ChallengeMember challengeMember, Date today);
+
+    @Query("SELECT c.count FROM ChallengeRecord c WHERE c.challengeMember.id = :challengeMemberId")
+    Optional<Integer> findCountByChallengeMemberId(@Param("challengeMemberId") int challengeMemberId);
+
+    @Query("SELECT SUM(c.count) FROM ChallengeRecord c WHERE c.memberId = :memberId AND c.challenge.id = :challengeId")
+    Optional<Integer> sumCountByMemberIdAndChallengeId(@Param("memberId") int memberId,
+                                                       @Param("challengeId") int challengeId);
 }
 

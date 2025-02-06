@@ -1,9 +1,18 @@
 package com.opt.ssafy.optback.domain.challenge.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.util.Date;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
@@ -31,5 +40,7 @@ public class ChallengeMember {
     @Column(name = "join_at", nullable = false)
     private Date joinAt;
 
-    // 도메인 메서드: 챌린지 탈퇴 시 status를 "END"으로 변경
+    public void setStatus(String ended) {
+        this.status = ended;
+    }
 }

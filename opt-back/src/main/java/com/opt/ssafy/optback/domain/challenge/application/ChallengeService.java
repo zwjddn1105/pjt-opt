@@ -17,13 +17,17 @@ import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import jakarta.transaction.Transactional;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChallengeService {
@@ -71,6 +75,7 @@ public class ChallengeService {
                 .build();
         challengeRepository.save(challenge);
     }
+
 
     public void deleteChallenge(int id) {
         if (!challengeRepository.existsById(id)) {
@@ -311,18 +316,101 @@ public class ChallengeService {
         challengeRepository.save(challenge);
     }
 
+    @Scheduled(cron = "10 0 0 * * *")
     @Transactional
-    public void updateProgress(int challengeId, float progress) {
-        Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
+    public void updateChallengeAndMember() { //challenge 테이블과 challenge_member 수정
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1); // 하루 전 날짜
+        Date targetDate = cal.getTime();
 
-        if (progress < 0 || progress > 100) {
-            throw new IllegalArgumentException("Progress must be between 0 and 100.");
+        log.info("챌린지 우승자 선정 스케줄러 실행 ({})", targetDate);
+
+        // 오늘(end_date) 종료되는 챌린지 조회
+        List<Challenge> endingChallenges = challengeRepository.findByEndDate(targetDate);
+
+        for (Challenge challenge : endingChallenges) {
+            log.info("종료된 챌린지 ID: {}", challenge.getId());
+
+            // 해당 챌린지에 참여한 멤버 조회
+            List<ChallengeMember> members = challengeMemberRepository.findByChallengeId(challenge.getId());
+
+            challenge.setStatus("END");
+
+            if (members.isEmpty()) {
+                log.info("챌린지 {}에 참가한 멤버가 없습니다.", challenge.getId());
+                challengeRepository.save(challenge);
+                continue;
+            }
+
+            for (ChallengeMember member : members) {
+                member.setStatus("ENDED");
+            }
+            challengeMemberRepository.saveAll(members);
+
+            // 가장 높은 count를 기록한 멤버 찾기
+            int winnerId = findWinner(members);
+
+            // winnerId가 있을 경우 챌린지 업데이트
+            if (winnerId != -1) {
+                challenge.setWinner(winnerId);
+                log.info("챌린지 {} 우승자: Member ID {}", challenge.getId(), winnerId);
+            }
+            challengeRepository.save(challenge);
         }
-
-        challenge.setProgress(progress);
-        challengeRepository.save(challenge);
     }
+
+    @Scheduled(cron = "10 0 0 * * *")
+    public void updateProgress() {
+        List<Challenge> challenges = challengeRepository.findAll();
+
+        for (Challenge challenge : challenges) {
+            // TEAM 타입 챌린지만 업데이트
+            if (!"TEAM".equals(challenge.getType()) || "END".equals(challenge.getStatus())) {
+                return;
+            }
+
+            List<ChallengeMember> members = challengeMemberRepository.findByChallengeId(challenge.getId());
+
+            // 참여한 멤버들의 count 합산
+            int totalCount = members.stream()
+                    .map(member -> challengeRecordRepository.sumCountByMemberIdAndChallengeId(member.getMemberId(),
+                            challenge.getId()).orElse(0))
+                    .reduce(0, Integer::sum);
+
+            // progress 계산 (exercise_count가 0이면 0 처리)
+            float progress = ((float) totalCount / challenge.getExerciseCount()) * 100;
+            ;
+            if (challenge.getExerciseCount() <= 0) {
+                progress = 0.0f;
+            }
+
+            if (progress > 100) {
+                progress = 100.0f;
+            }
+
+            challenge.setProgress(progress);
+            challengeRepository.save(challenge);
+
+            log.info("챌린지 {}의 progress가 {}로 업데이트됨.", challenge.getId(), progress);
+        }
+    }
+
+    // 가장 높은 count를 기록한 멤버 찾기
+    private int findWinner(List<ChallengeMember> members) {
+        int maxCount = 0;
+        int winnerId = -1;
+
+        for (ChallengeMember member : members) {
+            Optional<Integer> count = challengeRecordRepository.findCountByChallengeMemberId(member.getId());
+
+            if (count.isPresent() && count.get() > maxCount) {
+                maxCount = count.get();
+                winnerId = member.getMemberId();
+            }
+        }
+        return winnerId;
+    }
+
 
     // 엔티티 → DTO 매핑
     private ChallengeResponse mapToResponse(Challenge challenge) {

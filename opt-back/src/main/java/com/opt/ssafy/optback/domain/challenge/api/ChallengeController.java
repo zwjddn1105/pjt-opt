@@ -5,7 +5,6 @@ import com.opt.ssafy.optback.domain.challenge.application.ChallengeService;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeResponse;
-import com.opt.ssafy.optback.domain.challenge.dto.ChallengeWinnerRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.JoinChallengeRequest;
 import com.opt.ssafy.optback.domain.member.entity.Member;
@@ -16,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -160,12 +158,4 @@ public class ChallengeController {
         return ResponseEntity.ok(challengeService.getUpcomingChallenges());
     }
 
-    // 챌린지 우승자 업데이트
-    @PatchMapping("/winner")
-    public ResponseEntity<SuccessResponse> updateWinner(@RequestBody ChallengeWinnerRequest request) {
-        challengeService.updateWinner(request.getChallengeId(), request.getWinnerId());
-        return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Winner updated successfully")
-                .build());
-    }
 }

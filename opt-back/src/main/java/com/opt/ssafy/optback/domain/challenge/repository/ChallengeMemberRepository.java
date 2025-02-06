@@ -29,4 +29,6 @@ public interface ChallengeMemberRepository extends JpaRepository<ChallengeMember
     void deleteByChallengeIdAndMemberId(@Param("challengeId") int challengeId, @Param("memberId") int memberId);
 
     boolean existsByChallengeIdAndMemberId(int id, int id1);
+
+    List<ChallengeMember> findByChallengeId(int id);
 }

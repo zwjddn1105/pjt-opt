@@ -90,10 +90,6 @@ public class Challenge {
     @OneToMany
     private List<ChallengeMember> members;
 
-    public Boolean isPossibleJoin() {
-        return true;
-    }
-
     public void setWinner(Integer id) {
         winnerId = id;
     }

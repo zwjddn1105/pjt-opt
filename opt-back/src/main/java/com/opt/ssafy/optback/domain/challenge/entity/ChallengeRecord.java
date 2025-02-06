@@ -56,4 +56,8 @@ public class ChallengeRecord {
     public void setCount(int counts) {
         count = counts;
     }
+
+    public void setIsPassed() {
+        isPassed = true;
+    }
 }

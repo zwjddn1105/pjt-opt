@@ -1,12 +1,10 @@
 package com.opt.ssafy.optback.domain.challenge.dto;
 
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeRecord;
+import java.util.Date;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.util.Date;
 
 @Getter
 @AllArgsConstructor
@@ -16,13 +14,24 @@ public class ChallengeRecordResponse {
     private int count;
     private boolean isPassed;
     private Date createdAt;
+    private float progressPerDay;
 
     public static ChallengeRecordResponse fromEntity(ChallengeRecord record) {
+        float progress = 0.0f;
+
+        if (record.getChallenge() != null
+                && ("NORMAL".equals(record.getChallenge().getType())
+                || "SURVIVAL".equals(record.getChallenge().getType()))
+                && record.getChallenge().getExerciseCount() > 0) {
+            progress = Math.round((float) record.getCount() / record.getChallenge().getExerciseCount() * 100);
+        }
+
         return new ChallengeRecordResponse(
                 record.getChallenge().getId(),
                 record.getCount(),
                 record.isPassed(),
-                record.getCreatedAt()
+                record.getCreatedAt(),
+                progress
         );
     }
 }

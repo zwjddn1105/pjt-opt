@@ -14,7 +14,6 @@ import com.opt.ssafy.optback.domain.challenge.repository.ChallengeMemberReposito
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRecordRepository;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
-import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import jakarta.transaction.Transactional;
 import java.util.Calendar;
@@ -95,7 +94,7 @@ public class ChallengeService {
                 .orElseThrow(() -> new IllegalStateException(
                         "User is not joined in the challenge. Please join the challenge first."));
 
-        Date today = new Date();  // 오늘 날짜
+        Date today = new Date(); // 오늘 날짜
 
         // 기존 기록이 있는지 확인
         Optional<ChallengeRecord> existingRecord = challengeRecordRepository.findByChallengeMemberAndCreatedAt(
@@ -104,21 +103,30 @@ public class ChallengeService {
         if (existingRecord.isPresent()) {
             ChallengeRecord record = existingRecord.get();
 
-            // 기존 count보다 새로운 count가 크면 업데이트
+            // 기존 count보다 큰 경우 업데이트
             if (count > record.getCount()) {
                 record.setCount(count);
+
+                // 이미 is_passed가 true이면 변경하지 않음 (성능 최적화)
+                if (!record.isPassed() && count >= challenge.getExerciseCount()) {
+                    record.setIsPassed();
+                }
+
                 challengeRecordRepository.save(record);
             }
         } else {
             // 기존 기록이 없다면 새로운 기록 추가
+            boolean isPassed = count >= challenge.getExerciseCount(); // 초기 is_passed 값 결정
+
             ChallengeRecord newRecord = ChallengeRecord.builder()
                     .challenge(challenge)
                     .challengeMember(challengeMember)
                     .memberId(challengeMember.getMemberId())
                     .count(count)
-                    .createdAt(new Date())
-                    .isPassed(false) // 성공 여부는 나중에 따로 처리 가능
+                    .createdAt(today)
+                    .isPassed(isPassed)
                     .build();
+
             challengeRecordRepository.save(newRecord);
         }
     }
@@ -139,8 +147,8 @@ public class ChallengeService {
     public ChallengeRecordResponse getChallengeRecord(int memberId, int challengeId) {
         ChallengeRecord record = challengeRecordRepository
                 .findByMemberIdAndChallengeId(memberId, challengeId)
-                .orElseThrow(
-                        () -> new ChallengeRecordNotFoundException("No record found for challengeId: " + challengeId));
+                .orElseThrow(() -> new ChallengeRecordNotFoundException(
+                        "No record found for challengeId: " + challengeId));
 
         return ChallengeRecordResponse.fromEntity(record);
     }
@@ -282,38 +290,6 @@ public class ChallengeService {
         Date now = new Date();
         List<Challenge> challenges = challengeRepository.findByStartDateGreaterThan(now);
         return challenges.stream().map(this::mapToResponse).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void updateChallengeStatus(int challengeId, String status) {
-        Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
-
-        // 상태 값 검증
-        List<String> validStatuses = List.of("OPEN", "PROGRESS", "ENDED");
-        if (!validStatuses.contains(status)) {
-            throw new IllegalArgumentException("Invalid challenge status: " + status);
-        }
-
-        challenge.setStatus(status);
-        challengeRepository.save(challenge);
-    }
-
-
-    @Transactional
-    public void updateWinner(int challengeId, int winnerId) {
-        Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
-
-        memberRepository.findById(winnerId)
-                .orElseThrow(MemberNotFoundException::new);
-
-//        if (!challenge.getStatus().equals("ENDED")) {
-//            throw new IllegalStateException("Winner can only be set for ended challenges.");
-//        }
-
-        challenge.setWinner(winnerId);
-        challengeRepository.save(challenge);
     }
 
     @Scheduled(cron = "10 0 0 * * *")

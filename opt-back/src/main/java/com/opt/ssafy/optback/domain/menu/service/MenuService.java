@@ -2,11 +2,12 @@ package com.opt.ssafy.optback.domain.menu.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
-import com.opt.ssafy.optback.domain.menu.dto.MenuRequest;
 import com.opt.ssafy.optback.domain.menu.entity.Menu;
+import com.opt.ssafy.optback.domain.menu.exception.MenuNotFoundException;
+import com.opt.ssafy.optback.domain.menu.exception.MenuNotSaveException;
 import com.opt.ssafy.optback.domain.menu.repository.MenuRepository;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,35 +22,71 @@ public class MenuService {
 
     // 트레이너의 메뉴 조회
     public List<Menu> findByTrainerId(int trainerId) {
-        List<Menu> menus = menuRepository.findByTrainerId(trainerId);
-        return menus;
+        return menuRepository.findByTrainerId(trainerId);
     }
 
     // 메뉴 조회
-    public Menu findMenuByTrainerIdAndCreatedAt(int trainerId, LocalDateTime createdAt) {
-        Menu menu = menuRepository.findByTrainerIdAndCreatedAt(trainerId, createdAt);
-        return menu;
+    public Menu findMenuById(int id) {
+        Optional<Menu> findMenu = menuRepository.findById(id);
+        Optional<Menu> menuOptional = menuRepository.findById(id);
+        if (menuOptional.isPresent()) {
+            return menuOptional.get();
+        } else {
+            throw new MenuNotFoundException("조회할 메뉴를 찾을 수 없습니다");
+        }
     }
+
 
     // 메뉴 등록
     @Transactional
-    public Menu saveMenu(MenuRequest menu) {
+    public Menu saveMenu(Menu menu) {
         Member member = userDetailsService.getMemberByContextHolder();
         int memberId = member.getId();
-        
-        return menuRepository.save(menu);
-    }
 
+        Menu newMenu = Menu.builder()
+                .name(menu.getName())
+                .trainerId(memberId)
+                .price(menu.getPrice())
+                .totalSessions(menu.getTotalSessions())
+                .build();
+
+        return menuRepository.save(newMenu);
+    }
 
     // 메뉴 삭제
     @Transactional
-    public void deleteMenu(MenuRequest menu) {
+    public void deleteMenu(int id) {
+        Menu findMenu = findMenuById(id);
+        checkTrainerAuthority(findMenu);
+
+        try {
+            menuRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new MenuNotSaveException("메뉴 삭제 실패");
+        }
+
     }
 
     // 메뉴 수정
     @Transactional
-    public Menu updateMenu(MenuRequest menu) {
-        return menuRepository.save(menu);
+    public Menu updateMenu(int id, Menu updatedMenu) {
+        Menu findMenu = findMenuById(id);
+        checkTrainerAuthority(findMenu);
+        try {
+            findMenu.setNewRecord(updatedMenu);
+        } catch (Exception e) {
+            throw new MenuNotSaveException("메뉴 수정 실패");
+        }
+        return menuRepository.save(findMenu);
     }
 
+    // 로그인한 유저 확인
+    private void checkTrainerAuthority(Menu menu) {
+        Member member = userDetailsService.getMemberByContextHolder();
+        int memberId = member.getId();
+
+        if (memberId != menu.getTrainerId()) {
+            throw new MenuNotSaveException("권한이 없습니다");
+        }
+    }
 }

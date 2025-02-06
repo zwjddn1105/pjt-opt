@@ -1,7 +1,7 @@
 package com.opt.ssafy.optback.domain.member.entity;
 
+import com.opt.ssafy.optback.domain.exercise.entity.ExerciseRecord;
 import com.opt.ssafy.optback.domain.exercise.entity.FavoriteExercise;
-import com.opt.ssafy.optback.domain.follow.entity.Follow;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -90,5 +90,8 @@ public class Member {
 
     @OneToMany(mappedBy = "member")
     private List<FavoriteExercise> favoriteExercises;
+
+    @OneToMany(mappedBy = "member")
+    private List<ExerciseRecord> exerciseRecords;
 
 }

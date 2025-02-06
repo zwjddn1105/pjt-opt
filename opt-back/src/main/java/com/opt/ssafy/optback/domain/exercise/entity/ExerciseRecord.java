@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.List;
@@ -17,6 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.DynamicInsert;
 
 @Entity
@@ -25,6 +27,7 @@ import org.hibernate.annotations.DynamicInsert;
 @DynamicInsert
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 @Table(name = "exercise_record")
 public class ExerciseRecord {
     @Id
@@ -59,4 +62,9 @@ public class ExerciseRecord {
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "exerciseRecord", orphanRemoval = true)
     private List<ExerciseRecordMedia> medias;
+
+    @PrePersist // ✅ 최초 저장 시 자동으로 실행됨
+    public void prePersist() {
+        this.createdAt = (this.createdAt == null) ? LocalDate.now() : this.createdAt;
+    }
 }

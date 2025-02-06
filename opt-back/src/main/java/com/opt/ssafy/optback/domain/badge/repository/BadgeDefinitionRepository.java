@@ -1,28 +1,51 @@
 package com.opt.ssafy.optback.domain.badge.repository;
 
+import com.opt.ssafy.optback.domain.badge.dto.ActivityType;
 import com.opt.ssafy.optback.domain.badge.entity.BadgeDefinition;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class BadgeDefinitionRepository {
 
-    // 실제로 적용될 뱃지 조건
-    private static final List<BadgeDefinition> BADGE_DEFINITION_LIST = List.of(
-            new BadgeDefinition(1, 1, "운동", Map.of("excerciseId", 1, "targetCount", 10)),
-            new BadgeDefinition(2, 2, "출석", Map.of("targetDays", 10))
-    );
+    private final Map<ActivityType, List<BadgeDefinition>> badgeDefinitionMap = new HashMap<>();
 
-    public static List<BadgeDefinition> getBadgeDefinitions() {
-        return BADGE_DEFINITION_LIST;
+    public BadgeDefinitionRepository() {
+        badgeDefinitionMap.put(ActivityType.EXERCISE, new ArrayList<>(List.of(
+                new BadgeDefinition(1, 1, ActivityType.EXERCISE, Map.of("exerciseId", 1, "targetCount", 10))
+        )));
+
+        badgeDefinitionMap.put(ActivityType.ATTENDANCE, new ArrayList<>(List.of(
+                new BadgeDefinition(2, 2, ActivityType.ATTENDANCE, Map.of("targetDays", 1))
+        )));
     }
 
-    public static Optional<BadgeDefinition> findById(int id) {
-        for (BadgeDefinition badgeDefinition : BADGE_DEFINITION_LIST) {
-            if (badgeDefinition.getId() == id) {
-                return Optional.of(badgeDefinition);
-            }
-        }
-        return Optional.empty();
+    public List<BadgeDefinition> getBadgeDefinitionsByType(ActivityType activityType) {
+        return badgeDefinitionMap.getOrDefault(activityType, Collections.emptyList());
+    }
+
+    public List<BadgeDefinition> getBadgeDefinitions() {
+        return badgeDefinitionMap.values().stream()
+                .flatMap(List::stream)
+                .toList();
+    }
+
+    public Optional<BadgeDefinition> findById(int id) {
+        return badgeDefinitionMap.values().stream()
+                .flatMap(List::stream)
+                .filter(badge -> badge.getId() == id)
+                .findFirst();
+    }
+
+    public List<BadgeDefinition> findByActivityType(ActivityType activityType) {
+        List<BadgeDefinition> definitions = getBadgeDefinitionsByType(activityType);
+        System.out.println("📝 조회된 뱃지 목록 (" + activityType + "): " + definitions.size() + "개");
+        definitions.forEach(def -> System.out.println("✅ 뱃지 ID: " + def.getId() + " / 조건: " + def.getCondition()));
+        return definitions;
     }
 }

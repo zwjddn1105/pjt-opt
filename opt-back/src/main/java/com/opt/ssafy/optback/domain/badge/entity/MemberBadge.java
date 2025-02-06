@@ -27,13 +27,22 @@ public class MemberBadge {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    private int badgeId;
+    @ManyToOne
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
     @ManyToOne
-    @JoinColumn(name = "member_id")
-    private Member member;
+    @JoinColumn(name = "badge_id", nullable = false)
+    private Badge badge;
 
     @Column(name = "created_date", nullable = false)
     private LocalDate createDate;
 
+    public static MemberBadge create(Member member, Badge badge) {
+        return MemberBadge.builder()
+                .member(member)
+                .badge(badge)
+                .createDate(LocalDate.now())
+                .build();
+    }
 }

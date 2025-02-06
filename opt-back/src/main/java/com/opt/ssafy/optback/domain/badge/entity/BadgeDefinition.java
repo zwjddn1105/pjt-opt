@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.badge.entity;
 
+import com.opt.ssafy.optback.domain.badge.dto.ActivityType;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,11 +9,11 @@ import lombok.Getter;
 @AllArgsConstructor
 public class BadgeDefinition {
 
-    private int id;
+    private final int id;
 
-    private int badgeId;
+    private final int badgeId;
 
-    private String type;
-    
-    private Map<String, Object> condition;
+    private final ActivityType activityType;
+
+    private final Map<String, Object> condition;
 }

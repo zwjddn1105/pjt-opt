@@ -7,7 +7,6 @@ import com.opt.ssafy.optback.domain.menu.exception.MenuNotFoundException;
 import com.opt.ssafy.optback.domain.menu.exception.MenuNotSaveException;
 import com.opt.ssafy.optback.domain.menu.repository.MenuRepository;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,16 +26,10 @@ public class MenuService {
 
     // 메뉴 조회
     public Menu findMenuById(int id) {
-        Optional<Menu> findMenu = menuRepository.findById(id);
-        Optional<Menu> menuOptional = menuRepository.findById(id);
-        if (menuOptional.isPresent()) {
-            return menuOptional.get();
-        } else {
-            throw new MenuNotFoundException("조회할 메뉴를 찾을 수 없습니다");
-        }
+        Menu m = menuRepository.findById(id).orElseThrow(() -> new MenuNotFoundException("메뉴 조회 실패"));
+        return m;
     }
-
-
+    
     // 메뉴 등록
     @Transactional
     public Menu saveMenu(Menu menu) {

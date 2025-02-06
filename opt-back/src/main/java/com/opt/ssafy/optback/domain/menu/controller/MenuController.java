@@ -1,7 +1,9 @@
 package com.opt.ssafy.optback.domain.menu.controller;
 
+import com.opt.ssafy.optback.domain.menu.dto.MenuResponse;
 import com.opt.ssafy.optback.domain.menu.entity.Menu;
 import com.opt.ssafy.optback.domain.menu.service.MenuService;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,29 +25,33 @@ public class MenuController {
     private final MenuService menuService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<Menu> getMenu(@PathVariable("id") int id) {
+    public ResponseEntity<MenuResponse> getMenu(@PathVariable("id") int id) {
         Menu menu = menuService.findMenuById(id);
-        return ResponseEntity.ok(menu);
+        return ResponseEntity.ok(new MenuResponse(menu));
     }
 
     @GetMapping("/trainer/{trainerId}")
-    public ResponseEntity<List<Menu>> getTrainerMenus(@PathVariable("trainerId") int trainerId) {
+    public ResponseEntity<List<MenuResponse>> getTrainerMenus(@PathVariable("trainerId") int trainerId) {
         List<Menu> menus = menuService.findByTrainerId(trainerId);
-        return ResponseEntity.ok(menus);
+        List<MenuResponse> menuResponses = new ArrayList<>();
+        for (Menu menu : menus) {
+            menuResponses.add(new MenuResponse(menu));
+        }
+        return ResponseEntity.ok(menuResponses);
     }
 
     @PreAuthorize("hasRole('TRAINER')")
     @PostMapping
-    public ResponseEntity<Menu> addMenu(@RequestBody Menu menu) {
+    public ResponseEntity<MenuResponse> addMenu(@RequestBody Menu menu) {
         Menu savedMenu = menuService.saveMenu(menu);
-        return ResponseEntity.ok(savedMenu);
+        return ResponseEntity.ok(new MenuResponse(savedMenu));
     }
 
     @PreAuthorize("hasRole('TRAINER')")
     @PatchMapping("/{id}")
-    public ResponseEntity<Menu> updateMenu(@PathVariable("id") int id, @RequestBody Menu menu) {
+    public ResponseEntity<MenuResponse> updateMenu(@PathVariable("id") int id, @RequestBody Menu menu) {
         Menu updatedMenu = menuService.updateMenu(id, menu);
-        return ResponseEntity.ok(updatedMenu);
+        return ResponseEntity.ok(new MenuResponse(updatedMenu));
     }
 
     @PreAuthorize("hasRole('TRAINER')")

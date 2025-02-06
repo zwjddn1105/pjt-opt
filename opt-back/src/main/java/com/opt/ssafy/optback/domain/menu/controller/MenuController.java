@@ -5,6 +5,7 @@ import com.opt.ssafy.optback.domain.menu.service.MenuService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -33,21 +34,21 @@ public class MenuController {
         return ResponseEntity.ok(menus);
     }
 
-    //    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasRole('TRAINER')")
     @PostMapping
     public ResponseEntity<Menu> addMenu(@RequestBody Menu menu) {
         Menu savedMenu = menuService.saveMenu(menu);
         return ResponseEntity.ok(savedMenu);
     }
 
-    //    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasRole('TRAINER')")
     @PatchMapping("/{id}")
     public ResponseEntity<Menu> updateMenu(@PathVariable("id") int id, @RequestBody Menu menu) {
         Menu updatedMenu = menuService.updateMenu(id, menu);
         return ResponseEntity.ok(updatedMenu);
     }
 
-    //    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasRole('TRAINER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMenu(@PathVariable("id") int id) {
         menuService.deleteMenu(id);

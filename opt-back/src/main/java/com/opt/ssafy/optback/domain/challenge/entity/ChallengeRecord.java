@@ -29,7 +29,7 @@ public class ChallengeRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    // ChallengeMember를 직접 참조하도록 변경
+    // ChallengeMember를 직접 참조
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "challenge_member_id", nullable = false)
     private ChallengeMember challengeMember;
@@ -55,5 +55,9 @@ public class ChallengeRecord {
 
     public void setCount(int counts) {
         count = counts;
+    }
+
+    public void setIsPassed() {
+        isPassed = true;
     }
 }

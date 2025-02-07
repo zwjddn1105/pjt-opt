@@ -31,7 +31,7 @@ public class Challenge {
     @Column(name = "type", length = 10)
     private String type;
 
-    // DB에서는 char(50)로 선언되어 있으므로, columnDefinition을 사용하거나 길이 제한을 줄 수 있음
+    // DB에서는 char(50)로 선언되어 있으므로, columnDefinition을 사용
     @Column(name = "title", columnDefinition = "char(50)")
     private String title;
 

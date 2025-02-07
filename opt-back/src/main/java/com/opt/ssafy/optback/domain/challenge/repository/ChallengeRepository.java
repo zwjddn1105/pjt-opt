@@ -24,4 +24,7 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
     @Query("SELECT c FROM Challenge c WHERE c.endDate = :targetDate")
     List<Challenge> findByEndDate(@Param("targetDate") Date targetDate);
 
+    List<Challenge> findByStartDateAndStatus(Date startTargetDate, String open);
+
+    List<Challenge> findByEndDateAndStatus(Date endTargetDate, String progress);
 }

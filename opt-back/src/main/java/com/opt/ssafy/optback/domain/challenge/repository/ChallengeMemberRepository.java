@@ -19,9 +19,6 @@ public interface ChallengeMemberRepository extends JpaRepository<ChallengeMember
     @Query("SELECT cm.challengeId FROM ChallengeMember cm WHERE cm.memberId = :memberId AND cm.status = :status")
     List<Integer> findChallengeIdsByMemberIdAndStatus(@Param("memberId") int memberId, @Param("status") String status);
 
-    @Query("SELECT cm.challengeId FROM ChallengeMember cm WHERE cm.memberId = :memberId")
-    List<Integer> findChallengeIdsByMemberId(@Param("memberId") int memberId);
-
     // challenge_id와 member_id를 이용해 특정 챌린지 멤버 삭제
     @Modifying
     @Transactional

@@ -14,5 +14,5 @@ public class GptRequest {
     private String model;
     private String prompt;
     private float temperature;
-
+    
 }

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opt.ssafy.optback.config.ChatGPTConfig;
 import com.opt.ssafy.optback.global.dto.GptRequest;
 import com.opt.ssafy.optback.global.exception.GPTException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,60 +29,63 @@ public class GPTService {
     @Value("${openai.api.url}")
     private String openaiApiUrl;
 
-    // 프롬프트 생성
-    public List<Map<String, Object>> prompt(GptRequest gptRequest) {
-        // 헤더 구성
+    public Object requestGPT(String prompt) {
+        GptRequest gptRequest = GptRequest.builder()
+                .model(model)
+                .prompt(prompt)
+                .temperature(0.8f)
+                .build();
+
+        String gptResponse = sendRequest(gptRequest);
+        return parseContent(gptResponse);
+    }
+
+    private String sendRequest(GptRequest gptRequest) {
         HttpHeaders headers = chatGPTConfig.headers();
 
-        List<Map<String, String>> messages = new ArrayList<>();
-        Map<String, String> userMessage = new HashMap<>();
-        userMessage.put("role", "user");
-        userMessage.put("content", gptRequest.getPrompt());
-        messages.add(userMessage);
-
-        // 요청 본문
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", model);
-        requestBody.put("messages", messages);
-        requestBody.put("temperature", 0.8f);
+        requestBody.put("model", gptRequest.getModel());
+        requestBody.put("messages", List.of(Map.of("role", "user", "content", gptRequest.getPrompt())));
+        requestBody.put("temperature", gptRequest.getTemperature());
 
-        // 본문 JSON 문자열로 변환
         String jsonRequestBody;
         try {
             jsonRequestBody = objectMapper.writeValueAsString(requestBody);
         } catch (JsonProcessingException e) {
-            throw new GPTException("GPT 요청 본문이 잘못 되었습니다");
+            throw new GPTException("GPT 요청 변환 실패");
         }
 
         HttpEntity<String> requestEntity = new HttpEntity<>(jsonRequestBody, headers);
-
         ResponseEntity<String> responseEntity = chatGPTConfig.restTemplate()
-                .exchange(
-                        openaiApiUrl,
-                        HttpMethod.POST,
-                        requestEntity,
-                        String.class
-                );
+                .exchange(openaiApiUrl, HttpMethod.POST, requestEntity, String.class);
 
         if (!responseEntity.getStatusCode().is2xxSuccessful()) {
             throw new GPTException("GPT 호출 실패");
         }
 
-        String responseBody = responseEntity.getBody();
-
-        List<Map<String, Object>> result = new ArrayList<>();
         try {
-            Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
+            Map<String, Object> responseMap = objectMapper.readValue(responseEntity.getBody(), Map.class);
             List<Map<String, Object>> choices = (List<Map<String, Object>>) responseMap.get("choices");
-            for (Map<String, Object> choice : choices) {
-                Map<String, Object> message = (Map<String, Object>) choice.get("message");
-                String content = (String) message.get("content");
-                Map<String, Object> nutritionMap = objectMapper.readValue(content, Map.class);
-                result.add(nutritionMap);
+
+            if (choices.isEmpty()) {
+                throw new GPTException("GPT 응답이 비어 있습니다");
             }
+
+            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+            return (String) message.get("content");
+
         } catch (Exception e) {
-            throw new GPTException("응답 변환 실패");
+            throw new GPTException("GPT 응답 변환 실패");
         }
-        return result;
+    }
+
+    // GPT 응답 타입에 따라 변환
+    private Object parseContent(String content) {
+        // JSON형태인지 파악
+        try {
+            return objectMapper.readValue(content, Map.class);
+        } catch (JsonProcessingException e) {
+            return content;
+        }
     }
 }

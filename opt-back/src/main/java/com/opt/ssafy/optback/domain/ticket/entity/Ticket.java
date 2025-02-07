@@ -1,6 +1,7 @@
 package com.opt.ssafy.optback.domain.ticket.entity;
 
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.session.entity.Session;
 import com.opt.ssafy.optback.domain.ticket.dto.UpdateTicketRequest;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,8 +11,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -54,6 +58,9 @@ public class Ticket {
 
     @Column(name = "status", nullable = false)
     private String status;
+
+    @OneToMany(mappedBy = "ticket")
+    private List<Session> sessions = new ArrayList<>();
 
     public void setNewRecord(UpdateTicketRequest request) {
         this.price = request.getPrice();

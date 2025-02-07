@@ -8,13 +8,10 @@ import com.opt.ssafy.optback.domain.ticket.dto.TicketRequest;
 import com.opt.ssafy.optback.domain.ticket.dto.UpdateTicketRequest;
 import com.opt.ssafy.optback.domain.ticket.entity.Ticket;
 import com.opt.ssafy.optback.domain.ticket.exception.TicketNotFoundException;
-import com.opt.ssafy.optback.domain.ticket.exception.TicketNotSaveException;
 import com.opt.ssafy.optback.domain.ticket.repository.TicketRepository;
-import com.opt.ssafy.optback.domain.ticket.repository.TicketSpecification;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +27,10 @@ public class TicketService {
     // 티켓 생성
     @Transactional
     public Ticket saveTicket(TicketRequest request) {
-        Member trainer = userDetailsService.getMemberByContextHolder();
-        if (trainer == null) {
-            throw new TicketNotSaveException("티켓 생성 중 트레이너 ID 오류 발생");
-        }
+        Member member = userDetailsService.getMemberByContextHolder();
         Member student = memberRepository.getReferenceById(request.getStudentId());
         Ticket newTicket = Ticket.builder()
-                .trainer(trainer)
+                .trainer(member)
                 .student(student)
                 .price(request.getPrice())
                 .totalSessions(request.getTotalSessions())
@@ -55,9 +49,24 @@ public class TicketService {
     }
 
     // 티켓 조회
-    public List<Ticket> getTickets(Integer studentId, Integer trainerId, Boolean isUsed) {
-        Specification<Ticket> spec = TicketSpecification.filterTickets(studentId, trainerId, isUsed);
-        return ticketRepository.findAll(spec);
+    public List<Ticket> getTicketsByTrainerIdAndIsUsed() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        return ticketRepository.findByTrainerIdAndLastUsedDateIsNotNull(member.getId());
+    }
+
+    public List<Ticket> getTicketsByStudentIdAndIsUsed() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        return ticketRepository.findByStudentIdAndLastUsedDateIsNotNull(member.getId());
+    }
+
+    public List<Ticket> getTicketsByTrainerIdAndIsNotUsed() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        return ticketRepository.findByTrainerIdAndLastUsedDateIsNull(member.getId());
+    }
+
+    public List<Ticket> getTicketsByStudentIdAndIsNotUsed() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        return ticketRepository.findByStudentIdAndLastUsedDateIsNull(member.getId());
     }
 
     // 세션 횟수 차감 시 업데이트

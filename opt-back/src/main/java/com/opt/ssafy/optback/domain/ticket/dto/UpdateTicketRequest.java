@@ -11,8 +11,6 @@ import lombok.NoArgsConstructor;
 public class UpdateTicketRequest {
 
     private int id;
-    private int trainerId;
-    private int studentId;
     private int price;
     private int totalSessions;
     private LocalDate startDate;

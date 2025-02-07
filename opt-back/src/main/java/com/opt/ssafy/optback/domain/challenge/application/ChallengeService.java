@@ -351,7 +351,7 @@ public class ChallengeService {
         return challenges.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    @Scheduled(cron = "10 58 10 * * *")
+    @Scheduled(cron = "10 0 0 * * *")
     @Transactional
     public void updateChallengeAndMember() { //challenge 테이블과 challenge_member 수정
         Calendar cal = Calendar.getInstance();

@@ -1,4 +1,4 @@
-//package com.opt.ssafy.optback.domain.schedule.application;
+package com.opt.ssafy.optback.domain.schedule.application;
 //
 //import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 //import com.opt.ssafy.optback.domain.counsel.entity.Counsel;
@@ -15,7 +15,7 @@
 //
 //@Service
 //@RequiredArgsConstructor
-//public class ScheduleService {
+public class ScheduleService {
 //
 //    private final CounselRepository counselRepository;
 //    private final SessionRepository sessionRepository;
@@ -49,4 +49,4 @@
 //
 //        return schedules;
 //    }
-//}
+}

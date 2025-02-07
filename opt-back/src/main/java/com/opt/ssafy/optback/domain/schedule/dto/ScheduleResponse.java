@@ -1,14 +1,14 @@
-//package com.opt.ssafy.optback.domain.schedule.dto;
-//
+package com.opt.ssafy.optback.domain.schedule.dto;
+
 //import com.opt.ssafy.optback.domain.counsel.entity.Counsel;
 //import com.opt.ssafy.optback.domain.session.entity.Session;
 //import java.time.LocalDateTime;
 //import lombok.Builder;
 //import lombok.Getter;
-//
+
 //@Getter
 //@Builder
-//public class ScheduleResponse {
+public class ScheduleResponse {
 //    private int id;
 //    private LocalDateTime startAt;
 //    private LocalDateTime endAt;
@@ -34,7 +34,7 @@
 //                .build();
 //    }
 //
-//    // ✅ 수업(`Session`)을 `ScheduleResponse`로 변환
+//    // 수업(`Session`)을 `ScheduleResponse`로 변환
 //    public static ScheduleResponse fromSession(Session session) {
 //        return ScheduleResponse.builder()
 //                .id(session.getId())
@@ -44,4 +44,4 @@
 //                .sessionNumber(session.getNumber())
 //                .build();
 //    }
-//}
+}

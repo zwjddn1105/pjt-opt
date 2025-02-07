@@ -1,4 +1,4 @@
-//package com.opt.ssafy.optback.domain.schedule.api;
+package com.opt.ssafy.optback.domain.schedule.api;
 //
 //import com.opt.ssafy.optback.domain.schedule.application.ScheduleService;
 //import com.opt.ssafy.optback.domain.schedule.dto.ScheduleResponse;
@@ -13,14 +13,14 @@
 //@RestController
 //@RequiredArgsConstructor
 //@RequestMapping("/schedules")
-//public class ScheduleController {
+public class ScheduleController {
 //
 //    private final ScheduleService scheduleService;
 //
-//    // ✅ 상담 & 세션 통합 조회 API
+//    // 상담 & 세션 통합 조회 API
 //    @GetMapping
 //    @PreAuthorize("isAuthenticated()")
 //    public ResponseEntity<List<ScheduleResponse>> getSchedules() {
 //        return ResponseEntity.ok(scheduleService.getSchedules());
 //    }
-//}
+}

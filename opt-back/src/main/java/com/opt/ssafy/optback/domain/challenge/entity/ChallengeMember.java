@@ -33,7 +33,7 @@ public class ChallengeMember {
     private int memberId;
 
     @Column(name = "status", columnDefinition = "char(10)")
-    private String status;  // 예: "JOINED", "quit", 등
+    private String status;  // 예: "JOINED", "ENDED", 등
 
     // DB에서는 join_at이 date 타입이며 default (curdate())로 설정됨
     @Temporal(TemporalType.DATE)

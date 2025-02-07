@@ -18,8 +18,6 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     // 특정 멤버의 특정 챌린지 수행 기록 조회
     Optional<ChallengeRecord> findByMemberIdAndChallengeId(int memberId, int challengeId);
 
-    // 특정 챌린지 멤버의 수행 기록 조회 (ChallengeMember 기반 조회)
-    Optional<ChallengeRecord> findByChallengeMember(ChallengeMember challengeMember);
 
     Optional<ChallengeRecord> findByChallengeMemberAndCreatedAt(ChallengeMember challengeMember, Date today);
 

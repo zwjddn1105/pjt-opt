@@ -62,16 +62,13 @@ public class TicketService {
 
     // 세션 횟수 차감 시 업데이트
     public Ticket updateUsed(SessionResponse session) {
-        System.out.println("✅ 티켓아이디" + session.getTicketId());
         Ticket findTicket = ticketRepository.getReferenceById(session.getTicketId());
         if (findTicket == null) {
             throw new TicketNotFoundException("티켓을 찾지 못하였습니다");
         }
 
         boolean studentUsed = session.isMemberSigned();
-        System.out.println("studentUsed: " + studentUsed);
         boolean trainerUsed = session.isTrainerSigned();
-        System.out.println("trainerUsed: " + trainerUsed);
 
         // 멤버와 트레이너 모두 체크한 경우 세션 횟수 업데이트
         if (studentUsed && trainerUsed) {

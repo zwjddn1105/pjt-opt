@@ -100,23 +100,38 @@ public class ChallengeService {
         Optional<ChallengeRecord> existingRecord = challengeRecordRepository.findByChallengeMemberAndCreatedAt(
                 challengeMember, today);
 
+        // "TEAM" 챌린지일 경우 progress 업데이트
+        if ("TEAM".equals(challenge.getType()) && !"END".equals(challenge.getStatus())) {
+            updateProgress(challenge);
+        }
+
         if (existingRecord.isPresent()) {
             ChallengeRecord record = existingRecord.get();
 
             // 기존 count보다 큰 경우 업데이트
             if (count > record.getCount()) {
                 record.setCount(count);
-
-                // 이미 is_passed가 true이면 변경하지 않음 (성능 최적화)
-                if (!record.isPassed() && count >= challenge.getExerciseCount()) {
-                    record.setIsPassed();
-                }
-
-                challengeRecordRepository.save(record);
             }
+
+            // "TEAM" 챌린지는 progress >= 100이면 isPassed = true
+            if ("TEAM".equals(challenge.getType()) && challenge.getProgress() >= 100F) {
+                setAllTeamMembersPassed(challenge.getId()); // 모든 멤버의 isPassed 변경
+            }
+            // "NORMAL", "SURVIVAL" 챌린지는 count >= exercise_count이면 isPassed = true
+            else if (count >= challenge.getExerciseCount()) {
+                record.setIsPassed();
+            }
+
+            challengeRecordRepository.save(record);
         } else {
             // 기존 기록이 없다면 새로운 기록 추가
-            boolean isPassed = count >= challenge.getExerciseCount(); // 초기 is_passed 값 결정
+            boolean isPassed = false;
+
+            if ("TEAM".equals(challenge.getType())) {
+                isPassed = challenge.getProgress() >= 100F;
+            } else {
+                isPassed = count >= challenge.getExerciseCount();
+            }
 
             ChallengeRecord newRecord = ChallengeRecord.builder()
                     .challenge(challenge)
@@ -128,9 +143,52 @@ public class ChallengeService {
                     .build();
 
             challengeRecordRepository.save(newRecord);
+
+            // "TEAM" 챌린지 진행도가 100이면 모든 멤버의 isPassed 변경
+            if ("TEAM".equals(challenge.getType()) && challenge.getProgress() >= 100F) {
+                setAllTeamMembersPassed(challenge.getId());
+            }
         }
     }
 
+    public void updateProgress(Challenge challenge) {
+        List<ChallengeMember> members = challengeMemberRepository.findByChallengeId(challenge.getId());
+
+        // 참여한 멤버들의 count 합산
+        int totalCount = members.stream()
+                .map(member -> challengeRecordRepository.sumCountByMemberIdAndChallengeId(member.getMemberId(),
+                        challenge.getId()).orElse(0))
+                .reduce(0, Integer::sum);
+
+        // progress 계산
+        float progress = (challenge.getExerciseCount() > 0)
+                ? Math.round(((float) totalCount / challenge.getExerciseCount()) * 100)
+                : 0.0f;
+
+        // progress가 100을 초과하지 않도록 제한
+        if (progress > 100) {
+            progress = 100.0f;
+        }
+
+        challenge.setProgress(progress);
+        challengeRepository.save(challenge);
+
+        log.info("챌린지 {}의 progress가 {}로 업데이트됨.", challenge.getId(), progress);
+    }
+
+    private void setAllTeamMembersPassed(int challengeId) {
+        List<ChallengeRecord> teamRecords = challengeRecordRepository.findByChallengeId(challengeId);
+
+        for (ChallengeRecord record : teamRecords) {
+            if (!record.isPassed()) { // 이미 true인 경우는 제외
+                record.setIsPassed();
+            }
+        }
+
+        challengeRecordRepository.saveAll(teamRecords);
+        log.info("챌린지 {}의 모든 멤버 isPassed = true", challengeId);
+    }
+    
     //챌린지 기록 조회
     public List<ChallengeRecordResponse> getChallengeRecords(int memberId) {
         List<ChallengeRecord> records = challengeRecordRepository.findByMemberId(memberId);
@@ -332,42 +390,6 @@ public class ChallengeService {
                 log.info("챌린지 {} 우승자: Member ID {}", challenge.getId(), winnerId);
             }
             challengeRepository.save(challenge);
-        }
-    }
-
-    @Scheduled(cron = "10 0 0 * * *")
-    public void updateProgress() {
-        List<Challenge> challenges = challengeRepository.findAll();
-
-        for (Challenge challenge : challenges) {
-            // TEAM 타입 챌린지만 업데이트
-            if (!"TEAM".equals(challenge.getType()) || "END".equals(challenge.getStatus())) {
-                return;
-            }
-
-            List<ChallengeMember> members = challengeMemberRepository.findByChallengeId(challenge.getId());
-
-            // 참여한 멤버들의 count 합산
-            int totalCount = members.stream()
-                    .map(member -> challengeRecordRepository.sumCountByMemberIdAndChallengeId(member.getMemberId(),
-                            challenge.getId()).orElse(0))
-                    .reduce(0, Integer::sum);
-
-            // progress 계산 (exercise_count가 0이면 0 처리)
-            float progress = ((float) totalCount / challenge.getExerciseCount()) * 100;
-            ;
-            if (challenge.getExerciseCount() <= 0) {
-                progress = 0.0f;
-            }
-
-            if (progress > 100) {
-                progress = 100.0f;
-            }
-
-            challenge.setProgress(progress);
-            challengeRepository.save(challenge);
-
-            log.info("챌린지 {}의 progress가 {}로 업데이트됨.", challenge.getId(), progress);
         }
     }
 

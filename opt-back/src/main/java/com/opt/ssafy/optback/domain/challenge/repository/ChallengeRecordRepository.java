@@ -29,5 +29,7 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     @Query("SELECT SUM(c.count) FROM ChallengeRecord c WHERE c.memberId = :memberId AND c.challenge.id = :challengeId")
     Optional<Integer> sumCountByMemberIdAndChallengeId(@Param("memberId") int memberId,
                                                        @Param("challengeId") int challengeId);
+
+    List<ChallengeRecord> findByChallengeId(int challengeId);
 }
 

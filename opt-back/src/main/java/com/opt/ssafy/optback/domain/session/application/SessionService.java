@@ -1,21 +1,24 @@
 package com.opt.ssafy.optback.domain.session.application;
 
-import com.opt.ssafy.optback.domain.session.dto.*;
+import com.opt.ssafy.optback.domain.session.dto.CreateSessionRecordRequest;
+import com.opt.ssafy.optback.domain.session.dto.CreateSessionRequest;
+import com.opt.ssafy.optback.domain.session.dto.SessionCheckRequest;
+import com.opt.ssafy.optback.domain.session.dto.SessionRecordResponse;
+import com.opt.ssafy.optback.domain.session.dto.SessionResponse;
+import com.opt.ssafy.optback.domain.session.dto.UpdateSessionRecordRequest;
+import com.opt.ssafy.optback.domain.session.dto.UpdateSessionRequest;
 import com.opt.ssafy.optback.domain.session.entity.Session;
 import com.opt.ssafy.optback.domain.session.entity.SessionRecord;
 import com.opt.ssafy.optback.domain.session.exception.SessionNotFoundException;
 import com.opt.ssafy.optback.domain.session.exception.SessionRecordNotFoundException;
-import com.opt.ssafy.optback.domain.session.repository.SessionRepository;
 import com.opt.ssafy.optback.domain.session.repository.SessionRecordRepository;
+import com.opt.ssafy.optback.domain.session.repository.SessionRepository;
+import com.opt.ssafy.optback.domain.ticket.repository.TicketRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-//import com.opt.ssafy.optback.domain.ticket.exception.TicketNotFoundException;
-//import com.opt.ssafy.optback.domain.ticket.repository.TicketRepository;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class SessionService {
 
     private final SessionRepository sessionRepository;
     private final SessionRecordRepository sessionRecordRepository;
+    private final TicketRepository ticketRepository;
 //    private final TicketRepository ticketRepository;
 
     // GET /sessions - 수업 일정 조회
@@ -43,7 +47,7 @@ public class SessionService {
 //        }
 
         Session session = Session.builder()
-                .ticketId(request.getTicketId())
+                .ticket(ticketRepository.getReferenceById(request.getTicketId()))
                 .number(request.getNumber())
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
@@ -75,17 +79,19 @@ public class SessionService {
     // GET /sessions/{session_id} - 해당 수업의 운동 기록 조회
     public List<SessionRecordResponse> getSessionRecords(int id) {
         List<SessionRecord> sessionRecords = sessionRecordRepository.findBySessionId(id);
-        if(sessionRecords.isEmpty()) {
+        if (sessionRecords.isEmpty()) {
             throw new SessionRecordNotFoundException("Session not found with id: " + id);
         }
         return sessionRecords.stream()
                 .map(record -> mapToResponse(record, id))
                 .collect(Collectors.toList());
     }
+
     // POST /sessions/exercise-records - 수업별 운동 기록 등록
     public SessionRecord createSessionRecord(CreateSessionRecordRequest request) {
         Session session = sessionRepository.findById(request.getSessionId())
-                .orElseThrow(() -> new SessionNotFoundException("Session not found with id: " + request.getSessionId()));
+                .orElseThrow(
+                        () -> new SessionNotFoundException("Session not found with id: " + request.getSessionId()));
         SessionRecord record = SessionRecord.builder()
                 .session(session)
                 .exerciseId(request.getExerciseId())
@@ -102,9 +108,11 @@ public class SessionService {
     @Transactional
     public SessionRecord updateSessionRecord(UpdateSessionRecordRequest request) {
         SessionRecord record = sessionRecordRepository.findById(request.getId())
-                .orElseThrow(() -> new SessionRecordNotFoundException("Session record not found with id: " + request.getId()));
+                .orElseThrow(() -> new SessionRecordNotFoundException(
+                        "Session record not found with id: " + request.getId()));
         // 엔티티 내부의 도메인 메서드를 호출하여 업데이트
-        record.updateFields(request.getSetCount(), request.getRepCount(), request.getWeight(), request.getDuration(), request.getDistance());
+        record.updateFields(request.getSetCount(), request.getRepCount(), request.getWeight(), request.getDuration(),
+                request.getDistance());
         return record;  // @Transactional에 의해 변경 사항이 커밋됨
     }
 
@@ -112,7 +120,8 @@ public class SessionService {
     @Transactional
     public SessionResponse trainerCheckSession(SessionCheckRequest request) {
         Session session = sessionRepository.findById(request.getSessionId())
-                .orElseThrow(() -> new SessionNotFoundException("Session not found with id: " + request.getSessionId()));
+                .orElseThrow(
+                        () -> new SessionNotFoundException("Session not found with id: " + request.getSessionId()));
         session.markTrainerSigned();
         return mapToResponse(session);
     }
@@ -121,7 +130,8 @@ public class SessionService {
     @Transactional
     public SessionResponse memberCheckSession(SessionCheckRequest request) {
         Session session = sessionRepository.findById(request.getSessionId())
-                .orElseThrow(() -> new SessionNotFoundException("Session not found with id: " + request.getSessionId()));
+                .orElseThrow(
+                        () -> new SessionNotFoundException("Session not found with id: " + request.getSessionId()));
         session.markMemberSigned();
         return mapToResponse(session);
     }
@@ -130,7 +140,7 @@ public class SessionService {
     private SessionResponse mapToResponse(Session session) {
         return SessionResponse.builder()
                 .id(session.getId())
-                .ticketId(session.getTicketId())
+                .ticketId(session.getTicket().getId())
                 .number(session.getNumber())
                 .startAt(session.getStartAt())
                 .endAt(session.getEndAt())

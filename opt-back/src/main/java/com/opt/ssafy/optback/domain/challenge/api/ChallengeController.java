@@ -82,11 +82,17 @@ public class ChallengeController {
     // POST /challenges/record - 챌린지 수행 기록 등록
     @PostMapping("/record")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<SuccessResponse> recordChallenge(@RequestBody ChallengeRecordRequest request) {
+    public ResponseEntity<?> recordChallenge(@RequestBody ChallengeRecordRequest request) {
         Member member = userDetailsService.getMemberByContextHolder();
-        challengeService.recordChallenge(member.getId(), request.getChallengeId(), request.getCount());
+        challengeService.recordChallenge(
+                member.getId(),
+                request.getChallengeId(),
+                request.getCount(),
+                request.getDuration(),
+                request.getDistance()
+        );
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Challenge record saved successfully")
+                .message("운동 기록이 저장되었습니다.")
                 .build());
     }
 

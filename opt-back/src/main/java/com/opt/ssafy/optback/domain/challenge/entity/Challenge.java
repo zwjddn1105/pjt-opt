@@ -9,6 +9,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -85,7 +86,13 @@ public class Challenge {
     private String exerciseType;
 
     @Column(name = "exercise_count")
-    private int exerciseCount;
+    private Integer exerciseCount;
+
+    @Column(name = "exercise_duration")
+    private Integer exerciseDuration;
+
+    @Column(name = "exercise_distance")
+    private Integer exerciseDistance;
 
     @OneToMany
     private List<ChallengeMember> members;

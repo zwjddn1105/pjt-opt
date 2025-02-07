@@ -28,4 +28,5 @@ public interface ChallengeMemberRepository extends JpaRepository<ChallengeMember
     boolean existsByChallengeIdAndMemberId(int id, int id1);
 
     List<ChallengeMember> findByChallengeId(int id);
+
 }

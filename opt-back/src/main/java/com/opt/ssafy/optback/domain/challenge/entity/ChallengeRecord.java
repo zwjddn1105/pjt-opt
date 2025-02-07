@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import java.math.BigDecimal;
 import java.util.Date;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,16 +49,30 @@ public class ChallengeRecord {
     private Date createdAt;
 
     @Column(name = "count")
-    private int count;
+    private Integer count;
+
+    @Column
+    private Integer duration;
+
+    @Column
+    private Integer distance;
 
     @Column(name = "is_passed")
     private boolean isPassed;
 
-    public void setCount(int counts) {
+    public void setCount(Integer counts) {
         count = counts;
     }
 
     public void setIsPassed() {
         isPassed = true;
+    }
+
+    public void setDuration(Integer newDuration) {
+        duration = newDuration;
+    }
+
+    public void setDistance(Integer newDistance) {
+        distance = newDistance;
     }
 }

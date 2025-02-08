@@ -84,71 +84,6 @@ public class ChallengeService {
     }
 
     // 챌린지 수행 기록
-    public void recordChallenge(int memberId, int challengeId, int count) {
-        Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found with id: " + challengeId));
-
-        // 사용자가 해당 챌린지에 참여 중인지 확인
-        ChallengeMember challengeMember = challengeMemberRepository
-                .findByChallengeIdAndMemberId(challengeId, memberId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "User is not joined in the challenge. Please join the challenge first."));
-
-        Date today = new Date(); // 오늘 날짜
-
-        // 기존 기록이 있는지 확인
-        Optional<ChallengeRecord> existingRecord = challengeRecordRepository.findByChallengeMemberAndCreatedAt(
-                challengeMember, today);
-
-        if (existingRecord.isPresent()) {
-            ChallengeRecord record = existingRecord.get();
-
-            // 기존 count보다 큰 경우 업데이트
-            if (count > record.getCount()) {
-                record.setCount(count);
-            }
-
-            // "TEAM" 챌린지는 progress >= 100이면 isPassed = true
-            if ("TEAM".equals(challenge.getType()) && challenge.getProgress() >= 100F) {
-                setAllTeamMembersPassed(challenge.getId()); // 모든 멤버의 isPassed 변경
-            }
-            // "NORMAL", "SURVIVAL" 챌린지는 count >= exercise_count이면 isPassed = true
-            else if (count >= challenge.getExerciseCount()) {
-                record.setIsPassed();
-            }
-
-            challengeRecordRepository.save(record);
-        } else {
-            // 기존 기록이 없다면 새로운 기록 추가
-            boolean isPassed = false;
-
-            if ("TEAM".equals(challenge.getType())) {
-                isPassed = challenge.getProgress() >= 100F;
-            } else {
-                isPassed = count >= challenge.getExerciseCount();
-            }
-
-            ChallengeRecord newRecord = ChallengeRecord.builder()
-                    .challenge(challenge)
-                    .challengeMember(challengeMember)
-                    .memberId(challengeMember.getMemberId())
-                    .count(count)
-                    .createdAt(today)
-                    .isPassed(isPassed)
-                    .build();
-
-            challengeRecordRepository.save(newRecord);
-        }
-        // "TEAM" 챌린지일 경우 progress 업데이트
-        if ("TEAM".equals(challenge.getType()) && "PROGRESS".equals(challenge.getStatus())) {
-            updateProgress(challenge);
-        }
-        // "TEAM" 챌린지 진행도가 100이면 모든 멤버의 isPassed 변경
-        if ("TEAM".equals(challenge.getType()) && challenge.getProgress() >= 100F) {
-            setAllTeamMembersPassed(challenge.getId());
-        }
-    }
-
     public void recordChallenge(int memberId, int challengeId, Integer count, Integer duration, Integer distance) {
         // 챌린지 정보 조회
         Challenge challenge = challengeRepository.findById(challengeId)
@@ -307,17 +242,6 @@ public class ChallengeService {
         }
         return false;
     }
-
-    public void updateProgress(Challenge challenge) {
-        if (challenge.getExerciseCount() != null) {
-            updateCountProgress(challenge);
-        } else if (challenge.getExerciseDuration() != null) {
-            updateDurationProgress(challenge);
-        } else if (challenge.getExerciseDistance() != null) {
-            updateDistanceProgress(challenge);
-        }
-    }
-
 
     public void updateCountProgress(Challenge challenge) {
         List<ChallengeMember> members = challengeMemberRepository.findByChallengeId(challenge.getId());
@@ -569,7 +493,7 @@ public class ChallengeService {
 
     @Scheduled(cron = "10 0 0 * * *")
     @Transactional
-    public void updateChallengeAndMember() { //challenge 테이블과 challenge_member 수정
+    public void updateChallengeAndMember() {
         Calendar cal = Calendar.getInstance();
 
         // 하루 전 날짜 계산 (start_date 기준)
@@ -598,7 +522,6 @@ public class ChallengeService {
                 continue;
             }
 
-            // 챌린지 멤버 상태 변경
             for (ChallengeMember member : members) {
                 member.setStatus("JOINED");
             }
@@ -612,9 +535,7 @@ public class ChallengeService {
         for (Challenge challenge : endingChallenges) {
             log.info("종료된 챌린지 ID: {}", challenge.getId());
 
-            // 해당 챌린지에 참여한 멤버 조회
             List<ChallengeMember> members = challengeMemberRepository.findByChallengeId(challenge.getId());
-
             challenge.setStatus("END");
 
             if (members.isEmpty()) {
@@ -623,16 +544,14 @@ public class ChallengeService {
                 continue;
             }
 
-            // 챌린지 멤버 상태 변경
             for (ChallengeMember member : members) {
                 member.setStatus("ENDED");
             }
             challengeMemberRepository.saveAll(members);
 
-            // 가장 높은 count를 기록한 멤버 찾기
-            int winnerId = findWinner(members);
+            // 가장 높은 count, duration, distance를 기록한 멤버 찾기
+            int winnerId = findWinner(challenge, members);
 
-            // winnerId가 있을 경우 챌린지 업데이트
             if (winnerId != -1) {
                 challenge.setWinner(winnerId);
                 log.info("챌린지 {} 우승자: Member ID {}", challenge.getId(), winnerId);
@@ -641,16 +560,32 @@ public class ChallengeService {
         }
     }
 
-    // 가장 높은 count를 기록한 멤버 찾기
-    private int findWinner(List<ChallengeMember> members) {
-        int maxCount = 0;
+    // 가장 높은 count, duration, distance를 기록한 멤버 찾기
+    private int findWinner(Challenge challenge, List<ChallengeMember> members) {
         int winnerId = -1;
 
-        for (ChallengeMember member : members) {
-            Optional<Integer> count = challengeRecordRepository.findCountByChallengeMemberId(member.getId());
+        // 각 기준의 최댓값 저장
+        int maxCount = 0;
+        int maxDuration = 0;
+        int maxDistance = 0;
 
-            if (count.isPresent() && count.get() > maxCount) {
-                maxCount = count.get();
+        for (ChallengeMember member : members) {
+            int count = challengeRecordRepository.findCountByChallengeMemberId(member.getId()).orElse(0);
+            int duration = challengeRecordRepository.findDurationByChallengeMemberId(member.getId()).orElse(0);
+            int distance = challengeRecordRepository.findDistanceByChallengeMemberId(member.getId()).orElse(0);
+
+            if (challenge.getExerciseCount() != null && count > maxCount) {
+                maxCount = count;
+                winnerId = member.getMemberId();
+            }
+
+            if (challenge.getExerciseDuration() != null && duration > maxDuration) {
+                maxDuration = duration;
+                winnerId = member.getMemberId();
+            }
+
+            if (challenge.getExerciseDistance() != null && distance > maxDistance) {
+                maxDistance = distance;
                 winnerId = member.getMemberId();
             }
         }

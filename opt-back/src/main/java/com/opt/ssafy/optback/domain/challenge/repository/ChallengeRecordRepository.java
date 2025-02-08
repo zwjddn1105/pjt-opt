@@ -36,5 +36,13 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     Optional<Integer> sumDistanceByMemberIdAndChallengeId(@Param("memberId") int memberId, @Param("challengeId") int challengeId);
 
     List<ChallengeRecord> findByChallengeId(int challengeId);
+
+
+    @Query("SELECT SUM(cr.duration) FROM ChallengeRecord cr WHERE cr.challengeMember.id = :challengeMemberId")
+    Optional<Integer> findDurationByChallengeMemberId(@Param("challengeMemberId") int challengeMemberId);
+
+    @Query("SELECT SUM(cr.distance) FROM ChallengeRecord cr WHERE cr.challengeMember.id = :challengeMemberId")
+    Optional<Integer> findDistanceByChallengeMemberId(@Param("challengeMemberId") int challengeMemberId);
+
 }
 

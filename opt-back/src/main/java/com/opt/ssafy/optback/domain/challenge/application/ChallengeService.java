@@ -47,7 +47,7 @@ public class ChallengeService {
 
     public ChallengeResponse getChallengeById(int id) {
         Challenge challenge = challengeRepository.findById(id)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found with id: " + id));
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다. with id: " + id));
         return mapToResponse(challenge);
     }
 
@@ -78,7 +78,7 @@ public class ChallengeService {
 
     public void deleteChallenge(int id) {
         if (!challengeRepository.existsById(id)) {
-            throw new ChallengeNotFoundException("Challenge not found with id: " + id);
+            throw new ChallengeNotFoundException("존재하지 않는 챌린지 입니다. with id: " + id);
         }
         challengeRepository.deleteById(id);
     }
@@ -102,11 +102,11 @@ public class ChallengeService {
     @Transactional
     public void recordCount(int memberId, int challengeId, Integer count) {
         Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found with id: " + challengeId));
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다. with id: " + challengeId));
 
         ChallengeMember challengeMember = challengeMemberRepository
                 .findByChallengeIdAndMemberId(challengeId, memberId)
-                .orElseThrow(() -> new IllegalStateException("User is not joined in the challenge. Please join the challenge first."));
+                .orElseThrow(() -> new IllegalStateException("아직 챌린지에 참여하지 않은 사용자 입니다. 먼저 챌린지에 참여해주세요."));
 
         Date today = new Date(); // 오늘 날짜
 
@@ -139,11 +139,11 @@ public class ChallengeService {
 
     public void recordDistance(int memberId, int challengeId, Integer distance) {
         Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found with id: " + challengeId));
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다. with id: " + challengeId));
 
         ChallengeMember challengeMember = challengeMemberRepository
                 .findByChallengeIdAndMemberId(challengeId, memberId)
-                .orElseThrow(() -> new IllegalStateException("User is not joined in the challenge. Please join the challenge first."));
+                .orElseThrow(() -> new IllegalStateException("아직 챌린지에 참여하지 않은 사용자 입니다. 먼저 챌린지에 참여해주세요."));
 
         Date today = new Date();
 
@@ -177,11 +177,11 @@ public class ChallengeService {
 
     public void recordDuration(int memberId, int challengeId, Integer duration) {
         Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found with id: " + challengeId));
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다. with id: " + challengeId));
 
         ChallengeMember challengeMember = challengeMemberRepository
                 .findByChallengeIdAndMemberId(challengeId, memberId)
-                .orElseThrow(() -> new IllegalStateException("User is not joined in the challenge. Please join the challenge first."));
+                .orElseThrow(() -> new IllegalStateException("아직 챌린지에 참여하지 않은 사용자 입니다. 먼저 챌린지에 참여해주세요."));
 
         Date today = new Date(); // 오늘 날짜
 
@@ -332,7 +332,7 @@ public class ChallengeService {
         List<ChallengeRecord> records = challengeRecordRepository.findByMemberId(memberId);
 
         if (records.isEmpty()) {
-            throw new ChallengeRecordNotFoundException("No challenge records found for the user.");
+            throw new ChallengeRecordNotFoundException("현재 유저의 챌린지 기록이 존재하지 않습니다.");
         }
 
         return records.stream()
@@ -344,7 +344,7 @@ public class ChallengeService {
         ChallengeRecord record = challengeRecordRepository
                 .findByMemberIdAndChallengeId(memberId, challengeId)
                 .orElseThrow(() -> new ChallengeRecordNotFoundException(
-                        "No record found for challengeId: " + challengeId));
+                        "challengeId: " + challengeId+"에 대한 챌린지 기록을 찾을 수 없습니다."));
 
         return ChallengeRecordResponse.fromEntity(record);
     }
@@ -354,20 +354,20 @@ public class ChallengeService {
         Member member = userDetailsService.getMemberByContextHolder();
         Challenge challenge = challengeRepository.findById(request.getChallengeId())
                 .orElseThrow(() -> new ChallengeNotFoundException(
-                        "Challenge not found with id: " + request.getChallengeId()));
+                        "id: " + request.getChallengeId()+"인 챌린지를 찾을 수 없습니다."));
 
         boolean isAlreadyJoined = challengeMemberRepository.existsByChallengeIdAndMemberId(challenge.getId(),
                 member.getId());
 
         if (isAlreadyJoined) {
-            throw new IllegalStateException("User has already applied this challenge.");
+            throw new IllegalStateException("이미 챌린지에 지원한 유저입니다.");
         }
 
         if (challenge.getStatus().equals("PROGRESS")) {
-            throw new IllegalStateException("Challenge already has been in progress.");
+            throw new IllegalStateException("챌린지가 이미 진행 중입니다. 참여할 수 없습니다.");
         }
         if (challenge.getStatus().equals("END")) {
-            throw new IllegalStateException("Challenge already has been ended.");
+            throw new IllegalStateException("종료된 챌린지 입니다. 참여할 수 없습니다.");
         }
 
         increaseParticipants(request.getChallengeId());
@@ -389,14 +389,14 @@ public class ChallengeService {
         // 챌린지 멤버 확인
         ChallengeMember challengeMember = challengeMemberRepository
                 .findByChallengeIdAndMemberId(challengeId, member.getId())
-                .orElseThrow(() -> new IllegalStateException("User is not joined in this challenge."));
+                .orElseThrow(() -> new IllegalStateException("챌린지에 참여하지 않은 사용자입니다."));
 
         // 챌린지 상태 확인
         Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new IllegalStateException("Challenge not found."));
+                .orElseThrow(() -> new IllegalStateException("존재하지 않는 챌린지입니다."));
 
         if ("PROGRESS".equals(challenge.getStatus())) {
-            throw new IllegalStateException("Cannot leave a challenge that is in progress.");
+            throw new IllegalStateException("진행 중인 챌린지는 탈퇴할 수 없습니다.");
         }
 
         decreaseParticipants(challengeId);
@@ -406,10 +406,10 @@ public class ChallengeService {
 
     public void increaseParticipants(int challengeId) {
         Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다."));
 
         if (challenge.getCurrentParticipants() >= challenge.getMaxParticipants()) {
-            throw new IllegalStateException("Maximum participants reached.");
+            throw new IllegalStateException("최대 인원 수에 도달했습니다.");
         }
 
         challenge.setCurrentParticipants(challenge.getCurrentParticipants() + 1);
@@ -418,7 +418,7 @@ public class ChallengeService {
 
     public void decreaseParticipants(int challengeId) {
         Challenge challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found"));
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다."));
 
         if (challenge.getCurrentParticipants() <= 0) {
             throw new IllegalStateException("No participants to remove.");

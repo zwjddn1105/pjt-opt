@@ -21,4 +21,6 @@ public class CreateChallengeRequest {
     private int frequency;
     private String exercise_type;
     private int exercise_count;
+    private int exercise_distance;
+    private int exercise_duration;
 }

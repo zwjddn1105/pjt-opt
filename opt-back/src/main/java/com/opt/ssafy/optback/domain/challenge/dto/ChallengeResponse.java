@@ -26,4 +26,7 @@ public class ChallengeResponse {
     private String imagePath;
     private String exerciseType;
     private int exerciseCount;
+    private int exerciseDuration;
+    private int exerciseDistance;
+
 }

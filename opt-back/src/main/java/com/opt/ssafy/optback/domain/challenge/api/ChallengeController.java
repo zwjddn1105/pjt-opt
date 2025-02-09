@@ -48,7 +48,7 @@ public class ChallengeController {
     public ResponseEntity<SuccessResponse> createChallenge(@RequestBody CreateChallengeRequest request) {
         challengeService.createChallenge(request);
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Challenge created successfully")
+                .message("챌린지가 성공적으로 생성되었습니다.")
                 .build());
     }
 
@@ -58,7 +58,7 @@ public class ChallengeController {
     public ResponseEntity<SuccessResponse> deleteChallenge(@PathVariable int id) {
         challengeService.deleteChallenge(id);
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Challenge deleted successfully")
+                .message("챌린지가 성공적으로 삭제되었습니다.")
                 .build());
     }
 
@@ -84,9 +84,15 @@ public class ChallengeController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SuccessResponse> recordChallenge(@RequestBody ChallengeRecordRequest request) {
         Member member = userDetailsService.getMemberByContextHolder();
-        challengeService.recordChallenge(member.getId(), request.getChallengeId(), request.getCount());
+        challengeService.recordChallenge(
+                member.getId(),
+                request.getChallengeId(),
+                request.getCount(),
+                request.getDuration(),
+                request.getDistance()
+        );
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Challenge record saved successfully")
+                .message("운동 기록이 저장되었습니다.")
                 .build());
     }
 
@@ -97,7 +103,7 @@ public class ChallengeController {
     public ResponseEntity<SuccessResponse> joinChallenge(@RequestBody JoinChallengeRequest request) {
         challengeService.joinChallenge(request);
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Joined challenge successfully")
+                .message("성공적으로 챌린지에 참여하였습니다.")
                 .build());
     }
 
@@ -107,7 +113,7 @@ public class ChallengeController {
     public ResponseEntity<SuccessResponse> leaveChallenge(@RequestParam("id") int challengeId) {
         challengeService.leaveChallenge(challengeId);
         return ResponseEntity.ok(SuccessResponse.builder()
-                .message("Successfully left the challenge.")
+                .message("성공적으로 챌린지를 탈퇴하였습니다.")
                 .build());
     }
 

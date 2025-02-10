@@ -108,4 +108,16 @@ public class JwtProvider {
     public String encodeBase64SecretKey(@Value("${jwt.secretKey}") String secretKey) {
         return Encoders.BASE64.encode(secretKey.getBytes(StandardCharsets.UTF_8));
     }
+
+    // JWT 토큰 만료 시간 가져오기
+    public long getExpirationTime(String accessToken) {
+        try {
+            Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
+            Date expiration = claims.getExpiration();
+            return expiration.getTime() - System.currentTimeMillis();
+        } catch (ExpiredJwtException e) {
+            return 0;
+        }
+    }
+
 }

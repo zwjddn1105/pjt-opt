@@ -1,31 +1,68 @@
-version: "3.8"
+version: '3.8'
+
+# networks:
+#   opt-network:
+#     name: s12p11a309_opt-network  # ✅ 실제 네트워크 이름으로 설정
+#     driver: bridge
 
 services:
-  # Spring Boot 애플리케이션
-  spring-back:
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    container_name: zookeeper
+    # platform: linux/amd64  # ✅ 강제 아키텍처 설정
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    # networks:
+    #   - opt-network
+
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092
+      # KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
+      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # SPRING_KAFKA_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CREATE_TOPICS: "business_license_request:1:1,business_license_response:1:1"
+    depends_on:
+      - zookeeper
+    # networks:
+    #   - opt-network
+
+  fastapi:
+    build:
+      context: ./opt-fast
+      dockerfile: Dockerfile
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+    # entrypoint: ["uvicorn main:app --host 0.0.0.0 --port 8000"]
+    # networks:
+    #   - opt-network
+
+  spring:
     build:
       context: ./opt-back
       dockerfile: Dockerfile
-    container_name: spring-back-container
+    container_name: spring
     ports:
-      - "8080:8080" # 호스트의 8080 포트를 컨테이너의 8080 포트로 매핑
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev # 환경에 맞는 Spring Profile을 설정
-      - SPRING_REDIS_HOST=redis # Redis 호스트 설정 (서비스 이름 사용)
-      - SPRING_REDIS_PORT=6379 # Redis 기본 포트
+      - "8080:8080"
     depends_on:
-      - redis # Redis 서비스가 먼저 시작된 후 Spring Boot 서비스 시작
-
-  # Redis 서비스
-  redis:
-    image: "redis:alpine" # Redis Alpine 이미지를 사용
-    container_name: redis-container
-    ports:
-      - "6379:6379" # 호스트의 6379 포트를 Redis의 6379 포트로 매핑
-    volumes:
-      - redis-data:/data # Redis 데이터 영속성을 위한 볼륨
-
-# Redis 데이터를 저장하기 위한 Docker 볼륨
-volumes:
-  redis-data:
-    driver: local
+      - kafka
+    environment:
+      spring.kafka.bootstrap-servers: kafka:9092
+      # SPRING_KAFKA_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+    platform: linux/amd64  # ✅ 아키텍처 강제 설정
+    # networks:
+    #   - opt-network

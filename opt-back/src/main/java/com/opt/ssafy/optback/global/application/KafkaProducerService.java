@@ -10,10 +10,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class KafkaProducerService {
 
-    private final KafkaTemplate<String, byte[]> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void sendMessage(byte[] fileBytes) {
-        kafkaTemplate.send("business_license_request", fileBytes);
+    public void sendMessage(Object message) {
+        kafkaTemplate.send("business_license_request", message);
     }
-    
+
 }

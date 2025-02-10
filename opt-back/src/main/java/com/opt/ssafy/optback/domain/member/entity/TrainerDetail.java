@@ -6,10 +6,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicInsert;
 
 @Entity
 @Getter
+@Builder
+@DynamicInsert
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "trainer_detail")
 public class TrainerDetail {
 
@@ -17,6 +25,7 @@ public class TrainerDetail {
     @Column(name = "trainer_id", nullable = false)
     private Integer trainerId;
 
+    @Builder.Default
     @Column(name = "is_one_day_available", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private Boolean isOneDayAvailable = false;
 

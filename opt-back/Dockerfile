@@ -2,6 +2,8 @@ FROM openjdk:21-jdk
 
 WORKDIR /app
 
+RUN pwd && ls -lah
+
 COPY . .
 
 RUN ls -lah /app

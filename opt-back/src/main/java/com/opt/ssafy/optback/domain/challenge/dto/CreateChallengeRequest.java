@@ -20,7 +20,7 @@ public class CreateChallengeRequest {
     private int max_participants;
     private int frequency;
     private String exercise_type;
-    private int exercise_count;
-    private int exercise_distance;
-    private int exercise_duration;
+    private Integer exercise_count;
+    private Integer exercise_distance;
+    private Integer exercise_duration;
 }

@@ -25,8 +25,8 @@ public class ChallengeResponse {
     private Float progress;
     private String imagePath;
     private String exerciseType;
-    private int exerciseCount;
-    private int exerciseDuration;
-    private int exerciseDistance;
+    private Integer exerciseCount;
+    private Integer exerciseDuration;
+    private Integer exerciseDistance;
 
 }

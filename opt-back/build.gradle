@@ -53,6 +53,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     //firebase
     implementation 'com.google.firebase:firebase-admin:9.2.0'
+    // kafka
+    implementation 'org.springframework.kafka:spring-kafka'
 }
 
 test {

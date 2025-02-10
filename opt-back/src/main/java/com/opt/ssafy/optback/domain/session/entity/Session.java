@@ -27,7 +27,7 @@ public class Session {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    // PT 이용권 ID (옵션)
+    // PT 이용권 ID
     @ManyToOne
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;

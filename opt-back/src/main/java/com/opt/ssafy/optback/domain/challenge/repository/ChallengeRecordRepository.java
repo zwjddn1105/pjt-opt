@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.challenge.repository;
 
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeMember;
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeRecord;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,20 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     Optional<Integer> sumCountByMemberIdAndChallengeId(@Param("memberId") int memberId,
                                                        @Param("challengeId") int challengeId);
 
+    @Query("SELECT SUM(c.duration) FROM ChallengeRecord c WHERE c.memberId = :memberId AND c.challenge.id = :challengeId")
+    Optional<Integer> sumDurationByMemberIdAndChallengeId(@Param("memberId") int memberId, @Param("challengeId") int challengeId);
+
+    @Query("SELECT SUM(c.distance) FROM ChallengeRecord c WHERE c.memberId = :memberId AND c.challenge.id = :challengeId")
+    Optional<Integer> sumDistanceByMemberIdAndChallengeId(@Param("memberId") int memberId, @Param("challengeId") int challengeId);
+
     List<ChallengeRecord> findByChallengeId(int challengeId);
+
+
+    @Query("SELECT SUM(cr.duration) FROM ChallengeRecord cr WHERE cr.challengeMember.id = :challengeMemberId")
+    Optional<Integer> findDurationByChallengeMemberId(@Param("challengeMemberId") int challengeMemberId);
+
+    @Query("SELECT SUM(cr.distance) FROM ChallengeRecord cr WHERE cr.challengeMember.id = :challengeMemberId")
+    Optional<Integer> findDistanceByChallengeMemberId(@Param("challengeMemberId") int challengeMemberId);
+
 }
 

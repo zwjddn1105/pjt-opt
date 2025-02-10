@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class ChallengeRecordResponse {
     private int challengeId;
     private int count;
+    private int distance;
+    private int duration;
     private boolean isPassed;
     private Date createdAt;
     private float progressPerDay;
@@ -29,6 +31,8 @@ public class ChallengeRecordResponse {
         return new ChallengeRecordResponse(
                 record.getChallenge().getId(),
                 record.getCount(),
+                record.getDistance(),
+                record.getDuration(),
                 record.isPassed(),
                 record.getCreatedAt(),
                 progress

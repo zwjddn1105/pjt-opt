@@ -2,9 +2,7 @@ package com.opt.ssafy.optback.domain.meal_record.service;
 
 import com.opt.ssafy.optback.domain.meal_record.dto.MealNutritionDto;
 import com.opt.ssafy.optback.global.application.GPTService;
-import com.opt.ssafy.optback.global.dto.GptRequest;
 import com.opt.ssafy.optback.global.exception.GPTException;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,31 +21,18 @@ public class MealNutritionAiService {
                 + "{\"calorie\": <총 칼로리>, \"protein\": <단백질>, \"carb\": <탄수화물>, \"fat\": <지방>}\n"
                 + "식단이미지 URL: " + imagePath;
 
-        GptRequest gptRequest = GptRequest.builder()
-                .prompt(prompt)
-                .build();
+        Object response = gptService.requestGPT(prompt);
 
-        // GPT 호출
-        List<Map<String, Object>> responseList = gptService.prompt(gptRequest);
-        if (responseList == null || responseList.isEmpty()) {
-            throw new GPTException("GPT가 응답이 없습니다");
+        if (!(response instanceof Map)) {
+            throw new GPTException("GPT 응답이 올바르지 않습니다.");
         }
 
-        Map<String, Object> nutritionMap = responseList.get(0);
-
-        // 타입 변환
-        int calorie = Integer.parseInt(nutritionMap.get("calorie").toString());
-        float protein = Float.parseFloat(nutritionMap.get("protein").toString());
-        float carb = Float.parseFloat(nutritionMap.get("carb").toString());
-        float fat = Float.parseFloat(nutritionMap.get("fat").toString());
-
-        MealNutritionDto nutrition = MealNutritionDto.builder()
-                .calorie(calorie)
-                .protein(protein)
-                .carb(carb)
-                .fat(fat)
+        Map<String, Object> nutritionMap = (Map<String, Object>) response;
+        return MealNutritionDto.builder()
+                .calorie(Integer.parseInt(nutritionMap.get("calorie").toString()))
+                .protein(Float.parseFloat(nutritionMap.get("protein").toString()))
+                .carb(Float.parseFloat(nutritionMap.get("carb").toString()))
+                .fat(Float.parseFloat(nutritionMap.get("fat").toString()))
                 .build();
-
-        return nutrition;
     }
 }

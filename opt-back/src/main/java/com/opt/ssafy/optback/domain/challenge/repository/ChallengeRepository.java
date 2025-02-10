@@ -27,4 +27,5 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
     List<Challenge> findByStartDateAndStatus(Date startTargetDate, String open);
 
     List<Challenge> findByEndDateAndStatus(Date endTargetDate, String progress);
+
 }

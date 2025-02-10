@@ -2,7 +2,7 @@ FROM openjdk:21-jdk
 
 WORKDIR /app
 
-COPY . .
+COPY ./S12P11A309/opt-back .
 
 RUN ./gradlew clean build
 

@@ -33,7 +33,8 @@ public class ChallengeController {
     // 기존 전체 챌린지 조회
     @GetMapping
     public ResponseEntity<List<ChallengeResponse>> getChallenges() {
-        return ResponseEntity.ok(challengeService.getChallenges());
+        List<ChallengeResponse> challenges = challengeService.getChallenges();
+        return ResponseEntity.ok(challenges);
     }
 
     // GET /challenges/{id} - 특정 챌린지 상세 조회

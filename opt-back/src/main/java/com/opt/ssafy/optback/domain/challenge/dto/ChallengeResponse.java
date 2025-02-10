@@ -13,8 +13,8 @@ public class ChallengeResponse {
     private String description;
     private String reward;
     private int templateId;
-    private int hostId;
-    private Integer winnerId;
+    private String winnerName;
+    private String hostName;
     private Date startDate;
     private Date endDate;
     private String status;

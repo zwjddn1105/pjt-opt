@@ -1,15 +1,18 @@
-FROM openjdk:21-jdk
+FROM eclipse-temurin:21-jdk
 
 WORKDIR /app
 
-RUN pwd && ls -lah
-
+# Copy all necessary files
 COPY . .
 
-RUN ls -lah /app
+# Give execution rights to gradlew
+RUN chmod +x gradlew
 
-RUN chmod +x gradlew && ls -lah /app/gradlew
+# Clean and build
+RUN ./gradlew clean bootJar
 
-RUN ./gradlew clean build -x test
+# List the contents of build/libs to verify the JAR file
+RUN ls -la build/libs/
 
+# Run the application
 CMD ["java", "-jar", "build/libs/backend.jar"]

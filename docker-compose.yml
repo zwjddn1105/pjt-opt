@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  # Spring Boot 애플리케이션
+  spring-back:
+    build:
+      context: ./opt-back
+      dockerfile: Dockerfile
+    container_name: spring-back-container
+    ports:
+      - "8080:8080" # 호스트의 8080 포트를 컨테이너의 8080 포트로 매핑
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev # 환경에 맞는 Spring Profile을 설정
+      - SPRING_REDIS_HOST=redis # Redis 호스트 설정 (서비스 이름 사용)
+      - SPRING_REDIS_PORT=6379 # Redis 기본 포트
+    depends_on:
+      - redis # Redis 서비스가 먼저 시작된 후 Spring Boot 서비스 시작
+
+  # Redis 서비스
+  redis:
+    image: "redis:alpine" # Redis Alpine 이미지를 사용
+    container_name: redis-container
+    ports:
+      - "6379:6379" # 호스트의 6379 포트를 Redis의 6379 포트로 매핑
+    volumes:
+      - redis-data:/data # Redis 데이터 영속성을 위한 볼륨
+
+# Redis 데이터를 저장하기 위한 Docker 볼륨
+volumes:
+  redis-data:
+    driver: local

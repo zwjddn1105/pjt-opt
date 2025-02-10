@@ -614,6 +614,8 @@ public class ChallengeService {
                 .progress(challenge.getProgress())
                 .exerciseType(challenge.getExerciseType())
                 .exerciseCount(challenge.getExerciseCount())
+                .exerciseDistance(challenge.getExerciseDistance())
+                .exerciseDuration(challenge.getExerciseDuration())
                 .build();
     }
 }

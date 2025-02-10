@@ -2,14 +2,7 @@ FROM openjdk:21-jdk
 
 WORKDIR /app
 
-RUN pwd && ls -lah
+COPY ./build/libs/opt-back-0.0.1-SNAPSHOT.jar ./build/libs/opt-back-0.0.1-SNAPSHOT.jar
 
-COPY . .
+CMD ["java", "-jar", "./build/libs/opt-back-0.0.1-SNAPSHOT.jar"]
 
-RUN ls -lah /app
-
-RUN chmod +x gradlew && ls -lah /app/gradlew
-
-RUN ./gradlew clean build -x test
-
-CMD ["java", "-jar", "build/libs/backend.jar"]

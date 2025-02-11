@@ -1,6 +1,7 @@
 package com.opt.ssafy.optback.domain.auth.api;
 
 import com.opt.ssafy.optback.domain.auth.application.AuthService;
+import com.opt.ssafy.optback.domain.auth.dto.SignInRequest;
 import com.opt.ssafy.optback.domain.auth.dto.SignInResponse;
 import com.opt.ssafy.optback.domain.auth.dto.SignUpRequest;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;

@@ -19,7 +19,7 @@ public class TrainerReviewResponse {
     private List<String> imageUrls;
 
     public TrainerReviewResponse(TrainerReview trainerReview) {
-        this.trainerId = trainerReview.getTrainerId();
+        this.trainerId = trainerReview.getTrainerDetail().getTrainerId();
         this.comment = trainerReview.getComment();
         this.createdAt = trainerReview.getCreatedAt();
         this.rate = trainerReview.getRate();

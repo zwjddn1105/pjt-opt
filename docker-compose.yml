@@ -40,6 +40,8 @@ services:
     build:
       context: ./opt-fast
       dockerfile: Dockerfile
+      args:
+        HUGGINGFACE_TOKEN: ${HUGGINGFACE_TOKEN}
     container_name: fastapi
     ports:
       - "8000:8000"
@@ -47,6 +49,7 @@ services:
       - kafka
     environment:
       - BOOTSTRAP_SERVERS=kafka:9092
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
     # entrypoint: ["uvicorn main:app --host 0.0.0.0 --port 8000"]
     # networks:
     #   - opt-network

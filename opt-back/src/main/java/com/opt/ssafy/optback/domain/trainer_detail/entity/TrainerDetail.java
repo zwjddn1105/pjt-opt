@@ -30,6 +30,7 @@ public class TrainerDetail {
     @Column(name = "trainer_id", nullable = false)
     private Integer trainerId;
 
+    @Builder.Default
     @Column(name = "is_one_day_available", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private Boolean isOneDayAvailable = false;
 

@@ -1,17 +1,17 @@
-package com.opt.ssafy.optback.domain.trainer.dto;
+package com.opt.ssafy.optback.domain.trainer_detail.dto;
 
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import lombok.Getter;
 
 @Getter
 public class TrainerDetailResponse {
 
-    private final int trainer_id;
-    private final boolean isOneDayAvailable;
-    private final int gymId;
-    private final String intro;
-    private final int experienceYears;
-    private final String availableHours;
+    private int trainer_id;
+    private boolean isOneDayAvailable;
+    private int gymId;
+    private String intro;
+    private int experienceYears;
+    private String availableHours;
 
     public TrainerDetailResponse(TrainerDetail trainerDetail) {
         this.trainer_id = trainerDetail.getTrainerId();

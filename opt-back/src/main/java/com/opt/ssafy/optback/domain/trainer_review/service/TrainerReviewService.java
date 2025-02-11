@@ -2,8 +2,8 @@ package com.opt.ssafy.optback.domain.trainer_review.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
-import com.opt.ssafy.optback.domain.trainer.Repository.TrainerDetailRepository;
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequest;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotFoundException;

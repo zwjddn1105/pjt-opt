@@ -7,7 +7,7 @@ import com.opt.ssafy.optback.domain.gym.repository.GymRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -47,7 +47,7 @@ public class KafkaConsumerService {
                     .trainerId(member.getId())
                     .gym(gym)
                     .build();
-            
+
             member.grantTrainerRole(trainerDetail);
         } catch (Exception e) {
             log.error("Error parsing JSON: {}", e.getMessage());

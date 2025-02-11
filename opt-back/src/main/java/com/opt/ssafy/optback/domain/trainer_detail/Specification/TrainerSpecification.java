@@ -1,9 +1,9 @@
-package com.opt.ssafy.optback.domain.trainer.Specification;
+package com.opt.ssafy.optback.domain.trainer_detail.Specification;
 
 import com.opt.ssafy.optback.domain.gym.entity.Gym;
 import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
-import com.opt.ssafy.optback.domain.trainer.dto.TrainerSearchRequest;
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerSearchRequest;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;

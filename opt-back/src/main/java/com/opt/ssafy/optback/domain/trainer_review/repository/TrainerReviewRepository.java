@@ -1,6 +1,6 @@
 package com.opt.ssafy.optback.domain.trainer_review.repository;
 
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

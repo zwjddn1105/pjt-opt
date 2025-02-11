@@ -1,6 +1,6 @@
 package com.opt.ssafy.optback.domain.trainer_review.entity;
 
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

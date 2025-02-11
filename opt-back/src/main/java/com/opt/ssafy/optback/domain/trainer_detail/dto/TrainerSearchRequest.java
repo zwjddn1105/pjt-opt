@@ -1,4 +1,4 @@
-package com.opt.ssafy.optback.domain.trainer.dto;
+package com.opt.ssafy.optback.domain.trainer_detail.dto;
 
 import java.math.BigDecimal;
 import java.util.List;

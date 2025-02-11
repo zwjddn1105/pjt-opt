@@ -1,13 +1,13 @@
-package com.opt.ssafy.optback.domain.trainer.Service;
+package com.opt.ssafy.optback.domain.trainer_detail.Service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
-import com.opt.ssafy.optback.domain.trainer.Repository.TrainerDetailRepository;
-import com.opt.ssafy.optback.domain.trainer.Specification.TrainerSpecification;
-import com.opt.ssafy.optback.domain.trainer.dto.TrainerSearchRequest;
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
+import com.opt.ssafy.optback.domain.trainer_detail.Specification.TrainerSpecification;
+import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerSearchRequest;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.repository.TrainerReviewRepository;
 import java.awt.geom.Point2D;
 import java.math.BigDecimal;

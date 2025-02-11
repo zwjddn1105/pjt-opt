@@ -10,7 +10,7 @@ import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
 import com.opt.ssafy.optback.domain.member.exception.DuplicatedNicknameException;
 import com.opt.ssafy.optback.domain.member.repository.InterestRepository;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.global.application.S3Service;
 import java.io.IOException;
 import java.util.List;

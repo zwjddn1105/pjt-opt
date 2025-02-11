@@ -1,9 +1,9 @@
-package com.opt.ssafy.optback.domain.trainer.controller;
+package com.opt.ssafy.optback.domain.trainer_detail.controller;
 
-import com.opt.ssafy.optback.domain.trainer.Service.TrainerDetailService;
-import com.opt.ssafy.optback.domain.trainer.dto.TrainerDetailResponse;
-import com.opt.ssafy.optback.domain.trainer.dto.TrainerSearchRequest;
-import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
+import com.opt.ssafy.optback.domain.trainer_detail.Service.TrainerDetailService;
+import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerDetailResponse;
+import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerSearchRequest;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

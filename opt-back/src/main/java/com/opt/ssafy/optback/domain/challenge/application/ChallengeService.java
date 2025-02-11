@@ -16,10 +16,15 @@ import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,18 +43,94 @@ public class ChallengeService {
     private final MemberRepository memberRepository;
 
     // 기존 전체 챌린지 조회
+//    public List<ChallengeResponse> getChallenges() {
+//        List<Challenge> challenges = challengeRepository.findAll();
+//        return challenges.stream()
+//                .map(this::mapToResponse)
+//                .collect(Collectors.toList());
+//    }
+
+    @Transactional
     public List<ChallengeResponse> getChallenges() {
         List<Challenge> challenges = challengeRepository.findAll();
-        return challenges.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
 
+        return challenges.stream().map(challenge -> {
+            // hostId로 hostName 조회
+            String hostName = memberRepository.findById(challenge.getHostId())
+                    .map(Member::getNickname)
+                    .orElse("Unknown");
+
+            // winnerId가 존재하면 winnerName 조회
+            String winnerName = (challenge.getWinnerId() != null) ?
+                    memberRepository.findById(challenge.getWinnerId())
+                            .map(Member::getNickname)
+                            .orElse("Unknown") : null;
+
+            return ChallengeResponse.builder()
+                    .id(challenge.getId())
+                    .type(challenge.getType())
+                    .title(challenge.getTitle())
+                    .description(challenge.getDescription())
+                    .reward(challenge.getReward())
+                    .templateId(challenge.getTemplateId())
+                    .winnerName(winnerName)
+                    .hostName(hostName)
+                    .startDate(challenge.getStartDate())
+                    .endDate(challenge.getEndDate())
+                    .status(challenge.getStatus())
+                    .createdAt(challenge.getCreatedAt())
+                    .currentParticipants(challenge.getCurrentParticipants())
+                    .maxParticipants(challenge.getMaxParticipants())
+                    .frequency(challenge.getFrequency())
+                    .progress(challenge.getProgress())
+                    .imagePath(challenge.getImagePath())
+                    .exerciseType(challenge.getExerciseType())
+                    .exerciseCount(challenge.getExerciseCount())
+                    .exerciseDuration(challenge.getExerciseDuration())
+                    .exerciseDistance(challenge.getExerciseDistance())
+                    .build();
+        }).collect(Collectors.toList());
+    }
     public ChallengeResponse getChallengeById(int id) {
         Challenge challenge = challengeRepository.findById(id)
-                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지 입니다. with id: " + id));
-        return mapToResponse(challenge);
+                .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지입니다. with id: " + id));
+
+        // hostId로 hostName 조회
+        String hostName = memberRepository.findById(challenge.getHostId())
+                .map(Member::getNickname)
+                .orElse("Unknown");
+
+        // winnerId가 존재하면 winnerName 조회
+        String winnerName = (challenge.getWinnerId() != null) ?
+                memberRepository.findById(challenge.getWinnerId())
+                        .map(Member::getNickname)
+                        .orElse("Unknown") : null;
+
+        return ChallengeResponse.builder()
+                .id(challenge.getId())
+                .type(challenge.getType())
+                .title(challenge.getTitle())
+                .description(challenge.getDescription())
+                .reward(challenge.getReward())
+                .templateId(challenge.getTemplateId())
+                .winnerName(winnerName)
+                .hostName(hostName)
+                .startDate(challenge.getStartDate())
+                .endDate(challenge.getEndDate())
+                .status(challenge.getStatus())
+                .createdAt(challenge.getCreatedAt())
+                .currentParticipants(challenge.getCurrentParticipants())
+                .maxParticipants(challenge.getMaxParticipants())
+                .frequency(challenge.getFrequency())
+                .progress(challenge.getProgress())
+                .imagePath(challenge.getImagePath())
+                .exerciseType(challenge.getExerciseType())
+                .exerciseCount(challenge.getExerciseCount())
+                .exerciseDuration(challenge.getExerciseDuration())
+                .exerciseDistance(challenge.getExerciseDistance())
+                .build();
     }
+
 
     // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)
     public void createChallenge(CreateChallengeRequest request) {
@@ -602,7 +683,6 @@ public class ChallengeService {
                 .description(challenge.getDescription())
                 .reward(challenge.getReward())
                 .templateId(challenge.getTemplateId())
-                .hostId(challenge.getHostId())
                 .startDate(challenge.getStartDate())
                 .endDate(challenge.getEndDate())
                 .createdAt(challenge.getCreatedAt())
@@ -614,6 +694,8 @@ public class ChallengeService {
                 .progress(challenge.getProgress())
                 .exerciseType(challenge.getExerciseType())
                 .exerciseCount(challenge.getExerciseCount())
+                .exerciseDistance(challenge.getExerciseDistance())
+                .exerciseDuration(challenge.getExerciseDuration())
                 .build();
     }
 }

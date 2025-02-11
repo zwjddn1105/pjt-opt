@@ -13,8 +13,8 @@ public class ChallengeResponse {
     private String description;
     private String reward;
     private int templateId;
-    private int hostId;
-    private Integer winnerId;
+    private String winnerName;
+    private String hostName;
     private Date startDate;
     private Date endDate;
     private String status;
@@ -25,8 +25,8 @@ public class ChallengeResponse {
     private Float progress;
     private String imagePath;
     private String exerciseType;
-    private int exerciseCount;
-    private int exerciseDuration;
-    private int exerciseDistance;
+    private Integer exerciseCount;
+    private Integer exerciseDuration;
+    private Integer exerciseDistance;
 
 }

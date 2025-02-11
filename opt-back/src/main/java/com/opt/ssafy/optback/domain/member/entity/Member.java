@@ -95,4 +95,9 @@ public class Member {
     @OneToMany(mappedBy = "member")
     private List<ExerciseRecord> exerciseRecords;
 
+    public void grantTrainerRole(TrainerDetail trainerDetail) {
+        this.trainerDetail = trainerDetail;
+        this.role = Role.ROLE_TRAINER;
+    }
+
 }

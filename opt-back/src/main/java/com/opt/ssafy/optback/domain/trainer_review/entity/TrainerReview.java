@@ -1,10 +1,14 @@
 package com.opt.ssafy.optback.domain.trainer_review.entity;
 
+import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -33,8 +37,9 @@ public class TrainerReview {
     @Column(name = "reviewer_id", nullable = false)
     private int reviewerId;
 
-    @Column(name = "trainer_id", nullable = false)
-    private int trainerId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trainer_id")
+    private TrainerDetail trainerDetail;
 
     @Column(name = "comment", nullable = false)
     private String comment;

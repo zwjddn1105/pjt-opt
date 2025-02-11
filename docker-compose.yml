@@ -66,3 +66,13 @@ services:
     platform: linux/amd64  # ✅ 아키텍처 강제 설정
     # networks:
     #   - opt-network
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]  # 영구 저장 옵션
+    environment:
+      REDIS_PORT: 6379
+      REDIS_DATABASES: 16
+    restart: always  # 컨테이너가 꺼지면 자동 재시작

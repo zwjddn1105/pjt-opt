@@ -2,10 +2,12 @@ package com.opt.ssafy.optback.domain.license.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opt.ssafy.optback.domain.gym.entity.Gym;
+import com.opt.ssafy.optback.domain.gym.repository.GymRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
-import com.opt.ssafy.optback.domain.member.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import com.opt.ssafy.optback.domain.trainer.entity.TrainerDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class KafkaConsumerService {
 
     private final MemberRepository memberRepository;
+    private final GymRepository gymRepository;
 
     @Transactional
     @KafkaListener(topics = "business_license_response", groupId = "spring-group")
@@ -38,10 +41,13 @@ public class KafkaConsumerService {
             Integer gymId = Integer.parseInt(jsonNode.get("gym_id").toString());
 
             Member member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+            Gym gym = gymRepository.findById(gymId).orElse(null);
+
             TrainerDetail trainerDetail = TrainerDetail.builder()
                     .trainerId(member.getId())
-                    .gymId(gymId)
+                    .gym(gym)
                     .build();
+            
             member.grantTrainerRole(trainerDetail);
         } catch (Exception e) {
             log.error("Error parsing JSON: {}", e.getMessage());

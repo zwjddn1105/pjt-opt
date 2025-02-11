@@ -1,3 +1,4 @@
+// components/PlsuButton.tsx
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,8 +18,8 @@ const PlusButton = ({ onPress }: ButtonProps) => {
 const styles = StyleSheet.create({
   button: {
     padding: 8,
-    marginRight: 20,  // 우측 여백
-    marginVertical: 5, // 상하 여백
+    marginRight: 20,
+    marginVertical: 5,
   },
 });
 

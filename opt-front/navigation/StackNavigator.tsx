@@ -1,11 +1,21 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BottomTabNavigator } from "./BottomTabNavigator";
 import KakaoLogin from "../screens/LoginScreen";
-import DMScreen from "../screens/DMScreen";
+import DMScreen from "../screens/chat/DMScreen";
 import LoginNeedScreen from "../screens/LoginNeedScreen";
 import FoodScreen from "../screens/FoodScreen";
-import ManagerChatScreen from "../screens/ManagerChatScreen";
-import TrainerChatScreen from "../screens/TrainerChatScreen";
+import ManagerChatScreen from "../screens/chat/ManagerChatScreen";
+import TrainerChatScreen from "../screens/chat/TrainerChatScreen";
+import UserChatScreen from "../screens/chat/UserChatScreen";
+import TrainerProfileScreen from "../screens/TrainerProfileScreen";
+import OngoingChallengesScreen from "../screens/challenge/OngoingChallengesScreen";
+import AppliedChallengesScreen from "../screens/challenge/AppliedChallengesScreen";
+import PastChallengesScreen from "../screens/challenge/PastChallengesScreen";
+import ManageChallengeScreen from "../screens/challenge/ManageChallengeScreen";
+import CreateChallengeScreen from "../screens/challenge/CreateChallengeScreen";
+import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
+import BadgeScreen from '../screens/BadgeScreen';
+import SettingScreen from '../screens/SettingScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -15,6 +25,16 @@ export type RootStackParamList = {
   Food: { date: string };
   ManagerChat: undefined;
   TrainerChat: undefined;
+  UserChat: undefined;
+  TrainerProfile: undefined;
+  OngoingChallenges: undefined;
+  AppliedChallenges: undefined;
+  PastChallenges: undefined;
+  ManageChallenge: undefined;
+  CreateChallenge: undefined;
+  MyChallenge: undefined;
+  Badge: undefined;
+  Setting: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,6 +49,22 @@ export const StackNavigator = () => {
       <Stack.Screen name="Food" component={FoodScreen} />
       <Stack.Screen name="ManagerChat" component={ManagerChatScreen} />
       <Stack.Screen name="TrainerChat" component={TrainerChatScreen} />
+      <Stack.Screen name="UserChat" component={UserChatScreen} />
+      <Stack.Screen name="TrainerProfile" component={TrainerProfileScreen} />
+      <Stack.Screen
+        name="OngoingChallenges"
+        component={OngoingChallengesScreen}
+      />
+      <Stack.Screen
+        name="AppliedChallenges"
+        component={AppliedChallengesScreen}
+      />
+      <Stack.Screen name="PastChallenges" component={PastChallengesScreen} />
+      <Stack.Screen name="ManageChallenge" component={ManageChallengeScreen} />
+      <Stack.Screen name="CreateChallenge" component={CreateChallengeScreen} />
+      <Stack.Screen name="MyChallenge" component={MyChallengeScreen} />
+      <Stack.Screen name="Badge" component={BadgeScreen} />
+      <Stack.Screen name="Setting" component={SettingScreen} />
     </Stack.Navigator>
   );
 };

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Message {
   id: string;
@@ -58,7 +59,7 @@ export const ManagerChatScreen = () => {
         )}
         <View style={styles.messageContent}>
           <Image
-            source={require("../assets/images/manager-profile.png")}
+            source={require("../../assets/images/manager-profile.png")}
             style={styles.profileImage}
           />
           <View style={styles.textWrapper}>
@@ -71,27 +72,29 @@ export const ManagerChatScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            }
-          }}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Manager</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+            }}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Manager</Text>
+        </View>
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+        />
       </View>
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-      />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -163,6 +166,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginTop: 4,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
 });
 

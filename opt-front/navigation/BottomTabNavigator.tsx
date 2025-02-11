@@ -1,11 +1,12 @@
-// navigation/BottomTabNavigator.tsx
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from '../screens/HomeScreen';
-import CalendarScreen from '../screens/CalendarScreen';
-import ChallengeScreen from '../screens/ChallengeScreen';
-import ManageScreen from '../screens/ManageScreen';
-import SearchScreen from '../screens/SearchScreen';
-import { Ionicons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import HomeScreen from "../screens/HomeScreen";
+import CalendarScreen from "../screens/CalendarScreen";
+import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
+import ManageScreen from "../screens/ManageScreen";
+import SearchScreen from "../screens/SearchScreen";
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet } from "react-native";
+import { View } from "react-native";
 
 const Tab = createBottomTabNavigator();
 
@@ -14,6 +15,7 @@ export const BottomTabNavigator = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        contentStyle: styles.contentStyle,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = "home";
 
@@ -29,20 +31,43 @@ export const BottomTabNavigator = () => {
             iconName = focused ? "search" : "search-outline";
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={20} color={color} />;
         },
-        tabBarActiveTintColor: "blue",
+
+        tabBarActiveTintColor: "#0C508B",
         tabBarInactiveTintColor: "gray",
-        tabBarStyle: { height: 80 },
-        tabBarLabelStyle: { fontSize: 14, paddingBottom: 10 }, // 라벨을 아래로 정렬
-        tabBarIconStyle: { marginTop: 10 }, // 아이콘을 아래로 정렬
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarIconStyle: styles.tabBarIcon,
+        tabBarBackground: () => (
+          <View style={{ flex: 1, backgroundColor: "#fff" }} />
+        ),
       })}
     >
       <Tab.Screen name="홈" component={HomeScreen} />
       <Tab.Screen name="기록" component={CalendarScreen} />
-      <Tab.Screen name="챌린지" component={ChallengeScreen} />
+      <Tab.Screen name="챌린지" component={MyChallengeScreen} />
       <Tab.Screen name="관리" component={ManageScreen} />
       <Tab.Screen name="검색" component={SearchScreen} />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBar: {
+    height: 90,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  tabBarLabel: {
+    fontSize: 10,
+    paddingBottom: 10,
+  },
+  tabBarIcon: {
+    marginTop: 5,
+  },
+  contentStyle: {
+    backgroundColor: "#fff",
+  },
+});

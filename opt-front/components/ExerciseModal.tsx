@@ -1,5 +1,18 @@
+// components/ExerciseModal.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, TextInput, Animated, Image, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Animated,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -36,17 +49,21 @@ const ExerciseRecordForm = ({ exercise, onBack, onClose, onSave, selectedDate }:
   const [sets, setSets] = useState('');
   const [weight, setWeight] = useState('');
 
+  const minutesRef = useRef<TextInput>(null);
+  const setsRef = useRef<TextInput>(null);
+  const weightRef = useRef<TextInput>(null);
+  const repsRef = useRef<TextInput>(null);
+
   const handleNumberInput = (value: string, setter: (value: string) => void) => {
-    // 숫자만 허용하는 정규식
     const numbersOnly = value.replace(/[^0-9]/g, '');
     setter(numbersOnly);
   };
 
-  // 저장 버튼 활성화 여부 확인
-  const isSaveEnabled = minutes.length > 0;
-
   const handleSave = async () => {
-    if (!minutes) return; // 운동 시간이 없으면 저장하지 않음
+    if (!minutes.trim()) {
+      minutesRef.current?.focus();
+      return;
+    }
 
     try {
       const record = {
@@ -85,76 +102,99 @@ const ExerciseRecordForm = ({ exercise, onBack, onClose, onSave, selectedDate }:
         <Text style={styles.headerDate}>{selectedDate}</Text>
       </View>
 
-      <View style={styles.videoPlaceholder} />
-
-      <Text style={styles.guideTitle}>운동 가이드</Text>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="운동 시간을 입력하세요"
-          placeholderTextColor="#999"
-          keyboardType="numeric"
-          value={minutes}
-          onChangeText={(value) => handleNumberInput(value, setMinutes)}
-        />
-        <View style={styles.unitContainer}>
-          <Text style={styles.inputUnit}>분</Text>
-          <Text style={styles.requiredMark}>*</Text>
-        </View>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="세트 수를 입력하세요"
-          placeholderTextColor="#999"
-          keyboardType="numeric"
-          value={sets}
-          onChangeText={(value) => handleNumberInput(value, setSets)}
-        />
-        <Text style={styles.inputUnit}>세트</Text>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="무게를 입력하세요."
-          placeholderTextColor="#999"
-          keyboardType="numeric"
-          value={weight}
-          onChangeText={(value) => handleNumberInput(value, setWeight)}
-        />
-        <Text style={styles.inputUnit}>kg</Text>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="운동 횟수를 입력하세요."
-          placeholderTextColor="#999"
-          keyboardType="numeric"
-          value={reps}
-          onChangeText={(value) => handleNumberInput(value, setReps)}
-        />
-        <Text style={styles.inputUnit}>횟수</Text>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[
-            styles.saveButton, 
-            !isSaveEnabled && styles.saveButtonDisabled
-          ]}
-          onPress={handleSave}
-          disabled={!isSaveEnabled}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView 
+          style={styles.formScrollView}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={[
-            styles.saveButtonText,
-            !isSaveEnabled && styles.saveButtonTextDisabled
-          ]}>저장</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.videoPlaceholder} />
+          <Text style={styles.guideTitle}>운동 가이드</Text>
+
+          <View style={styles.inputsContainer}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={minutesRef}
+                style={styles.input}
+                placeholder="운동 시간을 입력하세요"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={minutes}
+                onChangeText={(value) => handleNumberInput(value, setMinutes)}
+                returnKeyType="next"
+                onSubmitEditing={() => setsRef.current?.focus()}
+                blurOnSubmit={false}
+              />
+              <View style={styles.unitContainer}>
+                <Text style={styles.inputUnit}>분</Text>
+                <Text style={styles.requiredMark}>*</Text>
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={setsRef}
+                style={styles.input}
+                placeholder="세트 수를 입력하세요"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={sets}
+                onChangeText={(value) => handleNumberInput(value, setSets)}
+                returnKeyType="next"
+                onSubmitEditing={() => weightRef.current?.focus()}
+                blurOnSubmit={false}
+              />
+              <Text style={styles.inputUnit}>세트</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={weightRef}
+                style={styles.input}
+                placeholder="무게를 입력하세요."
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={weight}
+                onChangeText={(value) => handleNumberInput(value, setWeight)}
+                returnKeyType="next"
+                onSubmitEditing={() => repsRef.current?.focus()}
+                blurOnSubmit={false}
+               />
+              <Text style={styles.inputUnit}>kg</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={repsRef}
+                style={styles.input}
+                placeholder="운동 횟수를 입력하세요."
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={reps}
+                onChangeText={(value) => handleNumberInput(value, setReps)}
+                returnKeyType="done"
+                onSubmitEditing={handleSave}
+              />
+              <Text style={styles.inputUnit}>횟수</Text>
+            </View>
+          </View>
+          
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={styles.saveButton}
+            onPress={handleSave}
+          >
+            <Text style={styles.saveButtonText}>저장</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -181,15 +221,16 @@ const ExerciseModal = ({ visible, onClose, onSave, selectedDate }: ExerciseModal
       Animated.timing(slideAnim, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
       setSelectedExercise(null);  // 모달이 닫힐 때 선택된 운동 초기화
+      setSearchText('');
     }
   }, [visible]);
 
@@ -365,8 +406,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: '80%',
+    height: '90%',
     width: '100%',
+    overflow: 'hidden',
   },
   modalContainer: {
     flex: 1,
@@ -374,13 +416,14 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    padding: 20,
-    paddingBottom: 80,  // 저장 버튼 높이만큼 여백 추가
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
   },
   modalHeader: {
     height: 40,
     justifyContent: 'center',
     marginBottom: 15,
+    marginTop: 12,
   },
   backButton: {
     width: 34,  // 아이콘 크기 + 패딩
@@ -390,6 +433,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     marginBottom: 15,
+    paddingHorizontal: 16,
   },
   searchInput: {
     padding: 10,
@@ -401,6 +445,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 15,
     gap: 10,
+    paddingHorizontal: 16,
   },
   tab: {
     paddingVertical: 8,
@@ -421,6 +466,7 @@ const styles = StyleSheet.create({
   },
   exerciseList: {
     flex: 1,
+    paddingHorizontal: 16,
   },
   exerciseItem: {
     flexDirection: 'row',
@@ -451,6 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 40,
     marginBottom: 15,
+    marginTop: 12,
   },
   headerTitle: {
     fontSize: 18,
@@ -465,6 +512,8 @@ const styles = StyleSheet.create({
   },
   formScrollView: {
     flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
   },
   setContainer: {
     marginBottom: 20,
@@ -479,12 +528,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   buttonContainer: {
-    position: 'absolute',  // 절대 위치로 변경
-    bottom: 0,            // 화면 맨 아래에 위치
-    left: 0,
-    right: 0,
-    padding: 20,         // 좌우 여백
-    backgroundColor: 'white',  // 배경색 설정
+    padding: 20,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  bottomSpacing: {
+    height: 20, // 스크롤뷰 하단 여백
   },
   addButton: {
     flex: 1,
@@ -554,6 +604,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: -7,  // 간격 줄임
     marginTop: -10,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  inputsContainer: {
+    gap: 10,
   },
 });
 

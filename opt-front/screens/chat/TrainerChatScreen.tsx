@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import ChatActionModal from "../../components/ChatActionModal";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -36,7 +38,7 @@ interface Message {
 export const TrainerChatScreen = () => {
   const navigation = useNavigation<TrainerChatScreenNavigationProp>();
   const [message, setMessage] = useState("");
-
+  const [isActionModalVisible, setIsActionModalVisible] = useState(false);
   const messages: Message[] = [
     {
       id: "1",
@@ -60,7 +62,7 @@ export const TrainerChatScreen = () => {
         )}
         <View style={styles.messageContent}>
           <Image
-            source={require("../assets/images/trainer-profile.png")}
+            source={require("../../assets/images/trainer-profile.png")}
             style={styles.profileImage}
           />
           <View style={styles.textWrapper}>
@@ -73,58 +75,65 @@ export const TrainerChatScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            }
-          }}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Trainer</Text>
-      </View>
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-      />
-
-      <View style={styles.inputContainer}>
-        <View style={styles.messageInputWrapper}>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <View style={styles.header}>
           <TouchableOpacity
-            style={
-              Platform.OS === "android"
-                ? [styles.plusButton, styles.androidPlusButton]
-                : styles.plusButton
-            }
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+            }}
+            style={styles.backButton}
           >
-            <Ionicons name="add" size={24} color="#666" />
+            <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
-          <TextInput
-            style={styles.messageInput}
-            placeholder="메시지 입력하기"
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            autoCorrect={false}
-            keyboardType="default"
-          />
-          {message.trim().length > 0 && (
-            <TouchableOpacity style={styles.sendButton}>
-              <Ionicons name="send" size={24} color="#007AFF" />
-            </TouchableOpacity>
-          )}
+          <Text style={styles.headerTitle}>Trainer</Text>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+        />
+
+        <View style={styles.inputContainer}>
+          <View style={styles.messageInputWrapper}>
+            <TouchableOpacity
+              style={
+                Platform.OS === "android"
+                  ? [styles.plusButton, styles.androidPlusButton]
+                  : styles.plusButton
+              }
+              onPress={() => setIsActionModalVisible(true)}
+            >
+              <Ionicons name="add" size={24} color="#666" />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.messageInput}
+              placeholder="메시지 입력하기"
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              autoCorrect={false}
+              keyboardType="default"
+            />
+            {message.trim().length > 0 && (
+              <TouchableOpacity style={styles.sendButton}>
+                <Ionicons name="send" size={24} color="#007AFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        <ChatActionModal
+          visible={isActionModalVisible}
+          onClose={() => setIsActionModalVisible(false)}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -232,6 +241,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 14,
+  },
+  modalView: {
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
 });
 

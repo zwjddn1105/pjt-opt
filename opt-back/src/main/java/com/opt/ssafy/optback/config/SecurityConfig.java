@@ -37,6 +37,7 @@ public class SecurityConfig {
                             auth.requestMatchers("/auth/kakao").permitAll();
                             auth.requestMatchers("/auth/sign-out").permitAll();
                             auth.requestMatchers("/auth/withdraw").permitAll();
+                            auth.requestMatchers("/onboarding").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

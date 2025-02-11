@@ -53,7 +53,11 @@ public class PushService {
                 .url(String.format(FCM_SEND_URL, PROJECT_ID))
                 .build();
         Response response = client.newCall(request).execute();
+        if (!response.isSuccessful()) {
+            throw new RuntimeException("FCM push message failed: " + response.body().string());
+        }
         response.close();
+
     }
 
     private String makeMessage(String title, String body, Map<String, String> data, String token)
@@ -90,10 +94,15 @@ public class PushService {
 
     public void save(String token) {
         Member member = userDetailsService.getMemberByContextHolder();
-        FcmToken fcmToken = FcmToken.builder()
-                .memberId(member.getId())
-                .token(token)
-                .build();
-        fcmTokenRepository.save(fcmToken);
+
+        // 기존 토큰 존재 여부 확인
+        if (!fcmTokenRepository.existsByMemberIdAndToken(member.getId(), token)) {
+            FcmToken fcmToken = FcmToken.builder()
+                    .memberId(member.getId())
+                    .token(token)
+                    .build();
+            fcmTokenRepository.save(fcmToken);
+        }
     }
+
 }

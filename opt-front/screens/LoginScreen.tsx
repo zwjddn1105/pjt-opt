@@ -24,20 +24,22 @@ const KakaoLogin = () => {
     const codeMatch = data.match(/[?&]code=([^&]+)/);
     console.log(codeMatch);
     console.log("-----------------------");
+
     if (codeMatch && codeMatch[1]) {
       const authorizeCode = codeMatch[1];
+      console.log(authorizeCode);
       try {
         console.log("aaaaaaaaaaaaaaaaaaaaaaaaa");
-        const response = await axios.get(
-          `https://i12a309.p.ssafy.io/auth/kakao?code=${authorizeCode}`,
-          {
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-            },
-          }
+        const response = await axios.post(
+          `https://i12a309.p.ssafy.io/auth/kakao-front?code=${authorizeCode}`
+          // {
+          //   headers: {
+          //     "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+          //   },
+          // }
         );
-        // body: JSON.stringify({ code: authorizeCode }),
-        console.log(response);
+        // body: JSON.stringify({ code: authorizeCode }), console.log(response);
+        console.log("a");
         if (response.status === 200) {
           const { refreshToken } = await response.data();
           console.log("받은 refreshToken:", refreshToken);

@@ -15,7 +15,7 @@ npx expo install @react-native-community/datetimepicker react-native-modal-datet
 npx expo install @react-native-community/datetimepicker
 npm install axios
 
-혹시 버전관련 오류뜰 때
+혹시 버전관련 오류뜰 때.
 npx expo install --fix
 
 도커 로컬에서 돌리기

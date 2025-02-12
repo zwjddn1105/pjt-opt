@@ -1,5 +1,4 @@
-// OngoingChallengesScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,12 +11,64 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { TopHeader } from "../../components/TopHeader";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-type RootStackParamList = {};
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type RootStackParamList = {
+  MyChallenge: undefined;
+};
+
+type Challenge = {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+};
+
+const BASE_URL = "http://70.12.246.176:8080";
+
+const getRefreshToken = async () => {
+  try {
+    return await AsyncStorage.getItem("refreshToken");
+  } catch (error) {
+    console.error("Error retrieving refresh token:", error);
+    return null;
+  }
+};
+
 const OngoingChallengesScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [isEnabled, setIsEnabled] = useState(true);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+
   const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const refreshToken = await getRefreshToken();
+        if (!refreshToken) throw new Error("Refresh token not found");
+
+        const response = await axios.get<Challenge[]>(
+          `${BASE_URL}/challenges/participating`,
+          {
+            headers: {
+              Authorization: `Bearer ${refreshToken}`,
+            },
+          }
+        );
+        setChallenges(response.data);
+      } catch (error) {
+        console.error("진행 중인 챌린지 불러오기 실패:", error);
+      }
+    };
+
+    fetchChallenges();
+  }, []);
 
   const renderSectionHeader = (title: string) => (
     <View style={styles.sectionHeader}>
@@ -68,27 +119,27 @@ const OngoingChallengesScreen = () => {
         <View style={styles.section}>
           {renderSectionHeader("내가 진행중인 챌린지")}
           <View style={styles.cardContainer}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <View key={index} style={styles.challengeCard}>
+            {challenges.map((challenge) => (
+              <View key={challenge.id} style={styles.challengeCard}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>서울시 청년도전 지원사업</Text>
-                  <Text style={styles.cardSubtitle}>X-CHALLENGE SEOUL</Text>
+                  <Text style={styles.cardTitle}>{challenge.title}</Text>
+                  <Text style={styles.cardSubtitle}>{challenge.type}</Text>
                 </View>
                 <View style={styles.cardContent}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>모집기간</Text>
+                    <Text style={styles.infoLabel}>기간</Text>
                     <Text style={styles.infoValue}>
-                      2024.01.01 ~ 2024.12.31
+                      {`${challenge.startDate} ~ ${challenge.endDate}`}
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>지원대상</Text>
-                    <Text style={styles.infoValue}>만 19세 ~ 39세 청년</Text>
+                    <Text style={styles.infoLabel}>상태</Text>
+                    <Text style={styles.infoValue}>{challenge.status}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>지원내용</Text>
+                    <Text style={styles.infoLabel}>설명</Text>
                     <Text style={styles.infoValue}>
-                      활동지원금 최대 300만원
+                      {challenge.description}
                     </Text>
                   </View>
                 </View>
@@ -124,20 +175,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     lineHeight: 30,
-  },
-  addButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-  },
-  addButtonText: {
-    fontSize: 18,
-    color: "#666",
-    lineHeight: 24,
   },
   cardContainer: {
     flexDirection: "row",
@@ -227,17 +264,6 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: "#fff",
   },
-  customToggle: {
-    width: 70,
-    height: 35,
-    borderRadius: 20,
-    backgroundColor: "#767577",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  customToggleActive: {
-    backgroundColor: "#0C508B",
-  },
   backButton: {
     padding: 8,
     marginLeft: 12,
@@ -247,7 +273,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingRight: 20,
-    // marginTop: 7,
   },
 });
 

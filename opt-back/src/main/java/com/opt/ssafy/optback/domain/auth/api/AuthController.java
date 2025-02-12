@@ -36,8 +36,16 @@ public class AuthController {
         return ResponseEntity.ok(signInResponse);
     }
 
-    // 로그인(회원가입)
+    // 로그인(회원가입) - 카카오 콜백용
     @GetMapping("/kakao")
+    public ResponseEntity<SignInResponse> kakaoCallback(@RequestParam("code") String accessCode,
+                                                        HttpServletResponse httpServletResponse) {
+        System.out.println("🐿️ 카카오 요청 도착");
+        return ResponseEntity.ok().build();
+    }
+
+    // 로그인(회원가입) - 프론트용
+    @PostMapping("/kakao-front")
     public ResponseEntity<SignInResponse> kakaoLogin(@RequestParam("code") String accessCode,
                                                      HttpServletResponse httpServletResponse) {
         System.out.println("🐿️ 컨트롤러 토큰확인 :" + accessCode);

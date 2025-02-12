@@ -42,10 +42,7 @@ const getRefreshToken = async () => {
 const OngoingChallengesScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [isEnabled, setIsEnabled] = useState(true);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-
-  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -63,7 +60,7 @@ const OngoingChallengesScreen = () => {
         );
         setChallenges(response.data);
       } catch (error) {
-        console.error("진행 중인 챌린지 불러오기 실패:", error);
+        console.error("참여 중인 챌린지 불러오기 실패:", error);
       }
     };
 
@@ -87,37 +84,10 @@ const OngoingChallengesScreen = () => {
           >
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toggleContainer}
-            onPress={toggleSwitch}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.toggleTrack,
-                isEnabled && styles.toggleTrackActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  isEnabled && styles.toggleTextActive,
-                ]}
-              >
-                MY
-              </Text>
-              <View
-                style={[
-                  styles.toggleThumb,
-                  isEnabled && styles.toggleThumbActive,
-                ]}
-              />
-            </View>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          {renderSectionHeader("내가 진행중인 챌린지")}
+          {renderSectionHeader("내가 참여중인 챌린지")}
           <View style={styles.cardContainer}>
             {challenges.map((challenge) => (
               <View key={challenge.id} style={styles.challengeCard}>
@@ -225,44 +195,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: "500",
-  },
-  toggleContainer: {
-    width: 75,
-    height: 30,
-  },
-  toggleTrack: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 15,
-    backgroundColor: "#767577",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  toggleTrackActive: {
-    backgroundColor: "#0C508B",
-  },
-  toggleTextActive: {
-    color: "#fff",
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#f4f3f4",
-    position: "absolute",
-    left: 4,
-  },
-  toggleText: {
-    color: "#f4f3f4",
-    fontSize: 13,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  toggleThumbActive: {
-    left: "auto",
-    right: 4,
-    backgroundColor: "#fff",
   },
   backButton: {
     padding: 8,

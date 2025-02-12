@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -21,6 +22,7 @@ type RootStackParamList = {
   PastChallenges: undefined;
   ManageChallenge: undefined;
   MyChallengeScreen: undefined;
+  AllChallenges: undefined;
 };
 
 type Challenge = {
@@ -59,7 +61,7 @@ const fetchOngoingChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("진행 중인 챌린지 불러오기 실패:", error);
+    console.error("내가 참여 중인 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
@@ -78,7 +80,7 @@ const fetchAppliedChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("신청한 챌린지 불러오기 실패:", error);
+    console.error("내가 신청한 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
@@ -97,7 +99,7 @@ const fetchPastChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("참여했던 챌린지 불러오기 실패:", error);
+    console.error("내가 참여했던 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
@@ -105,14 +107,14 @@ const fetchPastChallenges = async () => {
 const MyChallengeScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [isEnabled, setIsEnabled] = useState(true);
+
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [ongoingChallenges, setOngoingChallenges] = useState<Challenge[]>([]);
   const [appliedChallenges, setAppliedChallenges] = useState<Challenge[]>([]);
   const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -208,7 +210,7 @@ const MyChallengeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
-      <ScrollView style={styles.container}>
+      <ScrollView>
         <View style={styles.headerContainer}>
           {userRole === "ROLE_TRAINER" && (
             <TouchableOpacity
@@ -220,35 +222,24 @@ const MyChallengeScreen: React.FC = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={styles.toggleContainer}
-            onPress={toggleSwitch}
+            style={[
+              styles.switchButton,
+              // 활성화 상태에 따라 배경색 변경
+            ]}
+            onPress={() => {}} // 상태 전환 로직
             activeOpacity={0.8}
           >
+            <Text style={styles.switchButtonText}>MY</Text>
             <View
               style={[
-                styles.toggleTrack,
-                isEnabled && styles.toggleTrackActive,
+                styles.switchThumb,
+                styles.switchThumbActive, // 활성화 상태에 따라 썸 위치 변경
               ]}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  isEnabled && styles.toggleTextActive,
-                ]}
-              >
-                MY
-              </Text>
-              <View
-                style={[
-                  styles.toggleThumb,
-                  isEnabled && styles.toggleThumbActive,
-                ]}
-              />
-            </View>
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.section}>
-          {renderSectionHeader("내가 진행중인 챌린지", "OngoingChallenges")}
+          {renderSectionHeader("내가 참여중인 챌린지", "OngoingChallenges")}
           <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
             {ongoingChallenges.map((challenge, index) => (
               <React.Fragment key={challenge.id}>
@@ -298,10 +289,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
-  },
-  container: {
-    marginBottom: 10,
-    flex: 1,
   },
   section: {
     marginTop: 10,
@@ -381,52 +368,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-  toggleContainer: {
-    width: 75,
-    height: 30,
-    alignSelf: "flex-end",
-    marginRight: 20,
-  },
-  toggleTrack: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 15,
-    backgroundColor: "#767577",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  toggleTrackActive: {
-    backgroundColor: "#0C508B",
-  },
-  toggleTextActive: {
-    color: "#fff",
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#f4f3f4",
-    position: "absolute",
-    left: 4,
-  },
-  toggleText: {
-    color: "#f4f3f4",
-    fontSize: 13,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  toggleThumbActive: {
-    left: "auto",
-    right: 4,
-    backgroundColor: "#fff",
-  },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    // paddingRight: 20,
     marginBottom: 10,
+    paddingRight: 20,
   },
   manageButton: {
     paddingHorizontal: 12,
@@ -439,6 +386,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#fff",
     fontWeight: "500",
+  },
+  switchButton: {
+    width: 75, // 버튼 너비
+    height: 30, // 버튼 높이
+    borderRadius: 15, // 둥근 모서리
+    backgroundColor: "#0C508B", // 비활성화 상태의 배경색
+    flexDirection: "row", // 텍스트와 썸을 가로로 배치
+    alignItems: "center", // 수직 가운데 정렬
+    paddingHorizontal: 4, // 내부 여백
+  },
+  switchButtonActive: {
+    backgroundColor: "#0C508B", // 활성화 상태의 배경색
+  },
+  switchButtonText: {
+    color: "#fff", // 텍스트 색상
+    fontSize: 13, // 텍스트 크기
+    fontWeight: "bold", // 텍스트 굵기
+    marginLeft: 8, // 텍스트와 썸 사이 간격
+  },
+  switchThumb: {
+    width: 24, // 썸의 너비
+    height: 24, // 썸의 높이
+    borderRadius: 12, // 썸의 둥근 모서리
+    backgroundColor: "#f4f3f4", // 썸의 색상
+    position: "absolute", // 위치를 절대값으로 설정
+  },
+  switchThumbActive: {
+    right: 4, // 활성화 상태에서 오른쪽으로 이동
   },
 });
 

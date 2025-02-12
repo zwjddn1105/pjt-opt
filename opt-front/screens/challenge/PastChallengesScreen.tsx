@@ -42,10 +42,8 @@ const getRefreshToken = async () => {
 const PastChallengesScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [isEnabled, setIsEnabled] = useState(true);
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
 
-  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -86,33 +84,6 @@ const PastChallengesScreen = () => {
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="chevron-back" size={24} color="black" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toggleContainer}
-            onPress={toggleSwitch}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.toggleTrack,
-                isEnabled && styles.toggleTrackActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  isEnabled && styles.toggleTextActive,
-                ]}
-              >
-                MY
-              </Text>
-              <View
-                style={[
-                  styles.toggleThumb,
-                  isEnabled && styles.toggleThumbActive,
-                ]}
-              />
-            </View>
           </TouchableOpacity>
         </View>
 
@@ -239,55 +210,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: "500",
-  },
-  toggleContainer: {
-    width: 75,
-    height: 30,
-  },
-  toggleTrack: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 15,
-    backgroundColor: "#767577",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  toggleTrackActive: {
-    backgroundColor: "#0C508B",
-  },
-  toggleTextActive: {
-    color: "#fff",
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#f4f3f4",
-    position: "absolute",
-    left: 4,
-  },
-  toggleText: {
-    color: "#f4f3f4",
-    fontSize: 13,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  toggleThumbActive: {
-    left: "auto",
-    right: 4,
-    backgroundColor: "#fff",
-  },
-  customToggle: {
-    width: 70,
-    height: 35,
-    borderRadius: 20,
-    backgroundColor: "#767577",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  customToggleActive: {
-    backgroundColor: "#0C508B",
   },
   backButton: {
     padding: 8,

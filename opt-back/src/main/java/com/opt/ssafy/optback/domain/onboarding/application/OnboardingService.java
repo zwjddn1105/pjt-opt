@@ -7,6 +7,7 @@ import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
 import com.opt.ssafy.optback.domain.member.repository.InterestRepository;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import com.opt.ssafy.optback.domain.onboarding.dto.OnboardingRequest;
+import com.opt.ssafy.optback.domain.onboarding.exception.AlreadyOnboardedException;
 import com.opt.ssafy.optback.domain.onboarding.exception.InterestNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,8 +28,12 @@ public class OnboardingService {
     public void onboardMember(OnboardingRequest request) {
         Member member = userDetailsService.getMemberByContextHolder();
 
+        if (member.isOnboarded()) {
+            throw new AlreadyOnboardedException("이미 온보딩이 완료된 회원입니다.");
+        }
         // 닉네임 업데이트
         member.updateNickname(request.getNickname());
+        member.updateIsOnboarded();
 
         // 관심사 업데이트
         List<MemberInterest> newInterests = request.getInterestIds().stream()

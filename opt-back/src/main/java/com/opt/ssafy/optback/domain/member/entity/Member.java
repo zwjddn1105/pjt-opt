@@ -100,4 +100,7 @@ public class Member {
         this.role = Role.ROLE_TRAINER;
     }
 
+    public void updateIsOnboarded() {
+        this.isOnboarded = true;
+    }
 }

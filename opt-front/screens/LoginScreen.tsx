@@ -2,9 +2,10 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
 const REST_API_KEY = "b74e72417a62d1b6d0fc3b1e25087c3d";
-const REDIRECT_URI = "http://localhost:8080/auth/kakao";
+const REDIRECT_URI = "https://i12a309.p.ssafy.io/auth/kakao";
 
 // injectedJavaScript는 웹뷰 로드 후 현재 URL에 code가 포함되어 있으면 postMessage로 전달합니다.
 const INJECTED_JAVASCRIPT = `
@@ -21,22 +22,26 @@ const KakaoLogin = () => {
   const handleMessage = async (event: any) => {
     const data: string = event.nativeEvent.data;
     const codeMatch = data.match(/[?&]code=([^&]+)/);
+    console.log(codeMatch);
+    console.log("-----------------------");
     if (codeMatch && codeMatch[1]) {
       const authorizeCode = codeMatch[1];
       try {
-        const response = await fetch("http://localhost:8080/auth/kakao", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ code: authorizeCode }),
-        });
-
-        if (response.ok) {
-          const { refreshToken } = await response.json();
+        console.log("aaaaaaaaaaaaaaaaaaaaaaaaa");
+        const response = await axios.get(
+          `https://i12a309.p.ssafy.io/auth/kakao?code=${authorizeCode}`,
+          {
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            },
+          }
+        );
+        // body: JSON.stringify({ code: authorizeCode }),
+        console.log(response);
+        if (response.status === 200) {
+          const { refreshToken } = await response.data();
           console.log("받은 refreshToken:", refreshToken);
 
-          // AsyncStorage에 refreshToken 저장
           await AsyncStorage.setItem("refreshToken", refreshToken);
           console.log("refreshToken 저장 완료");
 

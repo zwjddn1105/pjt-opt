@@ -13,6 +13,7 @@ npm install react-native-element-dropdown
 npx expo install react-native-date-picker
 npx expo install @react-native-community/datetimepicker react-native-modal-datetime-picker
 npx expo install @react-native-community/datetimepicker
+npm install axios
 
 혹시 버전관련 오류뜰 때
 npx expo install --fix

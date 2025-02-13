@@ -47,6 +47,7 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     @Query("SELECT COALESCE(SUM(cr.count), 0) FROM ChallengeRecord cr WHERE cr.challenge.id = :challengeId")
     int sumTotalCountByChallengeId(@Param("challengeId") int challengeId);
 
-    List<Object[]> findAllContributionsByChallengeId(int id);
+    @Query("SELECT cr.memberId, m.nickname, COUNT(cr) FROM ChallengeRecord cr JOIN Member m ON cr.memberId = m.id WHERE cr.challenge.id = :id GROUP BY cr.memberId, m.nickname")
+    List<Object[]> findAllContributionsByChallengeId(@Param("id") int id);
 }
 

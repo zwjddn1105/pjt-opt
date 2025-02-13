@@ -11,6 +11,7 @@ import com.opt.ssafy.optback.domain.challenge.entity.ChallengeMember;
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeRecord;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeNotFoundException;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeRecordNotFoundException;
+import com.opt.ssafy.optback.domain.challenge.exception.ChallengeTypeMismatchException;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeMemberRepository;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRecordRepository;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRepository;
@@ -105,9 +106,6 @@ public class ChallengeService {
                         .map(Member::getNickname)
                         .orElse("Unknown winner nickname") : null;
 
-        // 챌린지 참가자들의 기여도 정보 조회
-        List<ContributionResponse> contributions = getChallengeContributions(id);
-        
         return ChallengeResponse.builder()
                 .id(challenge.getId())
                 .type(challenge.getType())
@@ -130,20 +128,22 @@ public class ChallengeService {
                 .exerciseCount(challenge.getExerciseCount())
                 .exerciseDuration(challenge.getExerciseDuration())
                 .exerciseDistance(challenge.getExerciseDistance())
-                .contributions(contributions)
                 .build();
     }
 
-    private List<ContributionResponse> getChallengeContributions(int id) {
+    public List<ContributionResponse> getChallengeContributions(int id) {
         Member currentUser = userDetailsService.getMemberByContextHolder();
         int totalContribution = challengeRecordRepository.sumTotalCountByChallengeId(id);
         List<Object[]> contributionData = challengeRecordRepository.findAllContributionsByChallengeId(id);
+        if(!getChallengeById(id).getType().equals("TEAM")){
+            throw new ChallengeTypeMismatchException("기여도를 계산할 수 없는 챌린지 유형입니다. TEAM 챌린지만 가능합니다.");
+        }
 
         return contributionData.stream()
                 .map(record -> {
                     int memberId = (int) record[0];
                     String nickname = (String) record[1];
-                    int count = (int) record[2];
+                    int count = ((Long) record[2]).intValue();
                     double contributionPercentage = totalContribution == 0 ? 0.0 : ((double) count / totalContribution) * 100;
                     boolean isMyRecord = (currentUser.getId() == memberId);
                     return new ContributionResponse(memberId, nickname, count, contributionPercentage, isMyRecord);

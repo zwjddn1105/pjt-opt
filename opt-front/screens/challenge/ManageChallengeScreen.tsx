@@ -36,7 +36,7 @@ type Challenge = {
   exerciseType: string;
   exerciseCount: number;
 };
-const BASE_URL = "http://70.12.246.175:8080";
+const BASE_URL = "https://i12a309.p.ssafy.io";
 
 const getRefreshToken = async () => {
   try {

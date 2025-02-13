@@ -44,7 +44,7 @@ interface ChallengeData {
 const placeholderTextColor = "#999";
 
 const CreateChallengeScreen = () => {
-  const BASE_URL = "http://70.12.246.175:8080";
+  const BASE_URL = "https://i12a309.p.ssafy.io";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedType, setSelectedType] = useState<DropdownItem | null>(null); // 종류
@@ -167,7 +167,7 @@ const CreateChallengeScreen = () => {
 
       const response = await axios.post(`${BASE_URL}/challenges`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          // "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${refreshToken}`,
         },
       });

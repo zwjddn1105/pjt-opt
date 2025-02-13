@@ -40,7 +40,7 @@ const LoginNeedScreen: React.FC = () => {
   const loginWithEmail = async () => {
     try {
       const response = await axios.post(
-        "http://70.12.246.176:8080/auth/sign-in",
+        "http://70.12.246.175:8080/auth/sign-in",
         {
           email,
         }

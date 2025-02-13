@@ -16,6 +16,9 @@ import { TopHeader } from "../../components/TopHeader";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Dropdown } from "react-native-element-dropdown";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import * as ImagePicker from "expo-image-picker";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type RootStackParamList = {};
 type DropdownItem = {
@@ -23,40 +26,71 @@ type DropdownItem = {
   value: string;
 };
 
+interface ChallengeData {
+  type: string;
+  title: string;
+  description: string;
+  reward: string | null;
+  startDate: string;
+  endDate: string;
+  max_participants: number;
+  frequency: number;
+  exercise_type: string;
+  exercise_count?: number;
+  exercise_duration?: number;
+  exercise_distance?: number;
+}
+
 const placeholderTextColor = "#999";
 
 const CreateChallengeScreen = () => {
+  const BASE_URL = "http://70.12.246.175:8080";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [selectedType, setSelectedType] = useState<DropdownItem | null>(null);
-
-  const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [selectedType, setSelectedType] = useState<DropdownItem | null>(null); // 종류
+  const [exerciseType, setExerciseType] = useState<DropdownItem | null>(null); // 운동종류
+  const [title, setTitle] = useState(""); // 주제
+  const [frequency, setFrequency] = useState(null); // 주기
   const [customPeriod, setCustomPeriod] = useState("");
-
-  const [startDate, setStartDate] = useState("");
+  const [maxParticipants, setMaxParticipants] = useState(""); // 상한인원
+  const [exerciseValue, setExerciseValue] = useState(""); // count, duration, distance
+  const [startDate, setStartDate] = useState(""); // 날짜
   const [endDate, setEndDate] = useState("");
+  const [isRewardChecked, setIsRewardChecked] = useState(false); // 보상
+  const [rewardText, setRewardText] = useState("");
+  const [description, setDescription] = useState(""); // 설명
+
   const [isStartPickerVisible, setStartPickerVisible] = useState(false);
   const [isEndPickerVisible, setEndPickerVisible] = useState(false);
-
-  const [isRewardChecked, setIsRewardChecked] = useState(false);
-  const [rewardText, setRewardText] = useState("");
-
-  const [title, setTitle] = useState(""); // 주제
-  const [count, setCount] = useState(""); // 횟수
-  const [maxParticipants, setMaxParticipants] = useState(""); // 상한인원
   const [isModalVisible, setModalVisible] = useState(false); // 모달 표시 여부
 
-  const types = [
-    { label: "협동 챌린지", value: "1" },
-    { label: "매일 챌린지", value: "2" },
-    { label: "서바이벌 챌린지", value: "3" },
-  ];
+  const [isImageChecked, setIsImageChecked] = useState(false); // 이미지관련련
+  const [imageAttached, setImageAttached] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
+  const types = [
+    { label: "협동 챌린지", value: "TEAM" },
+    { label: "매일 챌린지", value: "NORMAL" },
+    { label: "서바이벌 챌린지", value: "SURVIVAL" },
+  ];
+  const exerciseTypes = [
+    { label: "플랭크", value: "DURATION" },
+    { label: "러닝", value: "DISTANCE" },
+    { label: "스쿼트", value: "COUNT" },
+    { label: "풀업", value: "COUNT" },
+    { label: "푸쉬업", value: "COUNT" },
+    { label: "벤치프레스", value: "COUNT" },
+    { label: "데드리프트", value: "COUNT" },
+    { label: "레그프레스", value: "COUNT" },
+    { label: "레그익스텐션", value: "COUNT" },
+    { label: "바벨로우", value: "COUNT" },
+    { label: "딥스", value: "COUNT" },
+  ];
   const periods = [
     { label: "매일", value: "1" },
     { label: "7일", value: "2" },
     { label: "14일", value: "3" },
-    { label: "", value: "4" },
+    { label: "21일", value: "4" },
     { label: "30일", value: "5" },
     { label: "직접입력", value: "custom" },
   ];
@@ -75,6 +109,76 @@ const CreateChallengeScreen = () => {
     return `${date.getFullYear()}-${(date.getMonth() + 1)
       .toString()
       .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+  };
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageAttached(true);
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleCreateChallenge = async () => {
+    try {
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        console.error("Refresh token not found");
+        return;
+      }
+      const challengeData = {
+        type: selectedType?.value || "",
+        title: title,
+        description: description,
+        reward: isRewardChecked ? rewardText : null,
+        startDate: startDate,
+        endDate: endDate,
+        max_participants: parseInt(maxParticipants),
+        frequency:
+          frequency === "custom"
+            ? parseInt(customPeriod)
+            : parseInt(frequency || "0"),
+        exercise_type: exerciseType?.value || "",
+      } as ChallengeData;
+
+      if (exerciseType?.value === "COUNT") {
+        challengeData.exercise_count = parseInt(exerciseValue);
+      } else if (exerciseType?.value === "DURATION") {
+        challengeData.exercise_duration = parseInt(exerciseValue);
+      } else if (exerciseType?.value === "DISTANCE") {
+        challengeData.exercise_distance = parseFloat(exerciseValue);
+      }
+
+      const formData = new FormData();
+      formData.append("data", JSON.stringify(challengeData));
+
+      if (isImageChecked && imageAttached) {
+        formData.append("imagePath", {
+          uri: imageUri,
+          type: "image/jpeg",
+          name: "challenge_image.jpg",
+        } as any);
+      }
+
+      const response = await axios.post(`${BASE_URL}/challenges`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      });
+
+      console.log("Challenge created:", response.data);
+      setModalVisible(false);
+      // 성공 메시지 표시 또는 다른 화면으로 네비게이션
+    } catch (error) {
+      console.error("Error creating challenge:", error);
+      // 에러 메시지 표시
+    }
   };
 
   return (
@@ -114,6 +218,26 @@ const CreateChallengeScreen = () => {
               }}
             />
           </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>운동 종류</Text>
+            <Dropdown
+              style={styles.dropdown}
+              placeholderStyle={[
+                styles.placeholderStyle,
+                { color: placeholderTextColor },
+              ]}
+              selectedTextStyle={styles.selectedTextStyle}
+              data={exerciseTypes}
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder="운동 종류를 선택해주세요."
+              value={exerciseType?.value}
+              onChange={(item) => {
+                setExerciseType(item);
+              }}
+            />
+          </View>
 
           <View style={styles.rowContainer}>
             <View style={styles.halfInputGroup}>
@@ -122,20 +246,20 @@ const CreateChallengeScreen = () => {
                 style={styles.input}
                 placeholder="주제를 입력해주세요."
                 placeholderTextColor={placeholderTextColor}
-                value={title} // 상태값 연결
-                onChangeText={(text) => setTitle(text)} // 상태 업데이트
+                value={title}
+                onChangeText={(text) => setTitle(text)}
               />
             </View>
             <View style={styles.halfInputGroup}>
               <View style={styles.labelContainer}>
                 <Text style={styles.label}>주기</Text>
-                {selectedPeriod === "custom" && (
-                  <TouchableOpacity onPress={() => setSelectedPeriod(null)}>
+                {frequency === "custom" && (
+                  <TouchableOpacity onPress={() => setFrequency(null)}>
                     <Text style={styles.resetText}>다시 선택하기</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              {selectedPeriod === "custom" ? (
+              {frequency === "custom" ? (
                 <TextInput
                   style={styles.input}
                   placeholder="직접 입력"
@@ -157,9 +281,9 @@ const CreateChallengeScreen = () => {
                   labelField="label"
                   valueField="value"
                   placeholder="주기를 선택해주세요."
-                  value={selectedPeriod}
+                  value={frequency}
                   onChange={(item) => {
-                    setSelectedPeriod(item.value);
+                    setFrequency(item.value);
                   }}
                 />
               )}
@@ -167,21 +291,37 @@ const CreateChallengeScreen = () => {
           </View>
           <View style={styles.rowContainer}>
             <View style={styles.halfInputGroup}>
-              <Text style={styles.label}>횟수</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="횟수를 입력해주세요."
-                keyboardType="numeric"
-                placeholderTextColor={placeholderTextColor}
-              />
-            </View>
-            <View style={styles.halfInputGroup}>
               <Text style={styles.label}>상한인원</Text>
               <TextInput
                 style={styles.input}
                 placeholder="상한인원을 입력해주세요."
                 keyboardType="numeric"
                 placeholderTextColor={placeholderTextColor}
+                value={maxParticipants}
+                onChangeText={setMaxParticipants}
+              />
+            </View>
+            <View style={styles.halfInputGroup}>
+              <Text style={styles.label}>
+                {exerciseType?.value === "DURATION"
+                  ? "시간"
+                  : exerciseType?.value === "DISTANCE"
+                  ? "거리"
+                  : "횟수"}
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder={
+                  exerciseType?.value === "DURATION"
+                    ? "몇 초를 버틸까요?."
+                    : exerciseType?.value === "DISTANCE"
+                    ? "얼마나 뛸까요?."
+                    : "몇 회 할까요?."
+                }
+                keyboardType="numeric"
+                placeholderTextColor={placeholderTextColor}
+                value={exerciseValue}
+                onChangeText={setExerciseValue}
               />
             </View>
           </View>
@@ -272,6 +412,45 @@ const CreateChallengeScreen = () => {
               onChangeText={setRewardText}
             />
           </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>설명</Text>
+            <TextInput
+              style={[styles.input, styles.descriptionInput]}
+              placeholder="응원의 메세지와 함께 챌린지에 대한 간단한 설명을 입력해주세요!"
+              placeholderTextColor={placeholderTextColor}
+              multiline={true}
+              numberOfLines={4}
+              textAlignVertical="top"
+              value={description}
+              onChangeText={setDescription}
+            />
+          </View>
+          <View style={styles.imageContainer}>
+            <TouchableOpacity
+              onPress={() => setIsImageChecked(!isImageChecked)}
+              style={styles.checkboxContainer}
+            >
+              <Text style={styles.label}>이미지</Text>
+              <Text></Text>
+              <Ionicons
+                name={isImageChecked ? "checkbox-outline" : "square-outline"}
+                size={20}
+                color="#0C508B"
+              />
+            </TouchableOpacity>
+            {isImageChecked && ( // 체크박스가 체크되었을 때만 이미지 첨부 화면 표시
+              <TouchableOpacity
+                style={[styles.imageBox, imageAttached && styles.imageAttached]}
+                onPress={pickImage}
+              >
+                <Text style={styles.imageBoxText}>
+                  {imageAttached
+                    ? "이미지가 첨부됨"
+                    : "이미지를 첨부하려면 클릭하세요"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {/* Submit Button */}
           <Modal
             visible={isModalVisible}
@@ -287,11 +466,13 @@ const CreateChallengeScreen = () => {
 
                 {/* 챌린지 요약 정보 */}
                 <View style={styles.summaryContainer}>
-                  <Text>챌린지 종류: {selectedType?.label || "미선택"}</Text>
-                  <Text>주제: {title || "미입력"}</Text>
                   <Text>
-                    기간: {startDate || "시작 날짜 없음"} ~{" "}
-                    {endDate || "종료 날짜 없음"}
+                    챌린지 종류: {selectedType?.label || "종류를 선택해주세요."}
+                  </Text>
+                  <Text>주제: {title || "주제를 입력해주세요."}</Text>
+                  <Text>
+                    기간: {startDate || "시작 날짜를 입력해주세요."} ~{" "}
+                    {endDate || "종료 날짜를 입력해주세요."}
                   </Text>
                 </View>
 
@@ -305,10 +486,7 @@ const CreateChallengeScreen = () => {
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity
                     style={styles.confirmButton}
-                    onPress={() => {
-                      // 개설 로직 추가
-                      setModalVisible(false);
-                    }}
+                    onPress={handleCreateChallenge}
                   >
                     <Text style={styles.buttonText}>개설하기</Text>
                   </TouchableOpacity>
@@ -517,6 +695,28 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
+  },
+  descriptionInput: {
+    height: 90, // 기존 input 높이의 2배
+    textAlignVertical: "top",
+    paddingTop: 12,
+  },
+  imageContainer: {
+    marginBottom: 20,
+  },
+  imageBox: {
+    height: 100,
+    borderWidth: 1,
+    borderColor: "#0C508B",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageAttached: {
+    backgroundColor: "#E6F3FF",
+  },
+  imageBoxText: {
+    color: "#666",
   },
 });
 

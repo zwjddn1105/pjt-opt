@@ -43,9 +43,8 @@ public class SecurityConfig {
                             auth.requestMatchers("/auth/kakao").permitAll();
                             auth.requestMatchers("/auth/sign-out").permitAll();
                             auth.requestMatchers("/auth/withdraw").permitAll();
-                            auth.requestMatchers("/ws-chat/**").permitAll(); // ✅ 웹소켓 경로 허용
-                            auth.requestMatchers("/app/**").authenticated(); // ✅ STOMP 메시지는 인증 필요
-                            auth.requestMatchers("/stomp").authenticated(); // ✅ STOMP 메시지는 인증 필요
+                            auth.requestMatchers("/ws-chat/**").permitAll();
+                            auth.requestMatchers("/app/**").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

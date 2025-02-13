@@ -5,7 +5,6 @@ import org.springframework.security.config.annotation.web.messaging.MessageSecur
 import org.springframework.security.config.annotation.web.socket.AbstractSecurityWebSocketMessageBrokerConfigurer;
 
 @Configuration
-//@EnableWebSocketSecurity // ✅ WebSocket 보안 활성화
 public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBrokerConfigurer {
 
     @Override
@@ -13,6 +12,7 @@ public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBro
         messages
                 .nullDestMatcher().permitAll()
                 .simpDestMatchers("/app/**").authenticated()
+                .simpDestMatchers("/user/**").authenticated()
                 .simpSubscribeDestMatchers("/topic/**").authenticated()
                 .anyMessage().denyAll();
     }
@@ -20,5 +20,5 @@ public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBro
     @Override
     protected boolean sameOriginDisabled() {
         return true;
-    }
+    } // CORS 보안 정책 비활성화
 }

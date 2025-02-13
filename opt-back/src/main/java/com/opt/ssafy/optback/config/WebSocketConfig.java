@@ -13,9 +13,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    private static final String ENDPOINT = "/ws-chat";
-    private static final String SIMPLE_BROKER = "/topic";
-    private static final String PUBLISH = "/app";
+    private static final String ENDPOINT = "/ws-chat"; // 웹소켓 연결용 엔드포인트
+    private static final String SIMPLE_BROKER = "/topic"; // 메시지 경로
+    private static final String PUBLISH = "/app"; // 서버로 메시지를 보낼 때 사용하는 경로
 
     private final JwtChannelInterceptor jwtChannelInterceptor;
 
@@ -34,29 +34,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        System.out.println("🟢 [WebSocket] JwtChannelInterceptor 등록됨");
         registration.interceptors(jwtChannelInterceptor);
     }
-//    private final JwtChannelInterceptor jwtChannelInterceptor;
-//    private final ChatPreHandler chatPreHandler;
-//
-//    @Override
-//    public void registerStompEndpoints(StompEndpointRegistry registry) {
-//        registry.addEndpoint("/ws")
-//                .setAllowedOriginPatterns("*")
-//                .withSockJS();
-//    }
-//
-//    @Override
-//    public void configureMessageBroker(MessageBrokerRegistry registry) {
-//        registry.enableSimpleBroker("/topic");  // ✅ "/topic"을 구독하는 클라이언트에게 메시지 전달
-//        registry.setApplicationDestinationPrefixes("/app");  // ✅ 클라이언트가 메시지를 보낼 경로
-//    }
-//
-//    @Override
-//    public void configureClientInboundChannel(ChannelRegistration registration) {
-//        System.out.println("🟢 [WebSocket] JwtChannelInterceptor 등록됨");
-//        registration.interceptors(jwtChannelInterceptor);
-//    }
-
 }

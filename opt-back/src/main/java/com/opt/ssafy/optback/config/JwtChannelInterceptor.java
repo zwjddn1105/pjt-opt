@@ -10,11 +10,9 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,6 +22,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private final JwtProvider jwtProvider;
 
+    // 메시지 전송 전 실행 (인증된 사용자만)
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
@@ -35,29 +34,25 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         log.info("🟢 [WebSocket] STOMP Command: {}", accessor.getCommand());
 
-        // ✅ CONNECT 요청에서만 Authorization 헤더를 체크하는 것이 아니라, SUBSCRIBE 및 SEND 요청도 처리해야 함
+        // Authorization 헤더 체크
         if (StompCommand.CONNECT.equals(accessor.getCommand()) ||
                 StompCommand.SUBSCRIBE.equals(accessor.getCommand()) ||
                 StompCommand.SEND.equals(accessor.getCommand())) {
 
             log.info("🟢 [WebSocket] {} 요청 감지됨", accessor.getCommand());
 
-            // ✅ WebSocket 요청에서 JWT 토큰 가져오기
+            // WebSocket 요청에서 JWT 토큰 가져오기
             String jwtToken = extractToken(accessor);
             if (jwtToken == null) {
                 log.error("❌ [WebSocket] Authorization 헤더가 존재하지 않음");
                 throw new RuntimeException("❌ [WebSocket] Authorization 헤더가 존재하지 않음");
             }
 
-            // ✅ JWT 검증
+            // JWT 검증
             if (!jwtProvider.validateToken(jwtToken)) {
                 log.error("❌ [WebSocket] JWT 토큰 검증 실패!");
-                throw new RuntimeException("Invalid token");
+                throw new RuntimeException("검증되지 않은 JWT토큰");
             }
-
-            // ✅ JWT에서 사용자 정보 가져오기
-//            String username = jwtProvider.getAuthentication(jwtToken).getName();
-//            Authentication authentication = createAuthentication(username);
 
             Authentication authentication = jwtProvider.getAuthentication(jwtToken);
             if (authentication == null) {
@@ -65,12 +60,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 return message;
             }
 
-            // ✅ SecurityContext에 저장
+            // SecurityContext에 저장
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
 
-            // ✅ WebSocket 세션에서도 인증 정보 설정
+            // WebSocket 세션에서도 인증 정보 설정
             accessor.setUser(authentication);
 
             log.info("✅ [WebSocket] 사용자 인증 성공 (사용자명: {})", authentication.getName());
@@ -90,15 +85,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         return null;
     }
 
-    private void setAuthentication(UserDetails userDetails, StompHeaderAccessor headerAccessor) {
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                userDetails, // ✅ 올바르게 `UserDetails` 저장
-                null,
-                userDetails.getAuthorities()
-        );
-//    private Authentication createAuthentication(String username) {
-//        return new UsernamePasswordAuthenticationToken(username, null,
-//                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
-//
-    }
+//    private void setAuthentication(UserDetails userDetails, StompHeaderAccessor headerAccessor) {
+//        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+//                userDetails, // ✅ 올바르게 `UserDetails` 저장
+//                null,
+//                userDetails.getAuthorities()
+//        );
+//    }
 }

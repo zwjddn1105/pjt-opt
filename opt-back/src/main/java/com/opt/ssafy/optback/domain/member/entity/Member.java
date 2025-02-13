@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.member.entity;
 
+import com.opt.ssafy.optback.domain.badge.entity.MemberBadge;
 import com.opt.ssafy.optback.domain.exercise.entity.ExerciseRecord;
 import com.opt.ssafy.optback.domain.exercise.entity.FavoriteExercise;
 import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
@@ -76,6 +77,12 @@ public class Member {
     @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private TrainerDetail trainerDetail;
 
+    @OneToMany(mappedBy = "member", fetch = FetchType.LAZY)
+    private List<MemberBadge> memberBadges;
+
+    @Column(name = "main_badge_id")
+    private Integer mainBadgeId;
+
     public void updateNickname(String nickname) {
         this.nickname = nickname;
     }
@@ -102,5 +109,9 @@ public class Member {
 
     public void updateIsOnboarded() {
         this.isOnboarded = true;
+    }
+
+    public boolean isTrainer() {
+        return this.role.equals(Role.ROLE_TRAINER);
     }
 }

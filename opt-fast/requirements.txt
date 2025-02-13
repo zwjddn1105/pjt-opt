@@ -120,5 +120,4 @@ uvicorn==0.34.0
 xxhash==3.5.0
 yarl==1.18.3
 aiokafka==0.8.0
-# aiokafka==0.8.0
-
+fuzzywuzzy==0.18.0

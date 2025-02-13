@@ -40,6 +40,8 @@ services:
     build:
       context: ./opt-fast
       dockerfile: Dockerfile
+      args:
+        HUGGINGFACE_TOKEN: ${HUGGINGFACE_TOKEN}
     container_name: fastapi
     ports:
       - "8000:8000"
@@ -47,6 +49,7 @@ services:
       - kafka
     environment:
       - BOOTSTRAP_SERVERS=kafka:9092
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
     # entrypoint: ["uvicorn main:app --host 0.0.0.0 --port 8000"]
     # networks:
     #   - opt-network
@@ -66,3 +69,13 @@ services:
     platform: linux/amd64  # ✅ 아키텍처 강제 설정
     # networks:
     #   - opt-network
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]  # 영구 저장 옵션
+    environment:
+      REDIS_PORT: 6379
+      REDIS_DATABASES: 16
+    restart: always  # 컨테이너가 꺼지면 자동 재시작

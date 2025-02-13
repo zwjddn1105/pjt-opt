@@ -35,8 +35,10 @@ public class SecurityConfig {
                             auth.requestMatchers("/exercises/{id}").permitAll();
                             auth.requestMatchers("/error").permitAll();
                             auth.requestMatchers("/auth/kakao").permitAll();
+                            auth.requestMatchers("/auth/kakao-front").permitAll();
                             auth.requestMatchers("/auth/sign-out").permitAll();
                             auth.requestMatchers("/auth/withdraw").permitAll();
+                            auth.requestMatchers("/onboarding").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

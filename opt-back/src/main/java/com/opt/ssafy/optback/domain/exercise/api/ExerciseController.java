@@ -28,9 +28,12 @@ public class ExerciseController {
     private final ExerciseService exerciseService;
 
     @GetMapping
-    public ResponseEntity<Slice<ExerciseInfoResponse>> getFilteredExercises(@Nullable @RequestParam String bodyPart,
-                                                                            Pageable pageable) {
-        Slice<ExerciseInfoResponse> exerciseInfos = exerciseService.getFilteredExerciseInfos(bodyPart, pageable);
+    public ResponseEntity<Slice<ExerciseInfoResponse>> getFilteredExercises(
+            @Nullable @RequestParam(required = false) String name,
+            @Nullable @RequestParam(required = false) String bodyPart,
+            Pageable pageable) {
+
+        Slice<ExerciseInfoResponse> exerciseInfos = exerciseService.getFilteredExerciseInfos(name, bodyPart, pageable);
         return ResponseEntity.ok(exerciseInfos);
     }
 
@@ -39,6 +42,7 @@ public class ExerciseController {
         ExerciseDetailResponse exerciseDetail = exerciseService.getExerciseDetailById(id);
         return ResponseEntity.ok(exerciseDetail);
     }
+
 
     @GetMapping("/favorites")
     public ResponseEntity<List<ExerciseInfoResponse>> getFavoriteExercises() {

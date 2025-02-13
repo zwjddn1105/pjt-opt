@@ -40,7 +40,7 @@ public class Challenge {
     private String description;
 
     @Column(name = "template_id")
-    private int templateId;
+    private Integer templateId;
 
     @Column(name = "host_id")
     private int hostId;

@@ -2,6 +2,8 @@ package com.opt.ssafy.optback.domain.trainer_review.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequest;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotFoundException;
@@ -21,6 +23,7 @@ public class TrainerReviewService {
     private final TrainerReviewRepository trainerReviewRepository;
     private final TrainerReviewImageService trainerReviewImageService;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TrainerDetailRepository trainerDetailRepository;
 
     // 리뷰 저장
     @Transactional
@@ -47,9 +50,12 @@ public class TrainerReviewService {
         Member member = userDetailsService.getMemberByContextHolder();
         int reviewerId = member.getId();
 
+        TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerReviewRequestDto.getTrainerId())
+                .orElseThrow(() -> new TrainerReviewNotSaveException("존재하지 않는 트레이너입니다."));
+
         TrainerReview newTrainerReview = TrainerReview.builder()
                 .reviewerId(reviewerId)
-                .trainerId(trainerReviewRequestDto.getTrainerId())
+                .trainerDetail(trainerDetail)
                 .comment(trainerReviewRequestDto.getComment())
                 .rate(trainerReviewRequestDto.getRate())
                 .build();
@@ -58,7 +64,7 @@ public class TrainerReviewService {
         if (newTrainerReview.getReviewerId() == 0) {
             throw new TrainerReviewNotSaveException("리뷰어 ID가 없습니다");
         }
-        if (newTrainerReview.getTrainerId() == 0) {
+        if (newTrainerReview.getTrainerDetail() == null) {
             throw new TrainerReviewNotSaveException("트레이너 ID가 없습니다");
         }
         if (newTrainerReview.getComment() == null || newTrainerReview.getComment().trim().isEmpty()) {
@@ -75,11 +81,14 @@ public class TrainerReviewService {
 
     // 트레이너 ID로 리뷰 조회
     public List<TrainerReview> getReviewsByTrainerId(int trainerId) {
+        TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerId)
+                .orElseThrow(() -> new TrainerReviewNotFoundException("트레이너 ID 값이 잘못되었습니다"));
+
         // 유효성 검사
-        if (trainerReviewRepository.findByTrainerId(trainerId) == null) {
+        if (trainerReviewRepository.findByTrainerDetail(trainerDetail) == null) {
             throw new TrainerReviewNotFoundException("트레이너 ID 값이 잘못 되었습니다");
         }
-        return trainerReviewRepository.findByTrainerId(trainerId);
+        return trainerReviewRepository.findByTrainerDetail(trainerDetail);
     }
 
     // 멤버 ID(=로그인 멤버)로 리뷰 조회

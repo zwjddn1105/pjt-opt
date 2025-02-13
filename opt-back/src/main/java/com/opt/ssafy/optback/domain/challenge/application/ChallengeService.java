@@ -42,13 +42,6 @@ public class ChallengeService {
     private final UserDetailsServiceImpl userDetailsService;
     private final MemberRepository memberRepository;
 
-    // 기존 전체 챌린지 조회
-//    public List<ChallengeResponse> getChallenges() {
-//        List<Challenge> challenges = challengeRepository.findAll();
-//        return challenges.stream()
-//                .map(this::mapToResponse)
-//                .collect(Collectors.toList());
-//    }
 
     @Transactional
     public List<ChallengeResponse> getChallenges() {

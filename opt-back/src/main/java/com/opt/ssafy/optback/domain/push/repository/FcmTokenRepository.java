@@ -10,4 +10,6 @@ public interface FcmTokenRepository extends MongoRepository<FcmToken, String> {
     Optional<FcmToken> findByMemberId(Long memberId);
 
     void deleteAllByMemberId(Long memberId);
+
+    boolean existsByMemberIdAndToken(Integer id, String token);
 }

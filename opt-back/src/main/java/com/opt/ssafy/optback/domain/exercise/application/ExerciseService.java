@@ -32,11 +32,15 @@ public class ExerciseService {
     private final ExerciseFavoriteRepository exerciseFavoriteRepository;
     private final JPAQueryFactory queryFactory;
 
-    public Page<ExerciseInfoResponse> getFilteredExerciseInfos(String bodyPart, Pageable pageable) {
+    public Page<ExerciseInfoResponse> getFilteredExerciseInfos(String name, String bodyPart, Pageable pageable) {
         QExercise qExercise = QExercise.exercise;
         BooleanBuilder filterBuilder = new BooleanBuilder();
 
-        if (bodyPart != null) {
+        if (name != null && !name.isEmpty()) {
+            filterBuilder.and(qExercise.name.containsIgnoreCase(name));
+        }
+
+        if (bodyPart != null && !bodyPart.isEmpty()) {
             ExerciseQueryHelper.addBodyPartFilter(bodyPart, qExercise, filterBuilder);
         }
 
@@ -44,6 +48,7 @@ public class ExerciseService {
                 .where(filterBuilder)
                 .fetchCount();
 
+        // 로그인 여부 확인 후 즐겨찾기 운동 목록 조회
         List<Integer> favoriteIds = new ArrayList<>();
         if (!userDetailsService.isAnonymous()) {
             Member member = userDetailsService.getMemberByContextHolder();
@@ -51,13 +56,15 @@ public class ExerciseService {
                     .map(favoriteExercise -> favoriteExercise.getExercise().getId()).toList();
         }
 
+        // 최종 운동 데이터 조회
         List<Integer> finalFavoriteIds = favoriteIds;
         List<ExerciseInfoResponse> exerciseInfos = queryFactory.selectFrom(qExercise)
                 .where(filterBuilder)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch()
-                .stream().map((exercise) -> ExerciseInfoResponse.from(exercise, finalFavoriteIds))
+                .stream()
+                .map(exercise -> ExerciseInfoResponse.from(exercise, finalFavoriteIds))
                 .toList();
 
         return new PageImpl<>(exerciseInfos, pageable, totalCount);

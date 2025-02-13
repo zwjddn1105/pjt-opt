@@ -3,6 +3,7 @@ package com.opt.ssafy.optback.domain.challenge.application;
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeResponse;
+import com.opt.ssafy.optback.domain.challenge.dto.ContributionResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.JoinChallengeRequest;
 import com.opt.ssafy.optback.domain.challenge.entity.Challenge;
@@ -96,14 +97,17 @@ public class ChallengeService {
         // hostId로 hostName 조회
         String hostName = memberRepository.findById(challenge.getHostId())
                 .map(Member::getNickname)
-                .orElse("Unknown");
+                .orElse("Unknown host nickname");
 
         // winnerId가 존재하면 winnerName 조회
         String winnerName = (challenge.getWinnerId() != null) ?
                 memberRepository.findById(challenge.getWinnerId())
                         .map(Member::getNickname)
-                        .orElse("Unknown") : null;
+                        .orElse("Unknown winner nickname") : null;
 
+        // 챌린지 참가자들의 기여도 정보 조회
+        List<ContributionResponse> contributions = getChallengeContributions(id);
+        
         return ChallengeResponse.builder()
                 .id(challenge.getId())
                 .type(challenge.getType())
@@ -126,7 +130,25 @@ public class ChallengeService {
                 .exerciseCount(challenge.getExerciseCount())
                 .exerciseDuration(challenge.getExerciseDuration())
                 .exerciseDistance(challenge.getExerciseDistance())
+                .contributions(contributions)
                 .build();
+    }
+
+    private List<ContributionResponse> getChallengeContributions(int id) {
+        Member currentUser = userDetailsService.getMemberByContextHolder();
+        int totalContribution = challengeRecordRepository.sumTotalCountByChallengeId(id);
+        List<Object[]> contributionData = challengeRecordRepository.findAllContributionsByChallengeId(id);
+
+        return contributionData.stream()
+                .map(record -> {
+                    int memberId = (int) record[0];
+                    String nickname = (String) record[1];
+                    int count = (int) record[2];
+                    double contributionPercentage = totalContribution == 0 ? 0.0 : ((double) count / totalContribution) * 100;
+                    boolean isMyRecord = (currentUser.getId() == memberId);
+                    return new ContributionResponse(memberId, nickname, count, contributionPercentage, isMyRecord);
+                })
+                .toList();
     }
 
 

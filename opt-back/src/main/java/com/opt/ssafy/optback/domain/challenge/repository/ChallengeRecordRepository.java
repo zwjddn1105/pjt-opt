@@ -44,5 +44,8 @@ public interface ChallengeRecordRepository extends JpaRepository<ChallengeRecord
     @Query("SELECT SUM(cr.distance) FROM ChallengeRecord cr WHERE cr.challengeMember.id = :challengeMemberId")
     Optional<Integer> findDistanceByChallengeMemberId(@Param("challengeMemberId") int challengeMemberId);
 
+    int sumTotalCountByChallengeId(int id);
+
+    List<Object[]> findAllContributionsByChallengeId(int id);
 }
 

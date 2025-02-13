@@ -30,7 +30,7 @@ services:
       # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       # SPRING_KAFKA_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CREATE_TOPICS: "business_license_request:1:1,business_license_response:1:1"
+      KAFKA_CREATE_TOPICS: "business_license_request:1:1,business_license_response:1:1,certificate_request:1:1,certificate_response:1:1"
     depends_on:
       - zookeeper
     # networks:

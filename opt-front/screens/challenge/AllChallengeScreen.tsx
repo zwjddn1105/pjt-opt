@@ -24,6 +24,7 @@ type RootStackParamList = {
   ManageChallenge: undefined;
   MyChallenge: undefined;
   AllChallenges: undefined;
+  DetailChallenge: { challengeId: number };
 };
 
 type Challenge = {
@@ -36,6 +37,10 @@ type Challenge = {
   endDate: string;
   status: string;
 };
+type SectionNavigationParams = Pick<
+  RootStackParamList,
+  "AllOngoingChallenge" | "AllUpComingChallenge" | "AllEndedChallenge"
+>;
 
 const BASE_URL = "http://70.12.246.176:8080";
 
@@ -184,7 +189,7 @@ const MyChallengeScreen: React.FC = () => {
 
   const renderSectionHeader = (
     title: string,
-    navigateTo: keyof RootStackParamList
+    navigateTo: keyof SectionNavigationParams
   ) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -198,28 +203,37 @@ const MyChallengeScreen: React.FC = () => {
   );
 
   const renderChallengeCard = (challenge: Challenge) => (
-    <View style={styles.challengeCard}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{challenge.title}</Text>
-        <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("DetailChallenge", {
+          challengeId: challenge.id,
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <View style={styles.challengeCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{challenge.title}</Text>
+          <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>기간</Text>
+            <Text
+              style={styles.infoValue}
+            >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>상태</Text>
+            <Text style={styles.infoValue}>{challenge.status}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>보상</Text>
+            <Text style={styles.infoValue}>{challenge.reward}</Text>
+          </View>
+        </View>
       </View>
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>기간</Text>
-          <Text
-            style={styles.infoValue}
-          >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>상태</Text>
-          <Text style={styles.infoValue}>{challenge.status}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>보상</Text>
-          <Text style={styles.infoValue}>{challenge.reward}</Text>
-        </View>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (

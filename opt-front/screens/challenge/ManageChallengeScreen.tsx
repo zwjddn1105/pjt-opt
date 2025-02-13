@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type RootStackParamList = {
   CreateChallenge: undefined;
+  DetailChallenge: { challengeId: number };
 };
 
 type Challenge = {
@@ -159,7 +160,11 @@ const ManageChallengesScreen = () => {
           <TouchableOpacity
             style={styles.modalButton}
             onPress={() => {
-              // 상세화면 보기 로직
+              if (selectedChallenge) {
+                navigation.navigate("DetailChallenge", {
+                  challengeId: selectedChallenge.id,
+                });
+              }
               setModalVisible(false);
             }}
           >

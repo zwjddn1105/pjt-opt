@@ -17,7 +17,10 @@ import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
 import BadgeScreen from "../screens/BadgeScreen";
 import SettingScreen from "../screens/SettingScreen";
 import AllChallengeScreen from "../screens/challenge/AllChallengeScreen";
-
+import AllOngoingChallengesScreen from "../screens/challenge/AllOngoingChallengesScreen";
+import AllUpComingChallengesScreen from "../screens/challenge/AllUpComingChallengesScreen";
+import AllEndedChallengesScreen from "../screens/challenge/AllEndedChallengesScreen";
+import DetailChallengeScreen from "../screens/challenge/DetailChallengesScreen";
 export type RootStackParamList = {
   Main: undefined;
   KakaoLogin: undefined;
@@ -35,6 +38,10 @@ export type RootStackParamList = {
   CreateChallenge: undefined;
   MyChallenge: undefined;
   AllChallenges: undefined;
+  AllOngoingChallenge: undefined;
+  AllUpComingChallenge: undefined;
+  AllEndedChallenge: undefined;
+  DetailChallenge: { challengeId: number };
   Badge: undefined;
   Setting: undefined;
 };
@@ -66,6 +73,19 @@ export const StackNavigator = () => {
       <Stack.Screen name="ManageChallenge" component={ManageChallengeScreen} />
       <Stack.Screen name="CreateChallenge" component={CreateChallengeScreen} />
       <Stack.Screen name="MyChallenge" component={MyChallengeScreen} />
+      <Stack.Screen
+        name="AllOngoingChallenge"
+        component={AllOngoingChallengesScreen}
+      />
+      <Stack.Screen
+        name="AllUpComingChallenge"
+        component={AllUpComingChallengesScreen}
+      />
+      <Stack.Screen
+        name="AllEndedChallenge"
+        component={AllEndedChallengesScreen}
+      />
+      <Stack.Screen name="DetailChallenge" component={DetailChallengeScreen} />
       <Stack.Screen name="Badge" component={BadgeScreen} />
       <Stack.Screen name="Setting" component={SettingScreen} />
     </Stack.Navigator>

@@ -13,16 +13,17 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
-import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 
 type RootStackParamList = {
   LoginNeedScreen: { returnScreen: string } | undefined;
-  OngoingChallenges: undefined;
-  AppliedChallenges: undefined;
+  AllOngoingChallenge: undefined;
+  AllUpComingChallenge: undefined;
+  AllEndedChallenge: undefined;
   PastChallenges: undefined;
   ManageChallenge: undefined;
-  MyChallengeScreen: undefined;
+  MyChallenge: undefined;
+  AllChallenges: undefined;
 };
 
 type Challenge = {
@@ -52,7 +53,7 @@ const fetchOngoingChallenges = async () => {
     const refreshToken = await getRefreshToken();
     if (!refreshToken) throw new Error("Refresh token not found");
     const response = await axios.get<Challenge[]>(
-      `${BASE_URL}/challenges/participating`,
+      `${BASE_URL}/challenges/ongoing`,
       {
         headers: {
           Authorization: `Bearer ${refreshToken}`,
@@ -61,17 +62,17 @@ const fetchOngoingChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("내가 참여 중인 챌린지 불러오기 실패:", error);
+    console.error("전체 진행 중인 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
 
-const fetchAppliedChallenges = async () => {
+const fetchUpComingChallenges = async () => {
   try {
     const refreshToken = await getRefreshToken();
     if (!refreshToken) throw new Error("Refresh token not found");
     const response = await axios.get<Challenge[]>(
-      `${BASE_URL}/challenges/applied`,
+      `${BASE_URL}/challenges/upcoming`,
       {
         headers: {
           Authorization: `Bearer ${refreshToken}`,
@@ -80,17 +81,17 @@ const fetchAppliedChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("내가 신청한 챌린지 불러오기 실패:", error);
+    console.error("개최 예정인 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
 
-const fetchPastChallenges = async () => {
+const fetchEndedChallenges = async () => {
   try {
     const refreshToken = await getRefreshToken();
     if (!refreshToken) throw new Error("Refresh token not found");
     const response = await axios.get<Challenge[]>(
-      `${BASE_URL}/challenges/past`,
+      `${BASE_URL}/challenges/ended`,
       {
         headers: {
           Authorization: `Bearer ${refreshToken}`,
@@ -104,14 +105,55 @@ const fetchPastChallenges = async () => {
   }
 };
 
-const AllChallengeScreen: React.FC = () => {
+const MyChallengeScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [ongoingChallenges, setOngoingChallenges] = useState<Challenge[]>([]);
-  const [appliedChallenges, setAppliedChallenges] = useState<Challenge[]>([]);
-  const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
+  const [upComingChallenges, setUpComingChallenges] = useState<Challenge[]>([]);
+  const [endedChallenges, setEndedChallenges] = useState<Challenge[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const toggleSwitch = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      navigation.navigate("MyChallenge");
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const refreshToken = await AsyncStorage.getItem("refreshToken");
+        const role = await AsyncStorage.getItem("role");
+        setIsLoggedIn(refreshToken !== null);
+        setUserRole(role);
+      } catch (error) {
+        console.error("Error checking login status:", error);
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn === false) {
+      navigation.replace("LoginNeedScreen", {
+        returnScreen: "MyChallenge",
+      });
+    }
+  }, [isLoggedIn, navigation]);
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -119,11 +161,11 @@ const AllChallengeScreen: React.FC = () => {
         const ongoing = await fetchOngoingChallenges();
         setOngoingChallenges(ongoing);
 
-        const applied = await fetchAppliedChallenges();
-        setAppliedChallenges(applied);
+        const upcoming = await fetchUpComingChallenges();
+        setUpComingChallenges(upcoming);
 
-        const past = await fetchPastChallenges();
-        setPastChallenges(past);
+        const ended = await fetchEndedChallenges();
+        setEndedChallenges(ended);
       } catch (error) {
         console.error("챌린지 데이터 불러오기 실패:", error);
       }
@@ -131,6 +173,14 @@ const AllChallengeScreen: React.FC = () => {
 
     fetchChallenges();
   }, []);
+
+  if (isLoggedIn === null) {
+    return (
+      <View>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   const renderSectionHeader = (
     title: string,
@@ -147,67 +197,113 @@ const AllChallengeScreen: React.FC = () => {
     </View>
   );
 
+  const renderChallengeCard = (challenge: Challenge) => (
+    <View style={styles.challengeCard}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{challenge.title}</Text>
+        <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>기간</Text>
+          <Text
+            style={styles.infoValue}
+          >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>상태</Text>
+          <Text style={styles.infoValue}>{challenge.status}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>보상</Text>
+          <Text style={styles.infoValue}>{challenge.reward}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
       <ScrollView style={styles.container}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color="black" />
-          </TouchableOpacity>
-          {userRole === "ROLE_TRAINER" && (
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.headerContainer}>
+            {userRole === "ROLE_TRAINER" && (
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={() => navigation.navigate("ManageChallenge")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.manageButtonText}>챌린지 관리</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.manageButton}
-              onPress={() => navigation.navigate("ManageChallenge")}
+              style={styles.toggleContainer}
+              onPress={toggleSwitch}
               activeOpacity={0.8}
             >
-              <Text style={styles.manageButtonText}>챌린지 관리</Text>
+              <View style={[styles.toggleTrack]}>
+                <Text style={[styles.toggleText]}>ALL</Text>
+                <View style={[styles.toggleThumb]} />
+              </View>
             </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("킹치웠나?", "OngoingChallenges")}
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            {ongoingChallenges.map((challenge, index) => (
-              <React.Fragment key={challenge.id}>
-                {index % 2 === 0 && index < ongoingChallenges.length - 1 && (
-                  <View style={styles.cardSpacer} />
-                )}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("해치웠나", "AppliedChallenges")}
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            {appliedChallenges.map((challenge, index) => (
-              <React.Fragment key={challenge.id}>
-                {index % 2 === 0 && index < appliedChallenges.length - 1 && (
-                  <View style={styles.cardSpacer} />
-                )}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("제발?", "PastChallenges")}
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            {pastChallenges.map((challenge, index) => (
-              <React.Fragment key={challenge.id}>
-                {index % 2 === 0 && index < pastChallenges.length - 1 && (
-                  <View style={styles.cardSpacer} />
-                )}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("진행 중인 챌린지", "AllOngoingChallenge")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {ongoingChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < ongoingChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("개최 예정인 챌린지", "AllUpComingChallenge")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {upComingChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < upComingChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("종료된 챌린지", "AllEndedChallenge")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {endedChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < endedChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const { width } = Dimensions.get("window");
+const cardWidth = (width - 60) / 2;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -247,7 +343,23 @@ const styles = StyleSheet.create({
     color: "#666",
     lineHeight: 24,
   },
-
+  challengeCard: {
+    width: cardWidth,
+    marginRight: 12,
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#eee",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   cardSpacer: {
     width: 12,
   },
@@ -290,16 +402,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 15,
-    backgroundColor: "#767577",
+    backgroundColor: "#ACACAD",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 4,
-  },
-  toggleTrackActive: {
-    backgroundColor: "#0C508B",
-  },
-  toggleTextActive: {
-    color: "#fff",
   },
   toggleThumb: {
     width: 24,
@@ -313,12 +419,7 @@ const styles = StyleSheet.create({
     color: "#f4f3f4",
     fontSize: 13,
     fontWeight: "bold",
-    marginLeft: 8,
-  },
-  toggleThumbActive: {
-    left: "auto",
-    right: 4,
-    backgroundColor: "#fff",
+    marginLeft: 32,
   },
   headerContainer: {
     flexDirection: "row",
@@ -338,10 +439,32 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "500",
   },
-  backButton: {
-    padding: 8,
-    marginLeft: 12,
+  switchButton: {
+    width: 75, // 버튼 너비
+    height: 30, // 버튼 높이
+    borderRadius: 15, // 둥근 모서리
+    backgroundColor: "#0C508B", // 비활성화 상태의 배경색
+    flexDirection: "row", // 텍스트와 썸을 가로로 배치
+    alignItems: "center", // 수직 가운데 정렬
+    paddingHorizontal: 4, // 내부 여백
+  },
+
+  switchButtonText: {
+    color: "#fff", // 텍스트 색상
+    fontSize: 13, // 텍스트 크기
+    fontWeight: "bold", // 텍스트 굵기
+    marginLeft: 8, // 텍스트와 썸 사이 간격
+  },
+  switchThumb: {
+    width: 24, // 썸의 너비
+    height: 24, // 썸의 높이
+    borderRadius: 12, // 썸의 둥근 모서리
+    backgroundColor: "#f4f3f4", // 썸의 색상
+    position: "absolute", // 위치를 절대값으로 설정
+  },
+  switchThumbActive: {
+    right: 4, // 활성화 상태에서 오른쪽으로 이동
   },
 });
 
-export default AllChallengeScreen;
+export default MyChallengeScreen;

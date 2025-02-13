@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     height: 50,
     backgroundColor: "#fff",
+    marginBottom: 10,
   },
   leftContainer: {
     flexDirection: "row",

@@ -23,6 +23,7 @@ type RootStackParamList = {
   ManageChallenge: undefined;
   MyChallengeScreen: undefined;
   AllChallenges: undefined;
+  DetailChallenge: { challengeId: number }; // 수정: 파라미터 타입 지정
 };
 
 type Challenge = {
@@ -35,7 +36,10 @@ type Challenge = {
   endDate: string;
   status: string;
 };
-
+type SectionNavigationParams = Pick<
+  RootStackParamList,
+  "OngoingChallenges" | "AppliedChallenges" | "PastChallenges"
+>;
 const BASE_URL = "http://70.12.246.176:8080";
 
 const getRefreshToken = async () => {
@@ -113,8 +117,22 @@ const MyChallengeScreen: React.FC = () => {
   const [appliedChallenges, setAppliedChallenges] = useState<Challenge[]>([]);
   const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
-
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const toggleSwitch = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      navigation.navigate("AllChallenges");
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -169,7 +187,7 @@ const MyChallengeScreen: React.FC = () => {
 
   const renderSectionHeader = (
     title: string,
-    navigateTo: keyof RootStackParamList
+    navigateTo: keyof SectionNavigationParams
   ) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -183,100 +201,114 @@ const MyChallengeScreen: React.FC = () => {
   );
 
   const renderChallengeCard = (challenge: Challenge) => (
-    <View style={styles.challengeCard}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{challenge.title}</Text>
-        <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("DetailChallenge", {
+          challengeId: challenge.id,
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <View style={styles.challengeCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{challenge.title}</Text>
+          <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>기간</Text>
+            <Text
+              style={styles.infoValue}
+            >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>상태</Text>
+            <Text style={styles.infoValue}>{challenge.status}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>보상</Text>
+            <Text style={styles.infoValue}>{challenge.reward}</Text>
+          </View>
+        </View>
       </View>
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>기간</Text>
-          <Text
-            style={styles.infoValue}
-          >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>상태</Text>
-          <Text style={styles.infoValue}>{challenge.status}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>보상</Text>
-          <Text style={styles.infoValue}>{challenge.reward}</Text>
-        </View>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
-      <ScrollView>
-        <View style={styles.headerContainer}>
-          {userRole === "ROLE_TRAINER" && (
+      <ScrollView style={styles.container}>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.headerContainer}>
+            {userRole === "ROLE_TRAINER" && (
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={() => navigation.navigate("ManageChallenge")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.manageButtonText}>챌린지 관리</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.manageButton}
-              onPress={() => navigation.navigate("ManageChallenge")}
+              style={styles.toggleContainer}
+              onPress={toggleSwitch}
               activeOpacity={0.8}
             >
-              <Text style={styles.manageButtonText}>챌린지 관리</Text>
+              <View style={[styles.toggleTrack]}>
+                <Text style={[styles.toggleText]}>MY</Text>
+                <View style={[styles.toggleThumb]} />
+              </View>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[
-              styles.switchButton,
-              // 활성화 상태에 따라 배경색 변경
-            ]}
-            onPress={() => {}} // 상태 전환 로직
-            activeOpacity={0.8}
-          >
-            <Text style={styles.switchButtonText}>MY</Text>
-            <View
-              style={[
-                styles.switchThumb,
-                styles.switchThumbActive, // 활성화 상태에 따라 썸 위치 변경
-              ]}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("내가 참여중인 챌린지", "OngoingChallenges")}
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            {ongoingChallenges.map((challenge, index) => (
-              <React.Fragment key={challenge.id}>
-                {renderChallengeCard(challenge)}
-                {index % 2 === 0 && index < ongoingChallenges.length - 1 && (
-                  <View style={styles.cardSpacer} />
-                )}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("내가 신청한 챌린지", "AppliedChallenges")}
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            {appliedChallenges.map((challenge, index) => (
-              <React.Fragment key={challenge.id}>
-                {renderChallengeCard(challenge)}
-                {index % 2 === 0 && index < appliedChallenges.length - 1 && (
-                  <View style={styles.cardSpacer} />
-                )}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("내가 참여했던 챌린지", "PastChallenges")}
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            {pastChallenges.map((challenge, index) => (
-              <React.Fragment key={challenge.id}>
-                {renderChallengeCard(challenge)}
-                {index % 2 === 0 && index < pastChallenges.length - 1 && (
-                  <View style={styles.cardSpacer} />
-                )}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("내가 참여중인 챌린지", "OngoingChallenges")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {ongoingChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < ongoingChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("내가 신청한 챌린지", "AppliedChallenges")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {appliedChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < appliedChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("내가 참여했던 챌린지", "PastChallenges")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {pastChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < pastChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -289,6 +321,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  container: {
+    marginBottom: 10,
+    flex: 1,
   },
   section: {
     marginTop: 10,
@@ -368,12 +404,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
+  toggleContainer: {
+    width: 75,
+    height: 30,
+    alignSelf: "flex-end",
+    marginRight: 20,
+  },
+  toggleTrack: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 15,
+    backgroundColor: "#0C508B",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#f4f3f4",
+    position: "absolute",
+    right: 4,
+  },
+  toggleText: {
+    color: "#f4f3f4",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
     marginBottom: 10,
-    paddingRight: 20,
+    // paddingRight: 20,
   },
   manageButton: {
     paddingHorizontal: 12,
@@ -396,9 +461,7 @@ const styles = StyleSheet.create({
     alignItems: "center", // 수직 가운데 정렬
     paddingHorizontal: 4, // 내부 여백
   },
-  switchButtonActive: {
-    backgroundColor: "#0C508B", // 활성화 상태의 배경색
-  },
+
   switchButtonText: {
     color: "#fff", // 텍스트 색상
     fontSize: 13, // 텍스트 크기

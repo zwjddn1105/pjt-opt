@@ -51,7 +51,11 @@ public class ChallengeService {
             // hostId로 hostName 조회
             String hostName = memberRepository.findById(challenge.getHostId())
                     .map(Member::getNickname)
-                    .orElse("Unknown");
+                    .orElse("Unknown host nickname");
+
+            String realName = memberRepository.findById(challenge.getHostId())
+                    .map(Member::getName)
+                    .orElse("Unknown host real name");
 
             // winnerId가 존재하면 winnerName 조회
             String winnerName = (challenge.getWinnerId() != null) ?
@@ -68,6 +72,7 @@ public class ChallengeService {
                     .templateId(challenge.getTemplateId())
                     .winnerName(winnerName)
                     .hostName(hostName)
+                    .realName(realName)
                     .startDate(challenge.getStartDate())
                     .endDate(challenge.getEndDate())
                     .status(challenge.getStatus())

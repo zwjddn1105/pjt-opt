@@ -15,6 +15,7 @@ public class ChallengeResponse {
     private int templateId;
     private String winnerName;
     private String hostName;
+    private String realName;
     private Date startDate;
     private Date endDate;
     private String status;

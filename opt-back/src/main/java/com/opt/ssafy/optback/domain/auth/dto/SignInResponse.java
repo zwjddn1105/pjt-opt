@@ -11,6 +11,7 @@ public class SignInResponse {
     private String accessToken;
     private String refreshToken;
     private String nickname;
+    private String email;
 
     public static SignInResponse from(Member member, String accessToken, String refreshToken) {
         return SignInResponse.builder()
@@ -18,6 +19,7 @@ public class SignInResponse {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .nickname(member.getNickname())
+                .email(member.getEmail())
                 .build();
     }
 }

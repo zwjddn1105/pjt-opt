@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +28,7 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-    //    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasRole('TRAINER')")
     @GetMapping("trainer-used")
     public ResponseEntity<Page<TicketTrainerResponse>> getTicketsByTrainerAndUsed(Pageable pageable) {
         List<TicketTrainerResponse> response = ticketService.getTicketsByTrainerIdAndIsUsed().stream()
@@ -45,7 +46,7 @@ public class TicketController {
         return ResponseEntity.ok(convertListToPage(response, pageable));
     }
 
-    //    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasRole('TRAINER')")
     @GetMapping("trainer-not-used")
     public ResponseEntity<Page<TicketTrainerResponse>> getTicketsByTrainerAndNotUsed(Pageable pageable) {
         List<TicketTrainerResponse> response = ticketService.getTicketsByTrainerIdAndIsNotUsed().stream()

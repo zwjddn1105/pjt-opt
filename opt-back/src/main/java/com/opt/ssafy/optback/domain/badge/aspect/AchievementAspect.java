@@ -21,15 +21,20 @@ public class AchievementAspect {
 
     @AfterReturning("execution(* com.opt.ssafy.optback.domain.exercise.api.ExerciseRecordController.createExerciseRecord(..))")
     public void afterExerciseRecordCreation(JoinPoint joinPoint) {
-        System.out.println("📢 운동 기록 저장 감지");
         Object[] args = joinPoint.getArgs();
         Member member = userDetailsService.getMemberByContextHolder();
 
         // 설정한 ActivityType에 관한 뱃지만 탐색
-        System.out.println("📢 이벤트 시작 Member ID = " + member.getId() + ", ActivityType = " + ActivityType.ATTENDANCE);
         eventPublisher.publishEvent(new ActivityEvent(member, ActivityType.ATTENDANCE));
+        eventPublisher.publishEvent(new ActivityEvent(member, ActivityType.EXERCISE));
+    }
 
-        System.out.println("✅ AOP 실행 완료: " + member.getId());
+    @AfterReturning("execution(* com.opt.ssafy.optback.domain.challenge.application.ChallengeService.recordCount(..))")
+    public void afterChallengeRecordUpdate(JoinPoint joinPoint) {
+        Object[] args = joinPoint.getArgs();
+        Member member = userDetailsService.getMemberByContextHolder();
+        
+        eventPublisher.publishEvent(new ActivityEvent(member, ActivityType.CHALLENGE));
     }
 
 

@@ -6,17 +6,26 @@ import com.opt.ssafy.optback.domain.badge.entity.BadgeDefinition;
 import com.opt.ssafy.optback.domain.badge.entity.MemberBadge;
 import com.opt.ssafy.optback.domain.badge.evaluator.BadgeEvaluator;
 import com.opt.ssafy.optback.domain.badge.exception.BadgeEvaluatorException;
+import com.opt.ssafy.optback.domain.badge.exception.BadgeException;
 import com.opt.ssafy.optback.domain.badge.repository.BadgeDefinitionRepository;
 import com.opt.ssafy.optback.domain.badge.repository.BadgeRepository;
 import com.opt.ssafy.optback.domain.badge.repository.MemberBadgeRepository;
+import com.opt.ssafy.optback.domain.chat.dto.SystemMessageToMember;
+import com.opt.ssafy.optback.domain.chat.service.SystemMessageService;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.push.application.PushService;
+import com.opt.ssafy.optback.domain.push.entity.FcmToken;
+import com.opt.ssafy.optback.domain.push.repository.FcmTokenRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class BadgeService {
@@ -25,16 +34,22 @@ public class BadgeService {
     private final MemberBadgeRepository memberBadgeRepository;
     private final BadgeRepository badgeRepository;
     private final Map<ActivityType, BadgeEvaluator> evaluators;
+    private final PushService pushService;
+    private final FcmTokenRepository fcmTokenRepository;
+    private final SystemMessageService systemMessageService;
 
     public BadgeService(List<BadgeEvaluator> evaluatorList, BadgeDefinitionRepository badgeDefinitionRepository,
-                        MemberBadgeRepository memberBadgeRepository, BadgeRepository badgeRepository) {
-        System.out.println("뱃지 평가기 주입 개수" + evaluatorList.size());
-        evaluatorList.forEach(evaluator -> System.out.println("등록된 평가기" + evaluator.getType()));
+                        MemberBadgeRepository memberBadgeRepository, BadgeRepository badgeRepository,
+                        PushService pushService,
+                        FcmTokenRepository fcmTokenRepository, SystemMessageService systemMessageService) {
         this.evaluators = evaluatorList.stream()
                 .collect(Collectors.toMap(BadgeEvaluator::getType, Function.identity()));
         this.badgeDefinitionRepository = badgeDefinitionRepository;
         this.memberBadgeRepository = memberBadgeRepository;
         this.badgeRepository = badgeRepository;
+        this.pushService = pushService;
+        this.fcmTokenRepository = fcmTokenRepository;
+        this.systemMessageService = systemMessageService;
     }
 
     public List<Badge> findAllBadges() {
@@ -50,13 +65,7 @@ public class BadgeService {
         List<BadgeDefinition> badgeDefinitions = badgeDefinitionRepository.findByActivityType(activityType);
 
         for (BadgeDefinition definition : badgeDefinitions) {
-            System.out.println("뱃지 체크" + definition.getActivityType());
-            System.out.println("🔎 등록된 평가기 목록: ");
-            evaluators.forEach(
-                    (key, value) -> System.out.println("👉 키: " + key + " / 평가기: " + value.getClass().getSimpleName()));
-
             if (hasBadge(member, definition.getId())) {
-                System.out.println("⏩ 이미 보유한 뱃지: " + definition.getId());
                 continue;
             }
 
@@ -67,7 +76,6 @@ public class BadgeService {
                     .orElse(null);
 
             if (evaluator == null) {
-                System.out.println("❌ 뱃지 평가기 찾을 수 없음: " + definition.getActivityType());
                 throw new BadgeEvaluatorException("뱃지 평가기를 찾지 못하였습니다");
             }
 
@@ -86,6 +94,32 @@ public class BadgeService {
         memberBadgeRepository.save(memberBadge);
 
         System.out.println("✅ 업적 획득! " + member.getId() + "번 ID 멤버가" + badge.getId() + "번 업적을 획득했습니다");
+
+        try {
+            SystemMessageToMember systemMessageToMember = SystemMessageToMember.builder()
+                    .receiverId(member.getId())
+                    .content(badge.getName() + " 업적을 획득했습니다")
+                    .senderId(0)
+                    .build();
+            systemMessageService.sendSystemMessageToMember(systemMessageToMember);
+        } catch (Exception e) {
+            throw new BadgeException("뱃지 채팅 메시지를 보내는 데 실패하였습니다");
+        }
+        try {
+            String title = "뱃지 획득 알림";
+            String body = "새로운 뱃지를 획득하였습니다";
+            Map<String, String> data = Map.of("badgeId", String.valueOf(badge.getId()));
+            Optional<FcmToken> tokens = fcmTokenRepository.findByMemberId((long) member.getId());
+            if (tokens.isEmpty()) {
+                log.info("토큰 없어서 못보냄");
+                return;
+            }
+            String token = tokens.get().getToken();
+            pushService.sendPushMessage(title, body, data, token);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BadgeException("새로운 뱃지 획득 메시지를 보내는 데 실패하였습니다");
+        }
     }
 
 }

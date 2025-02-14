@@ -14,7 +14,7 @@ public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBro
                 .simpDestMatchers("/app/**").authenticated()
                 .simpDestMatchers("/user/**").authenticated()
                 .simpSubscribeDestMatchers("/topic/**").authenticated()
-                .anyMessage().denyAll();
+                .anyMessage().permitAll();
     }
 
     @Override

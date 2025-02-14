@@ -44,6 +44,7 @@ public class SecurityConfig {
                             auth.requestMatchers("/onboarding").permitAll();
                             auth.requestMatchers("/ws-chat/**").permitAll();
                             auth.requestMatchers("/app/**").permitAll();
+                            auth.requestMatchers("/profile/**").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

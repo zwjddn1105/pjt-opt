@@ -84,12 +84,5 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
         return null;
     }
-
-//    private void setAuthentication(UserDetails userDetails, StompHeaderAccessor headerAccessor) {
-//        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-//                userDetails, // ✅ 올바르게 `UserDetails` 저장
-//                null,
-//                userDetails.getAuthorities()
-//        );
-//    }
+    
 }

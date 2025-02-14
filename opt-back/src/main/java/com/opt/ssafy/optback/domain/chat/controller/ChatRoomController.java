@@ -37,13 +37,9 @@ public class ChatRoomController {
     // 사용자의 채팅방 목록 조회
     @GetMapping("/list")
     public ResponseEntity<Page<ChatRoomResponse>> getUserRooms(Pageable pageable) {
-        List<ChatRoom> chatRooms = chatRoomService.getUserChatRooms();
+        List<ChatRoomResponse> chatRooms = chatRoomService.getUserChatRooms();
 
-        List<ChatRoomResponse> chatRoomResponses = chatRooms.stream()
-                .map(ChatRoomResponse::new)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(convertListToPage(chatRoomResponses, pageable));
+        return ResponseEntity.ok(convertListToPage(chatRooms, pageable));
     }
 
     // 특정 채팅방의 메시지 조회

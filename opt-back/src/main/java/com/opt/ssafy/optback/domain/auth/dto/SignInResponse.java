@@ -7,6 +7,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SignInResponse {
+    private Integer id;
     private String role;
     private String accessToken;
     private String refreshToken;
@@ -14,6 +15,7 @@ public class SignInResponse {
 
     public static SignInResponse from(Member member, String accessToken, String refreshToken) {
         return SignInResponse.builder()
+                .id(member.getId())
                 .role(member.getRole().name())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)

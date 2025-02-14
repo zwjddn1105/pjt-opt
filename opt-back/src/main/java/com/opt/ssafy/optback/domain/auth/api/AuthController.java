@@ -4,7 +4,6 @@ import com.opt.ssafy.optback.domain.auth.application.AuthService;
 import com.opt.ssafy.optback.domain.auth.dto.SignInRequest;
 import com.opt.ssafy.optback.domain.auth.dto.SignInResponse;
 import com.opt.ssafy.optback.domain.auth.dto.SignUpRequest;
-import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
-    private final MemberRepository memberRepository;
 
     @PostMapping("/sign-up")
     public void signUp(@RequestBody SignUpRequest signUpRequest) {

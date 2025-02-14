@@ -36,12 +36,20 @@ pipeline {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-key', keyFileVariable: 'SSH_KEY')]) {
                     sh '''
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@172.26.13.75 << 'EOF'
+                        echo "Removing existing project files from remote server..."
+                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@172.26.13.75 "rm -rf /home/ubuntu/docker/backend-src/*"
+                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@172.26.13.75 "rm -rf /home/ubuntu/docker/opt-fast/*"
 
-                        rm -rf /home/ubuntu/docker/backend-src #기존에 있는 파일 제거
-                        cp -r /home/ubuntu/S12P11A309/opt-back /home/ubuntu/docker/backend-src #파일 복사해서 넣기기
-                        sh /home/ubuntu/docker/backend-src/deploy.sh #deploy.sh파일 실행
 
+                        scp -i $SSH_KEY -r ${WORKSPACE}/opt-back/* ubuntu@172.26.13.75:/home/ubuntu/docker/backend-src/
+                        scp -i $SSH_KEY -r ${WORKSPACE}/opt-fast ubuntu@172.26.13.75:/home/ubuntu/docker/
+
+                        echo "Executing deploy script on remote server..."
+                        ssh -i $SSH_KEY -o ubuntu@172.26.13.75 << 'EOF'
+                        mkdir -p /home/ubuntu/docker/backend-src/src/main/resources
+                        cp /home/ubuntu/.env.infastapi /home/ubuntu/docker/opt-fast/
+                        cp /home/ubuntu/S12P11A309/application.properties /home/ubuntu/docker/backend-src/src/main/resources/
+                        /home/ubuntu/docker/deploy.sh
                     '''
                 }
             }

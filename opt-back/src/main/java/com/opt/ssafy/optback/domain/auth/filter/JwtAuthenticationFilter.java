@@ -31,6 +31,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        if (request.getRequestURI().startsWith("/ws-chat")) {
+            System.out.println("🐿️ /ws-chat 요청 JWT 필터 통과");
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
             String token = resolveToken(request);

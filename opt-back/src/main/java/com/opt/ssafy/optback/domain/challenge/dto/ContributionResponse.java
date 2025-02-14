@@ -8,7 +8,11 @@ import lombok.Getter;
 public class ContributionResponse {
     private int memberId;
     private String nickname;
-    private int count;
+    private double measurement;
     private double contributionPercentage;
     private boolean isMyRecord;
+
+    public void setContributionPercentage(double contributionPercentage) {
+        this.contributionPercentage = contributionPercentage;
+    }
 }

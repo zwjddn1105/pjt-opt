@@ -13,7 +13,7 @@ public class ChallengeResponse {
     private String title;
     private String description;
     private String reward;
-    private int templateId;
+    private Integer templateId;
     private String winnerName;
     private String hostName;
     private String realName;
@@ -30,5 +30,4 @@ public class ChallengeResponse {
     private Integer exerciseCount;
     private Integer exerciseDuration;
     private Integer exerciseDistance;
-    private List<ContributionResponse> contributions;
 }

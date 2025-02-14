@@ -5,6 +5,7 @@ import com.opt.ssafy.optback.domain.challenge.application.ChallengeService;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeResponse;
+import com.opt.ssafy.optback.domain.challenge.dto.ContributionResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.JoinChallengeRequest;
 import com.opt.ssafy.optback.domain.member.entity.Member;
@@ -41,6 +42,11 @@ public class ChallengeController {
     @GetMapping("/{id}")
     public ResponseEntity<ChallengeResponse> getChallenge(@PathVariable int id) {
         return ResponseEntity.ok(challengeService.getChallengeById(id));
+    }
+
+    @GetMapping("/{id}/contributions")
+    public ResponseEntity<List<ContributionResponse>> getChallengeContributions(@PathVariable int id) {
+        return ResponseEntity.ok(challengeService.getChallengeContributions(id));
     }
 
     // POST /challenges - 챌린지 생성 (TRAINER 전용)

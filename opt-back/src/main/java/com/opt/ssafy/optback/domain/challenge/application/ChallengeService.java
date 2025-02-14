@@ -11,6 +11,7 @@ import com.opt.ssafy.optback.domain.challenge.entity.ChallengeMember;
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeRecord;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeNotFoundException;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeRecordNotFoundException;
+import com.opt.ssafy.optback.domain.challenge.exception.ChallengeTypeMismatchException;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeMemberRepository;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRecordRepository;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRepository;
@@ -105,9 +106,6 @@ public class ChallengeService {
                         .map(Member::getNickname)
                         .orElse("Unknown winner nickname") : null;
 
-        // 챌린지 참가자들의 기여도 정보 조회
-        List<ContributionResponse> contributions = getChallengeContributions(id);
-        
         return ChallengeResponse.builder()
                 .id(challenge.getId())
                 .type(challenge.getType())
@@ -130,26 +128,51 @@ public class ChallengeService {
                 .exerciseCount(challenge.getExerciseCount())
                 .exerciseDuration(challenge.getExerciseDuration())
                 .exerciseDistance(challenge.getExerciseDistance())
-                .contributions(contributions)
                 .build();
     }
 
-    private List<ContributionResponse> getChallengeContributions(int id) {
+    public List<ContributionResponse> getChallengeContributions(int id) {
         Member currentUser = userDetailsService.getMemberByContextHolder();
-        int totalContribution = challengeRecordRepository.sumTotalCountByChallengeId(id);
+
+        if (!getChallengeById(id).getType().equals("TEAM")) {
+            throw new ChallengeTypeMismatchException("기여도를 계산할 수 없는 챌린지 유형입니다. TEAM 챌린지만 가능합니다.");
+        }
+
         List<Object[]> contributionData = challengeRecordRepository.findAllContributionsByChallengeId(id);
 
-        return contributionData.stream()
-                .map(record -> {
-                    int memberId = (int) record[0];
-                    String nickname = (String) record[1];
-                    int count = (int) record[2];
-                    double contributionPercentage = totalContribution == 0 ? 0.0 : ((double) count / totalContribution) * 100;
-                    boolean isMyRecord = (currentUser.getId() == memberId);
-                    return new ContributionResponse(memberId, nickname, count, contributionPercentage, isMyRecord);
-                })
-                .toList();
+        double totalContribution = 0.0;
+        List<ContributionResponse> contributions = new ArrayList<>();
+
+        for (Object[] record : contributionData) {
+            int memberId = (int) record[0];
+            String nickname = (String) record[1];
+
+            // `count`, `duration`, `distance` 값을 가져오되, 타입 변환 안전하게 수행
+            Double count = (record[2] instanceof Number) ? ((Number) record[2]).doubleValue() : null;
+            Double duration = (record[3] instanceof Number) ? ((Number) record[3]).doubleValue() : null;
+            Double distance = (record[4] instanceof Number) ? ((Number) record[4]).doubleValue() : null;
+
+            // `count`, `duration`, `distance` 중 **NOT NULL**인 값을 찾아서 사용
+            double validContribution = (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
+
+            totalContribution += validContribution;
+
+            boolean isMyRecord = (currentUser.getId() == memberId);
+
+            contributions.add(new ContributionResponse(memberId, nickname, validContribution, 0.0, isMyRecord));
+        }
+
+        // 총 기여도를 이용하여 각 사용자의 기여도(%) 재계산
+        for (ContributionResponse contribution : contributions) {
+            double contributionPercentage = (totalContribution == 0) ? 0.0 : (contribution.getMeasurement() / totalContribution) * 100;
+            contribution.setContributionPercentage(contributionPercentage);
+        }
+
+        return contributions;
     }
+
+
+
 
 
     // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)

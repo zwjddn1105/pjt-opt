@@ -16,7 +16,7 @@ public class TrainerProfileResponse extends ProfileResponse {
                 .id(member.getId())
                 .role(member.getRole().name())
                 .name(member.getName())
-                .mainBadge(new BadgeResponse(mainBadge))
+                .mainBadge(mainBadge == null ? null : new BadgeResponse(mainBadge))
                 .nickname(member.getNickname())
                 .imagePath(member.getImagePath())
                 .build();

@@ -64,7 +64,6 @@ public class JwtProvider {
     public Authentication getAuthentication(String accessToken) {
         // 토큰 복호화
         Claims claims = parseClaims(accessToken);
-
         // claim에서 권한 정보 가져오기 / claim : 토큰을 복호화 한 것. 유저/토큰의 정보가 들어있음
         Collection<? extends GrantedAuthority> authorities =
                 Arrays.stream(claims.get("auth").toString().split(","))

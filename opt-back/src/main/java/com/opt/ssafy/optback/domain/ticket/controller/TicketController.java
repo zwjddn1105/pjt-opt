@@ -9,6 +9,9 @@ import com.opt.ssafy.optback.domain.ticket.service.TicketService;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,36 +27,39 @@ public class TicketController {
 
     private final TicketService ticketService;
 
+    //    @PreAuthorize("hasRole('TRAINER')")
     @GetMapping("trainer-used")
-    public ResponseEntity<List<TicketTrainerResponse>> getTicketsByTrainerAndUsed() {
+    public ResponseEntity<Page<TicketTrainerResponse>> getTicketsByTrainerAndUsed(Pageable pageable) {
         List<TicketTrainerResponse> response = ticketService.getTicketsByTrainerIdAndIsUsed().stream()
                 .map(TicketTrainerResponse::new)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.ok(convertListToPage(response, pageable));
     }
 
     @GetMapping("student-used")
-    public ResponseEntity<List<TicketStudentResponse>> getTicketsByStudentAndUsed() {
+    public ResponseEntity<Page<TicketStudentResponse>> getTicketsByStudentAndUsed(Pageable pageable) {
         List<TicketStudentResponse> response = ticketService.getTicketsByStudentIdAndIsUsed().stream()
                 .map(TicketStudentResponse::new)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(convertListToPage(response, pageable));
     }
 
+    //    @PreAuthorize("hasRole('TRAINER')")
     @GetMapping("trainer-not-used")
-    public ResponseEntity<List<TicketTrainerResponse>> getTicketsByTrainerAndNotUsed() {
+    public ResponseEntity<Page<TicketTrainerResponse>> getTicketsByTrainerAndNotUsed(Pageable pageable) {
         List<TicketTrainerResponse> response = ticketService.getTicketsByTrainerIdAndIsNotUsed().stream()
                 .map(TicketTrainerResponse::new)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(convertListToPage(response, pageable));
     }
 
     @GetMapping("student-not-used")
-    public ResponseEntity<List<TicketStudentResponse>> getTicketsByStudentAndNotUsed() {
+    public ResponseEntity<Page<TicketStudentResponse>> getTicketsByStudentAndNotUsed(Pageable pageable) {
         List<TicketStudentResponse> response = ticketService.getTicketsByStudentIdAndIsNotUsed().stream()
                 .map(TicketStudentResponse::new)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(convertListToPage(response, pageable));
     }
 
     @PostMapping
@@ -66,6 +72,14 @@ public class TicketController {
     public ResponseEntity<TicketTrainerResponse> updateTicket(@RequestBody UpdateTicketRequest ticketRequest) {
         Ticket update = ticketService.updateTicket(ticketRequest);
         return ResponseEntity.ok(new TicketTrainerResponse(update));
+    }
+
+    // Pageable 변환용 메서드
+    private <T> Page<T> convertListToPage(List<T> list, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), list.size());
+        List<T> subList = list.subList(start, end);
+        return new PageImpl<>(subList, pageable, list.size());
     }
 
 }

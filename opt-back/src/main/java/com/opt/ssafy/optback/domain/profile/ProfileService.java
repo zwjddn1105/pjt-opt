@@ -30,9 +30,9 @@ public class ProfileService {
     public ProfileResponse getProfileResponse(Member member) {
         if (member.getMainBadgeId() == null) {
             if (member.isTrainer()) {
-                return TrainerProfileResponse.from(member, null);
+                return TrainerProfileResponse.from(member);
             }
-            return MemberProfileResponse.from(member, null);
+            return MemberProfileResponse.from(member);
         }
         Badge mainBadge = badgeRepository.findById(member.getMainBadgeId()).orElse(null);
         if (member.isTrainer()) {

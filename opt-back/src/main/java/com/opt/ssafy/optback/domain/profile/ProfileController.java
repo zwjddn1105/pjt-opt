@@ -2,8 +2,6 @@ package com.opt.ssafy.optback.domain.profile;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,8 +15,7 @@ public class ProfileController {
     private final ProfileService profileService;
 
     @GetMapping("/my")
-    public ResponseEntity<ProfileResponse> getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        ;
+    public ResponseEntity<ProfileResponse> getMyProfile() {
         return ResponseEntity.ok(profileService.getMyProfile());
     }
 

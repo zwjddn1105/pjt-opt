@@ -18,6 +18,15 @@ public class MemberProfileResponse extends ProfileResponse {
                 .mainBadge(new BadgeResponse(mainBadge))
                 .nickname(member.getNickname())
                 .build();
+    }
 
+    public static TrainerProfileResponse from(Member member) {
+        return TrainerProfileResponse.builder()
+                .id(member.getId())
+                .role(member.getRole().name())
+                .name(member.getName())
+                .nickname(member.getNickname())
+                .imagePath(member.getImagePath())
+                .build();
     }
 }

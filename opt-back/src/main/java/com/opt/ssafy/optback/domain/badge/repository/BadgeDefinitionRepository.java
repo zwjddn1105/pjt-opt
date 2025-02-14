@@ -16,13 +16,33 @@ public class BadgeDefinitionRepository {
     private final Map<ActivityType, List<BadgeDefinition>> badgeDefinitionMap = new HashMap<>();
 
     public BadgeDefinitionRepository() {
-        badgeDefinitionMap.put(ActivityType.EXERCISE, new ArrayList<>(List.of(
-                new BadgeDefinition(1, 1, ActivityType.EXERCISE, Map.of("exerciseId", 1, "targetCount", 10))
-        )));
+        addBadgeDefinition(ActivityType.CHALLENGE,
+                new BadgeDefinition(1, 1, ActivityType.CHALLENGE, Map.of("challengeClear", 1)));
+        addBadgeDefinition(ActivityType.CHALLENGE,
+                new BadgeDefinition(2, 2, ActivityType.CHALLENGE, Map.of("challengeClear", 5)));
+        addBadgeDefinition(ActivityType.CHALLENGE,
+                new BadgeDefinition(3, 3, ActivityType.CHALLENGE, Map.of("challengeClear", 10)));
+        addBadgeDefinition(ActivityType.CHALLENGE,
+                new BadgeDefinition(4, 4, ActivityType.CHALLENGE, Map.of("challengeClear", 20)));
 
-        badgeDefinitionMap.put(ActivityType.ATTENDANCE, new ArrayList<>(List.of(
-                new BadgeDefinition(2, 2, ActivityType.ATTENDANCE, Map.of("targetDays", 1))
-        )));
+        addBadgeDefinition(ActivityType.EXERCISE,
+                new BadgeDefinition(5, 5, ActivityType.EXERCISE, Map.of("exerciseId", 3, "totalDistance", 5)));
+        addBadgeDefinition(ActivityType.EXERCISE,
+                new BadgeDefinition(6, 6, ActivityType.EXERCISE, Map.of("exerciseId", 1, "totalDistance", 30)));
+        addBadgeDefinition(ActivityType.EXERCISE,
+                new BadgeDefinition(7, 7, ActivityType.EXERCISE, Map.of("exerciseId", 3, "totalWeight", 5)));
+        addBadgeDefinition(ActivityType.EXERCISE,
+                new BadgeDefinition(8, 8, ActivityType.EXERCISE, Map.of("exerciseId", 2, "exerciseClear", 10)));
+
+        addBadgeDefinition(ActivityType.ATTENDANCE,
+                new BadgeDefinition(9, 9, ActivityType.ATTENDANCE, Map.of("targetDays", 1)));
+        addBadgeDefinition(ActivityType.ATTENDANCE,
+                new BadgeDefinition(10, 10, ActivityType.ATTENDANCE, Map.of("targetDays", 2)));
+    }
+
+    private void addBadgeDefinition(ActivityType type, BadgeDefinition badge) {
+        badgeDefinitionMap.putIfAbsent(type, new ArrayList<>());
+        badgeDefinitionMap.get(type).add(badge);
     }
 
     public List<BadgeDefinition> getBadgeDefinitionsByType(ActivityType activityType) {
@@ -44,8 +64,6 @@ public class BadgeDefinitionRepository {
 
     public List<BadgeDefinition> findByActivityType(ActivityType activityType) {
         List<BadgeDefinition> definitions = getBadgeDefinitionsByType(activityType);
-        System.out.println("📝 조회된 뱃지 목록 (" + activityType + "): " + definitions.size() + "개");
-        definitions.forEach(def -> System.out.println("✅ 뱃지 ID: " + def.getId() + " / 조건: " + def.getCondition()));
         return definitions;
     }
 }

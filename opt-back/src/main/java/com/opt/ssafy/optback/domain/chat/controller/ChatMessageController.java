@@ -2,7 +2,6 @@ package com.opt.ssafy.optback.domain.chat.controller;
 
 import com.opt.ssafy.optback.domain.chat.dto.ChatMessageRequest;
 import com.opt.ssafy.optback.domain.chat.entity.ChatMessage;
-import com.opt.ssafy.optback.domain.chat.exception.ChatMessageException;
 import com.opt.ssafy.optback.domain.chat.service.ChatMessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -20,9 +19,9 @@ public class ChatMessageController {
     @MessageMapping("/chat-room/{roomId}")
     public void sendMessage(ChatMessageRequest messageRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null) {
-            throw new ChatMessageException("❌ 인증되지 않은 사용자입니다.");
-        }
+//        if (authentication == null || authentication.getName() == null) {
+//            throw new ChatMessageException("❌ 인증되지 않은 사용자입니다.");
+//        }
         ChatMessage savedMessage = chatMessageService.processMessage(messageRequest);
     }
 }

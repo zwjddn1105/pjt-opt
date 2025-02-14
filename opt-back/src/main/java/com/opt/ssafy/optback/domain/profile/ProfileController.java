@@ -18,8 +18,7 @@ public class ProfileController {
 
     @GetMapping("/my")
     public ResponseEntity<ProfileResponse> getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        System.out.println("@@@@@@@@@@@");
-        System.out.println(userDetails.getUsername());
+        ;
         return ResponseEntity.ok(profileService.getMyProfile());
     }
 

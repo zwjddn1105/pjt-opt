@@ -1,3 +1,4 @@
+// screens/SearchScreen.tsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -8,19 +9,22 @@ import {
   TextInput,
   Animated,
   ScrollView,
-  Image,
+  ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
+import { BODY_PARTS } from "../components/BodyParts";
+import * as Location from 'expo-location';
+import { searchTrainers, type TrainerResponse } from '../api/searchTrainer';  
 
 type FilterCategories = {
   [key: string]: string[];
 };
 
 const filterOptions: FilterCategories = {
-  exfilter: ["다이어트", "체형교정", "바디프로필", "벌크업"],
+  exfilter: [...BODY_PARTS],
 };
 
 interface FilterSideBarProps {
@@ -130,8 +134,7 @@ const FilterSideBar: React.FC<FilterSideBarProps> = ({
                     <Text
                       style={[
                         styles.sortOptionText,
-                        selectedSort === option.id &&
-                          styles.sortOptionTextActive,
+                        selectedSort === option.id && styles.sortOptionTextActive,
                       ]}
                     >
                       {option.label}
@@ -205,115 +208,36 @@ const FilterSideBar: React.FC<FilterSideBarProps> = ({
   );
 };
 
-interface Trainer {
-  id: number;
-  name: string;
-  image: any;
-  rating: number;
-  reviews: number;
-  address: string;
-  tags: string[];
-  price: number;
-  discount: number;
-}
-
-const initialTrainers: Trainer[] = [
-  {
-    id: 1,
-    name: "김정우",
-    image: require("../assets/trainer.jpg"),
-    rating: 4.7,
-    reviews: 189,
-    address: "서울시 강남구",
-    tags: ["다이어트", "체형교정"],
-    price: 60000,
-    discount: 50,
-  },
-  {
-    id: 2,
-    name: "이민호",
-    image: require("../assets/trainer.jpg"),
-    rating: 4.9,
-    reviews: 156,
-    address: "서울시 서초구",
-    tags: ["바디프로필", "벌크업"],
-    price: 55000,
-    discount: 30,
-  },
-  {
-    id: 3,
-    name: "박서준",
-    image: require("../assets/trainer.jpg"),
-    rating: 4.5,
-    reviews: 210,
-    address: "서울시 송파구",
-    tags: ["다이어트", "벌크업"],
-    price: 50000,
-    discount: 40,
-  },
-  {
-    id: 4,
-    name: "최우식",
-    image: require("../assets/trainer.jpg"),
-    rating: 4.8,
-    reviews: 178,
-    address: "서울시 마포구",
-    tags: ["체형교정", "바디프로필"],
-    price: 65000,
-    discount: 35,
-  },
-  {
-    id: 5,
-    name: "정해인",
-    image: require("../assets/trainer.jpg"),
-    rating: 4.6,
-    reviews: 167,
-    address: "서울시 용산구",
-    tags: ["다이어트", "바디프로필"],
-    price: 58000,
-    discount: 45,
-  },
-];
-
-const TrainerCard: React.FC<{ trainer: Trainer }> = ({ trainer }) => (
+const TrainerCard: React.FC<{ trainer: TrainerResponse }> = ({ trainer }) => (
   <View style={styles.card}>
-    <Image source={trainer.image} style={styles.trainerImage} />
     <View style={styles.cardContent}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.trainerName}>{trainer.name}</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.rating}>{trainer.rating}</Text>
-          <Text style={styles.reviews}>({trainer.reviews})</Text>
+      <Text style={styles.intro}>{trainer.intro}</Text>
+      <Text style={styles.experience}>경력 {trainer.experienceYears}년</Text>
+      <Text style={styles.availableHours}>가능 시간: {trainer.availableHours}</Text>
+      {trainer.oneDayAvailable && (
+        <View style={styles.oneDayBadge}>
+          <Text style={styles.oneDayText}>원데이 클래스 가능</Text>
         </View>
-      </View>
-      <Text style={styles.address}>{trainer.address}</Text>
-      <View style={styles.tagsContainer}>
-        {trainer.tags.map((tag, index) => (
-          <View key={index} style={styles.tag}>
-            <Text style={styles.tagText}>{tag}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.priceContainer}>
-        <Text style={styles.discount}>{trainer.discount}% 할인</Text>
-        <Text style={styles.price}>{trainer.price.toLocaleString()}원</Text>
-      </View>
+      )}
     </View>
   </View>
 );
 
 const SearchScreen = () => {
-  const [searchCategory, setSearchCategory] = useState<"address" | "name">(
-    "address"
-  );
+  const [searchCategory, setSearchCategory] = useState<"address" | "name">("address");
   const [selectedSort, setSelectedSort] = useState("recommended");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [openedFromSort, setOpenedFromSort] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [trainers, setTrainers] = useState<Trainer[]>(initialTrainers);
+  const [trainers, setTrainers] = useState<TrainerResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const sortOptions = [
     { id: "recommended", label: "추천순" },
@@ -328,59 +252,63 @@ const SearchScreen = () => {
   ];
 
   useEffect(() => {
-    let filtered = [...initialTrainers];
+    requestLocationPermission();
+  }, []);
 
-    if (searchQuery) {
-      filtered = filtered.filter((trainer) => {
-        const searchField =
-          searchCategory === "address" ? trainer.address : trainer.name;
-        return searchField.toLowerCase().includes(searchQuery.toLowerCase());
-      });
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      }
+    } catch (err) {
+      console.error('Error getting location:', err);
     }
+  };
 
-    if (selectedFilters.length > 0) {
-      filtered = filtered.filter((trainer) =>
-        selectedFilters.some((filter) => trainer.tags.includes(filter))
-      );
+  const handleSearch = async () => {
+    Keyboard.dismiss();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const searchParams = {
+        myLatitude: userLocation?.latitude || null,
+        myLongitude: userLocation?.longitude || null,
+        name: searchCategory === 'name' ? searchQuery : null,
+        address: searchCategory === 'address' ? searchQuery : null,
+        interests: selectedFilters.length > 0 ? selectedFilters : null,
+        sortBy: selectedSort,
+      };
+
+      const result = await searchTrainers(searchParams);
+      setTrainers(result);
+    } catch (err) {
+      setError('트레이너 검색 중 오류가 발생했습니다.');
+      console.error('Search error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    switch (selectedSort) {
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case "review":
-        filtered.sort((a, b) => b.reviews - a.reviews);
-        break;
-      // 추천순과 거리순은 비활성화
-    }
-
-    setTrainers(filtered);
-  }, [searchQuery, selectedSort, selectedFilters, searchCategory]);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
       <View style={styles.container}>
         <View style={styles.header}>
-          <View>
+          <View style={styles.searchWrapper}>
             <TouchableOpacity
-              style={[styles.categoryButton, { width: 80 }]}
+              style={styles.categoryButton}
               onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
             >
-              <Text
-                style={[
-                  styles.categoryText,
-                  { textAlign: "left", width: "100%" },
-                ]}
-              >
+              <Text style={styles.categoryText}>
                 {searchCategory === "address" ? "주소" : "이름"}
               </Text>
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color="#666"
-                style={{ position: "absolute", right: 5 }}
-              />
+              <Ionicons name="chevron-down" size={16} color="#666" />
             </TouchableOpacity>
 
             {isCategoryDropdownOpen && (
@@ -403,19 +331,24 @@ const SearchScreen = () => {
                   ))}
               </View>
             )}
-          </View>
 
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="원하는 트레이너를 검색해보세요"
-              placeholderTextColor="#999"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            <TouchableOpacity style={styles.searchButton}>
-              <Ionicons name="search" size={20} color="#666" />
-            </TouchableOpacity>
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder={`${searchCategory === "address" ? "주소" : "트레이너 이름"}로 검색`}
+                placeholderTextColor="#999"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                onSubmitEditing={handleSearch}
+              />
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={handleSearch}
+              >
+                <Ionicons name="search" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -431,9 +364,7 @@ const SearchScreen = () => {
                   key={filter}
                   style={styles.selectedFilterButton}
                   onPress={() =>
-                    setSelectedFilters(
-                      selectedFilters.filter((f) => f !== filter)
-                    )
+                    setSelectedFilters(selectedFilters.filter((f) => f !== filter))
                   }
                 >
                   <Text style={styles.selectedFilterText}>{filter}</Text>
@@ -457,10 +388,9 @@ const SearchScreen = () => {
               }}
             >
               <Text style={styles.sortTriggerText}>
-                {sortOptions.find((opt) => opt.id === selectedSort)?.label ||
-                  "추천순"}
+                {sortOptions.find((opt) => opt.id === selectedSort)?.label || "추천순"}
               </Text>
-              <Text style={{ color: "#666", fontSize: 16 }}>↑↓</Text>
+              <Text style={styles.arrowText}>↑↓</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -478,245 +408,224 @@ const SearchScreen = () => {
               />
               <Text style={styles.filterButtonText}>필터</Text>
               {selectedFilters.length > 0 && (
-                <Text style={styles.filterCount}>
-                  ({selectedFilters.length})
-                </Text>
+                <Text style={styles.filterCount}>({selectedFilters.length})</Text>
               )}
             </TouchableOpacity>
           </View>
-
-          <FilterSideBar
-            visible={isFilterVisible}
-            onClose={() => {
-              setIsFilterVisible(false);
-              setOpenedFromSort(false);
-            }}
-            selectedSort={selectedSort}
-            onSortChange={setSelectedSort}
-            sortOptions={sortOptions}
-            openedFromSort={openedFromSort}
-            selectedFilters={selectedFilters}
-            onFilterChange={setSelectedFilters}
-          />
         </View>
 
-        <ScrollView style={styles.cardContainer}>
-          {trainers.map((trainer) => (
-            <TrainerCard key={trainer.id} trainer={trainer} />
-          ))}
-        </ScrollView>
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+          </View>
+        ) : error ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.cardContainer}>
+            {trainers.map((trainer) => (
+              <TrainerCard key={trainer.trainer_id} trainer={trainer} />
+            ))}
+          </ScrollView>
+        )}
+
+        <FilterSideBar
+          visible={isFilterVisible}
+          onClose={() => {
+            setIsFilterVisible(false);
+            setOpenedFromSort(false);
+          }}
+          selectedSort={selectedSort}
+          onSortChange={setSelectedSort}
+          sortOptions={sortOptions}
+          openedFromSort={openedFromSort}
+          selectedFilters={selectedFilters}
+          onFilterChange={setSelectedFilters}
+        />
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
     paddingHorizontal: 15,
-    paddingTop: 50,
-    paddingBottom: 10,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    zIndex: 999,
+    backgroundColor: '#fff',
+    zIndex: 1,
+  },
+  searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   categoryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 4,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#f5f5f5',
+    marginRight: 8,
+    width: 80,
+    justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 2,
   },
   categoryText: {
     fontSize: 14,
-    marginRight: 4,
+    color: '#333',
   },
   searchContainer: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 10,
-    padding: 8,
-    backgroundColor: "#f5f5f5",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
     borderRadius: 8,
+    paddingLeft: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    padding: 0,
+    padding: 8,
+    color: '#333',
   },
   searchButton: {
-    padding: 4,
+    padding: 8,
+    marginLeft: 4,
   },
-  filterSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
+  categoryDropdown: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    width: 80,
+    backgroundColor: '#fff',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 3,
+  },
+  categoryDropdownItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  categoryDropdownItemText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  filtersArea: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+    zIndex: 0,
+  },
+  selectedFiltersContainer: {
     paddingHorizontal: 15,
     paddingVertical: 8,
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#eee',
   },
-  filterButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
+  selectedFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  selectedFilterText: {
+    fontSize: 12,
+    color: '#333',
+    marginRight: 4,
+  },
+  selectedFilterIcon: {
+    marginLeft: 2,
+  },
+  filterSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   sortTriggerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
   },
   sortTriggerText: {
     fontSize: 14,
-    color: "#666",
-    marginRight: 5,
+    color: '#666',
+    marginRight: 4,
+  },
+  arrowText: {
+    color: '#666',
+    fontSize: 16,
+    marginLeft: 4,
+    letterSpacing: -6,
   },
   filterButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 4,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#f5f5f5',
   },
   filterButtonText: {
     fontSize: 13,
-    color: "#666",
+    color: '#666',
   },
   filterCount: {
     fontSize: 13,
-    color: "#007AFF",
+    color: '#007AFF',
     marginLeft: 2,
   },
   filterOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   filterSideBar: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     right: 0,
-    width: 250,
-    height: "100%",
-    backgroundColor: "white",
+    width: 280,
+    height: '100%',
+    backgroundColor: 'white',
   },
   filterContainer: {
     flex: 1,
   },
   filterHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: '#eee',
   },
   filterTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   filterContent: {
     flex: 1,
-  },
-  filterTitleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-  },
-  resetButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#007AFF",
-  },
-  resetButtonText: {
-    fontSize: 13,
-    color: "#007AFF",
-    fontWeight: "500",
-  },
-  filterResetButton: {
-    flex: 1,
-    alignItems: "center",
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginRight: 10,
-    borderRadius: 4,
-  },
-  filterApplyButton: {
-    flex: 1,
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: "#004AAD",
-    borderRadius: 4,
-  },
-  filterApplyButtonText: {
-    color: "white",
-    fontWeight: "600",
-  },
-  categoryDropdown: {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    width: "100%",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 4,
-    zIndex: 999,
-    elevation: 5,
-  },
-  categoryDropdownItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
-  },
-  categoryDropdownItemText: {
-    fontSize: 14,
-  },
-  sortSection: {
-    padding: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-  sortSectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
-  sortOptionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
-  },
-  sortOptionText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  sortOptionTextActive: {
-    color: "#004AAD",
-    fontWeight: "600",
-  },
-  sortTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
   },
   filterGroup: {
     paddingTop: 10,
@@ -725,172 +634,151 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 10,
   },
+  filterTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
   filterCategoryTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: '600',
+    color: '#333',
+  },
+  resetButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  resetButtonText: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   filterOptionsContainer: {
-    width: "100%",
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    width: '100%',
   },
   filterOption: {
-    width: "100%",
+    width: '100%',
     paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
+    borderBottomColor: '#f5f5f5',
   },
   optionContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   customCheckbox: {
     width: 20,
     height: 20,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
+    borderColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   customCheckboxSelected: {
-    backgroundColor: "#004AAD",
-    borderColor: "#004AAD",
-  },
-  filterOptionSelected: {
-    backgroundColor: "#e8f0fe",
+    backgroundColor: '#004AAD',
+    borderColor: '#004AAD',
   },
   filterOptionText: {
     fontSize: 15,
-    color: "#666",
-    fontWeight: "400",
+    color: '#666',
   },
   filterOptionTextSelected: {
-    color: "#004AAD",
-    fontWeight: "500",
+    color: '#004AAD',
+    fontWeight: '500',
   },
-  selectedFiltersContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-  },
-  selectedFilterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    marginRight: 6,
-    height: 20,
-  },
-  selectedFilterText: {
-    fontSize: 11,
-    color: "#333",
-    marginRight: 2,
-    lineHeight: 14,
-  },
-  selectedFilterIcon: {
-    marginLeft: 2,
-  },
-  filtersArea: {
+  sortSection: {
+    padding: 20,
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    zIndex: 1,
+    borderBottomColor: '#eee',
+  },
+  sortTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sortSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  sortOptionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  sortOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  sortOptionTextActive: {
+    color: '#004AAD',
+    fontWeight: '600',
   },
   cardContainer: {
     flex: 1,
     padding: 16,
   },
   card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 8,
+    padding: 16,
     marginBottom: 16,
-    padding: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  trainerImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
   cardContent: {
-    flex: 1,
-    marginLeft: 12,
+    gap: 8,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  trainerName: {
+  intro: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
+    color: '#333',
   },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rating: {
+  experience: {
     fontSize: 14,
-    fontWeight: "500",
-    marginLeft: 4,
+    color: '#666',
   },
-  reviews: {
+  availableHours: {
     fontSize: 14,
-    color: "#666",
-    marginLeft: 2,
+    color: '#666',
   },
-  address: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 8,
-  },
-  tag: {
-    backgroundColor: "#f0f0f0",
+  oneDayBadge: {
+    backgroundColor: '#e8f0fe',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    marginRight: 8,
-    marginBottom: 4,
+    alignSelf: 'flex-start',
   },
-  tagText: {
+  oneDayText: {
+    color: '#004AAD',
     fontSize: 12,
-    color: "#666",
+    fontWeight: '500',
   },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  discount: {
-    fontSize: 14,
-    color: "#ff3b30",
-    fontWeight: "500",
-    marginRight: 8,
-  },
-  price: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  safeArea: {
+  centerContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
+
 export default SearchScreen;

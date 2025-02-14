@@ -11,7 +11,7 @@ type RootStackParamList = {
   홈: undefined;
   LoginNeedScreen: undefined;
   DMScreen: undefined;
-  TrainerProfile: undefined;
+  UserProfile: undefined;
   Main: {
     screen?: string;
   };
@@ -27,7 +27,7 @@ export const TopHeader = () => {
     if (token) {
       // 프로필 화면으로 이동하는 로직 (아직 미구현)
     } else {
-      navigation.navigate("TrainerProfile");
+      navigation.navigate("UserProfile");
     }
   };
   const handleLogout = async () => {

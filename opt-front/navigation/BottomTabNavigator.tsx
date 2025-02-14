@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
-import CalendarScreen from "../screens/CalendarScreen";
+import { CalendarScreen } from "../screens/CalendarScreen";
 import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
 import ManageScreen from "../screens/ManageScreen";
 import SearchScreen from "../screens/SearchScreen";

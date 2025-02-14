@@ -1,16 +1,19 @@
 package com.opt.ssafy.optback.domain.chat.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
+import com.opt.ssafy.optback.domain.chat.dto.ChatRoomResponse;
 import com.opt.ssafy.optback.domain.chat.entity.ChatMessage;
 import com.opt.ssafy.optback.domain.chat.entity.ChatRoom;
 import com.opt.ssafy.optback.domain.chat.exception.ChatRoomException;
 import com.opt.ssafy.optback.domain.chat.repository.ChatMessageRepository;
 import com.opt.ssafy.optback.domain.chat.repository.ChatRoomRepository;
-import java.time.LocalDateTime;
+import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +28,7 @@ public class ChatRoomService {
     private final UserDetailsServiceImpl userDetailsService;
     private final ChatMessageRepository chatMessageRepository;
     private final SystemMessageService systemMessageService;
+    private final MemberRepository memberRepository;
 
     // 채팅방 생성
     @Transactional
@@ -85,25 +89,40 @@ public class ChatRoomService {
     }
 
     // 사용자가 속한 채팅방 목록 조회
-    public List<ChatRoom> getUserChatRooms() {
-        int userId = userDetailsService.getMemberByContextHolder().getId();
+    public List<ChatRoomResponse> getUserChatRooms() {
+        int memberId = userDetailsService.getMemberByContextHolder().getId();
 
-        List<ChatRoom> chatRooms = chatRoomRepository.findByParticipantsContaining(userId);
+        List<ChatRoom> chatRooms = chatRoomRepository.findByParticipantsContaining(memberId);
 
-        // 최근 메시지 순으로 정렬
-        chatRooms.sort((room1, room2) -> {
-            ChatMessage latestMessage1 = chatMessageRepository
-                    .findTopByRoomIdOrderByCreatedAtDesc(room1.getId());
-            ChatMessage latestMessage2 = chatMessageRepository
-                    .findTopByRoomIdOrderByCreatedAtDesc(room2.getId());
+        // 최근 메시지 순으로 정렬\
+        chatRooms.sort((Comparator.comparing(room -> getLastMessageContent(room.getId()), Comparator.reverseOrder())));
 
-            LocalDateTime time1 = (latestMessage1 != null) ? latestMessage1.getCreatedAt() : LocalDateTime.MIN;
-            LocalDateTime time2 = (latestMessage2 != null) ? latestMessage2.getCreatedAt() : LocalDateTime.MIN;
-
-            return time2.compareTo(time1);
-        });
-
-        return chatRooms;
+        return chatRooms.stream()
+                .map(chatRoom -> buildChatRoomResponse(chatRoom, memberId))
+                .collect(Collectors.toList());
     }
+
+    private ChatRoomResponse buildChatRoomResponse(ChatRoom chatRoom, int userId) {
+        String otherMemberNickname = getOtherMemberNickname(chatRoom.getParticipants(), userId);
+        String lastMessage = getLastMessageContent(chatRoom.getId());
+
+        return new ChatRoomResponse(chatRoom, otherMemberNickname, lastMessage);
+    }
+
+    private String getOtherMemberNickname(List<Integer> participants, int memberId) {
+        return participants.stream()
+                .filter(id -> id != memberId)
+                .findFirst()
+                .map(id -> id == 0 ? "관리자" : memberRepository.findNicknameById(id))
+                .orElse("알 수 없음");
+    }
+
+    private String getLastMessageContent(String roomId) {
+        return chatMessageRepository
+                .findTopByRoomIdOrderByCreatedAtDesc(roomId)
+                .map(ChatMessage::getContent)
+                .orElse("대화 없음");
+    }
+
 }
 

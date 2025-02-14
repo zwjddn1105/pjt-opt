@@ -32,6 +32,7 @@ public class SecurityConfig {
 //                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ CORS 설정 추가
                 .authorizeHttpRequests((auth) -> {
                             auth.requestMatchers("/auth/sign-in").permitAll();
+                            auth.requestMatchers("/challenges/**").permitAll();
                             auth.requestMatchers("/auth/sign-up").permitAll();
                             auth.requestMatchers("/exercises").permitAll();
                             auth.requestMatchers("/exercises/{id}").permitAll();

@@ -45,10 +45,7 @@ const BASE_URL = EXPO_PUBLIC_BASE_URL;
 const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
-  } catch (error) {
-    console.error("Error retrieving refresh token:", error);
-    return null;
-  }
+  } catch (error) {}
 };
 
 const fetchOngoingChallenges = async () => {

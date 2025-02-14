@@ -46,12 +46,16 @@ const LoginNeedScreen: React.FC = () => {
           email,
         }
       );
+      console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
+      const id = response.data.id;
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
+      await AsyncStorage.setItem("memberId", String(id));
       console.log(refreshToken);
       console.log(role);
+      console.log(id);
       Alert.alert("로그인 성공", "환영합니다!");
 
       if (route.params?.returnScreen) {

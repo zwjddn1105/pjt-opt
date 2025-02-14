@@ -87,7 +87,7 @@ const AllEndedChallengesScreen = () => {
         </View>
 
         <View style={styles.section}>
-          {renderSectionHeader("종료된된 챌린지")}
+          {renderSectionHeader("종료된 챌린지")}
           <View style={styles.cardContainer}>
             {challenges.map((challenge) => (
               <View key={challenge.id} style={styles.challengeCard}>

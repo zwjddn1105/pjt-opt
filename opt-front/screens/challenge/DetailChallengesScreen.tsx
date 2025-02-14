@@ -5,13 +5,18 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
+import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
 type RootStackParamList = {
   DetailChallenge: { challengeId: number };
 };
@@ -28,7 +33,9 @@ type Challenge = {
   reward: string;
   templateId: number;
   winnerName: string | null;
-  hostName: string;
+  hostId: number;
+  hostNickname: string;
+  hostRealName: string;
   startDate: string;
   endDate: string;
   status: string;
@@ -36,7 +43,7 @@ type Challenge = {
   currentParticipants: number;
   maxParticipants: number;
   frequency: number;
-  progress: number;
+  progress: number | null;
   imagePath: string | null;
   exerciseType: string;
   exerciseCount: number | null;
@@ -56,6 +63,8 @@ const getRefreshToken = async () => {
 };
 
 const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { challengeId } = route.params;
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,10 +91,8 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         setLoading(false);
       }
     };
-
     fetchChallengeDetails();
   }, [challengeId]);
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -93,7 +100,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       </View>
     );
   }
-
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -101,7 +107,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       </View>
     );
   }
-
   if (!challenge) {
     return (
       <View style={styles.errorContainer}>
@@ -114,83 +119,37 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
       <ScrollView style={styles.container}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
-          </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : challenge ? (
-          <>
-            <Text style={styles.title}>{challenge.title}</Text>
-            <Text style={styles.type}>{challenge.type}</Text>
-            <Text style={styles.description}>{challenge.description}</Text>
-            <View style={styles.infoContainer}>
-              <InfoItem label="보상" value={challenge.reward} />
-              <InfoItem label="주최자" value={challenge.hostName} />
-              <InfoItem label="시작일" value={challenge.startDate} />
-              <InfoItem label="종료일" value={challenge.endDate} />
-              <InfoItem label="상태" value={challenge.status} />
-              <InfoItem
-                label="참가자"
-                value={`${challenge.currentParticipants}/${challenge.maxParticipants}`}
-              />
-              <InfoItem label="빈도" value={`${challenge.frequency}일`} />
-              <InfoItem label="진행률" value={`${challenge.progress}%`} />
-              <InfoItem label="운동 유형" value={challenge.exerciseType} />
-              {challenge.exerciseCount !== null && (
-                <InfoItem
-                  label="운동 횟수"
-                  value={challenge.exerciseCount.toString()}
-                />
-              )}
-              {challenge.exerciseDuration && (
-                <InfoItem
-                  label="운동 시간"
-                  value={`${challenge.exerciseDuration}분`}
-                />
-              )}
-              {challenge.exerciseDistance && (
-                <InfoItem
-                  label="운동 거리"
-                  value={`${challenge.exerciseDistance}km`}
-                />
-              )}
-            </View>
-          </>
-        ) : (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>
-              챌린지 정보를 찾을 수 없습니다.
-            </Text>
-          </View>
-        )}
+        <View style={styles.headerContainer}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const InfoItem: React.FC<{ label: string; value: string }> = ({
-  label,
-  value,
-}) => (
-  <View style={styles.infoItem}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
   },
   container: {
+    marginBottom: 10,
     flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 20,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: 12,
   },
   loadingContainer: {
     flex: 1,
@@ -207,44 +166,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "red",
     textAlign: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  type: {
-    fontSize: 18,
-    color: "#666",
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    marginBottom: 24,
-  },
-  infoContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  infoItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  infoValue: {
-    fontSize: 16,
-    color: "#666",
   },
 });
 

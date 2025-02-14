@@ -12,6 +12,8 @@ import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.global.dto.SuccessResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,8 +35,10 @@ public class ChallengeController {
 
     // 기존 전체 챌린지 조회
     @GetMapping
-    public ResponseEntity<List<ChallengeResponse>> getChallenges() {
-        List<ChallengeResponse> challenges = challengeService.getChallenges();
+    public ResponseEntity<Page<ChallengeResponse>> getChallenges(
+            @RequestParam(defaultValue = "PROGRESS", required = false) String status,
+            Pageable pageable) {
+        Page<ChallengeResponse> challenges = challengeService.getChallenges(status, pageable);
         return ResponseEntity.ok(challenges);
     }
 
@@ -134,7 +138,6 @@ public class ChallengeController {
 
     // GET /challenges/participating - 내가 참여중인 챌린지 목록
     @GetMapping("/participating")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChallengeResponse>> getParticipatingChallenges() {
         return ResponseEntity.ok(challengeService.getParticipatingChallenges());
     }
@@ -148,27 +151,8 @@ public class ChallengeController {
 
     // GET /challenges/past - 내가 참여했던 챌린지 목록
     @GetMapping("/past")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChallengeResponse>> getPastChallenges() {
         return ResponseEntity.ok(challengeService.getPastChallenges());
-    }
-
-    // GET /challenges/ongoing - 진행중인 챌린지 목록
-    @GetMapping("/ongoing")
-    public ResponseEntity<List<ChallengeResponse>> getOngoingChallenges() {
-        return ResponseEntity.ok(challengeService.getOngoingChallenges());
-    }
-
-    // GET /challenges/ended - 종료된 챌린지 목록
-    @GetMapping("/ended")
-    public ResponseEntity<List<ChallengeResponse>> getEndedChallenges() {
-        return ResponseEntity.ok(challengeService.getEndedChallenges());
-    }
-
-    // GET /challenges/upcoming - 개최예정인 챌린지 목록
-    @GetMapping("/upcoming")
-    public ResponseEntity<List<ChallengeResponse>> getUpcomingChallenges() {
-        return ResponseEntity.ok(challengeService.getUpcomingChallenges());
     }
 
 }

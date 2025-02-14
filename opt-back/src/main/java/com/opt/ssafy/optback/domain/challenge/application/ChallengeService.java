@@ -16,20 +16,20 @@ import com.opt.ssafy.optback.domain.challenge.repository.ChallengeMemberReposito
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRecordRepository;
 import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -46,89 +46,26 @@ public class ChallengeService {
 
 
     @Transactional
-    public List<ChallengeResponse> getChallenges() {
-        List<Challenge> challenges = challengeRepository.findAll();
+    public Page<ChallengeResponse> getChallenges(String status, Pageable pageable) {
+        Page<Challenge> challenges = challengeRepository.findAllByStatusOrderByIdDesc(status, pageable);
 
-        return challenges.stream().map(challenge -> {
-            // hostId로 hostName 조회
-            String hostName = memberRepository.findById(challenge.getHostId())
-                    .map(Member::getNickname)
-                    .orElse("Unknown host nickname");
-
-            String realName = memberRepository.findById(challenge.getHostId())
-                    .map(Member::getName)
-                    .orElse("Unknown host real name");
-
+        List<ChallengeResponse> challengeDtos = challenges.stream().map(challenge -> {
+            Member host = memberRepository.findById(challenge.getHostId()).orElseThrow(MemberNotFoundException::new);
             // winnerId가 존재하면 winnerName 조회
-            String winnerName = (challenge.getWinnerId() != null) ?
-                    memberRepository.findById(challenge.getWinnerId())
-                            .map(Member::getNickname)
-                            .orElse("Unknown") : null;
-
-            return ChallengeResponse.builder()
-                    .id(challenge.getId())
-                    .type(challenge.getType())
-                    .title(challenge.getTitle())
-                    .description(challenge.getDescription())
-                    .reward(challenge.getReward())
-                    .templateId(challenge.getTemplateId())
-                    .winnerName(winnerName)
-                    .hostName(hostName)
-                    .realName(realName)
-                    .startDate(challenge.getStartDate())
-                    .endDate(challenge.getEndDate())
-                    .status(challenge.getStatus())
-                    .createdAt(challenge.getCreatedAt())
-                    .currentParticipants(challenge.getCurrentParticipants())
-                    .maxParticipants(challenge.getMaxParticipants())
-                    .frequency(challenge.getFrequency())
-                    .progress(challenge.getProgress())
-                    .imagePath(challenge.getImagePath())
-                    .exerciseType(challenge.getExerciseType())
-                    .exerciseCount(challenge.getExerciseCount())
-                    .exerciseDuration(challenge.getExerciseDuration())
-                    .exerciseDistance(challenge.getExerciseDistance())
-                    .build();
-        }).collect(Collectors.toList());
+            String winnerNickname = challenge.getWinnerId() == null ? null
+                    : memberRepository.getMemberById(challenge.getWinnerId()).getNickname();
+            return ChallengeResponse.from(challenge, host, winnerNickname);
+        }).toList();
+        return new PageImpl<>(challengeDtos, pageable, challenges.getTotalElements());
     }
+
     public ChallengeResponse getChallengeById(int id) {
         Challenge challenge = challengeRepository.findById(id)
                 .orElseThrow(() -> new ChallengeNotFoundException("존재하지 않는 챌린지입니다. with id: " + id));
-
-        // hostId로 hostName 조회
-        String hostName = memberRepository.findById(challenge.getHostId())
-                .map(Member::getNickname)
-                .orElse("Unknown host nickname");
-
-        // winnerId가 존재하면 winnerName 조회
-        String winnerName = (challenge.getWinnerId() != null) ?
-                memberRepository.findById(challenge.getWinnerId())
-                        .map(Member::getNickname)
-                        .orElse("Unknown winner nickname") : null;
-
-        return ChallengeResponse.builder()
-                .id(challenge.getId())
-                .type(challenge.getType())
-                .title(challenge.getTitle())
-                .description(challenge.getDescription())
-                .reward(challenge.getReward())
-                .templateId(challenge.getTemplateId())
-                .winnerName(winnerName)
-                .hostName(hostName)
-                .startDate(challenge.getStartDate())
-                .endDate(challenge.getEndDate())
-                .status(challenge.getStatus())
-                .createdAt(challenge.getCreatedAt())
-                .currentParticipants(challenge.getCurrentParticipants())
-                .maxParticipants(challenge.getMaxParticipants())
-                .frequency(challenge.getFrequency())
-                .progress(challenge.getProgress())
-                .imagePath(challenge.getImagePath())
-                .exerciseType(challenge.getExerciseType())
-                .exerciseCount(challenge.getExerciseCount())
-                .exerciseDuration(challenge.getExerciseDuration())
-                .exerciseDistance(challenge.getExerciseDistance())
-                .build();
+        Member host = memberRepository.findById(challenge.getHostId()).orElseThrow(MemberNotFoundException::new);
+        String winnerNickname = challenge.getWinnerId() == null ? null
+                : memberRepository.getMemberById(challenge.getWinnerId()).getNickname();
+        return ChallengeResponse.from(challenge, host, winnerNickname);
     }
 
     public List<ContributionResponse> getChallengeContributions(int id) {
@@ -153,7 +90,8 @@ public class ChallengeService {
             Double distance = (record[4] instanceof Number) ? ((Number) record[4]).doubleValue() : null;
 
             // `count`, `duration`, `distance` 중 **NOT NULL**인 값을 찾아서 사용
-            double validContribution = (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
+            double validContribution =
+                    (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
 
             totalContribution += validContribution;
 
@@ -164,7 +102,8 @@ public class ChallengeService {
 
         // 총 기여도를 이용하여 각 사용자의 기여도(%) 재계산
         for (ContributionResponse contribution : contributions) {
-            double contributionPercentage = (totalContribution == 0) ? 0.0 : (contribution.getMeasurement() / totalContribution) * 100;
+            double contributionPercentage =
+                    (totalContribution == 0) ? 0.0 : (contribution.getMeasurement() / totalContribution) * 100;
             contribution.setContributionPercentage(contributionPercentage);
         }
 
@@ -172,30 +111,10 @@ public class ChallengeService {
     }
 
 
-
-
-
     // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)
     public void createChallenge(CreateChallengeRequest request) {
         Member host = userDetailsService.getMemberByContextHolder();
-        Challenge challenge = Challenge.builder()
-                .type(request.getType())
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .reward(request.getReward())
-                .templateId(request.getTemplate_id())
-                .hostId(host.getId())
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
-                .currentParticipants(0)
-                .status(request.getStatus())
-                .maxParticipants(request.getMax_participants())
-                .frequency(request.getFrequency())
-                .progress(0F)
-                .imagePath(request.getImagePath())
-                .exerciseType(request.getExercise_type())
-                .exerciseCount(request.getExercise_count())
-                .build();
+        Challenge challenge = Challenge.from(request, host);
         challengeRepository.save(challenge);
     }
 
@@ -276,7 +195,7 @@ public class ChallengeService {
 
         if (existingRecord.isPresent()) {
             ChallengeRecord record = existingRecord.get();
-            Integer newDistance = record.getDistance()+distance;
+            Integer newDistance = record.getDistance() + distance;
 
             record.setDistance(newDistance);
 
@@ -359,9 +278,11 @@ public class ChallengeService {
             return challenge.getProgress() >= 100F;
         } else if (count != null && challenge.getExerciseCount() != null && count >= challenge.getExerciseCount()) {
             return true;
-        } else if (duration != null && challenge.getExerciseDuration() != null && duration >= challenge.getExerciseDuration()) {
+        } else if (duration != null && challenge.getExerciseDuration() != null
+                && duration >= challenge.getExerciseDuration()) {
             return true;
-        } else if (distance != null && challenge.getExerciseDistance() != null && distance >= challenge.getExerciseDistance()) {
+        } else if (distance != null && challenge.getExerciseDistance() != null
+                && distance >= challenge.getExerciseDistance()) {
             return true;
         }
         return false;
@@ -468,7 +389,7 @@ public class ChallengeService {
         ChallengeRecord record = challengeRecordRepository
                 .findByMemberIdAndChallengeId(memberId, challengeId)
                 .orElseThrow(() -> new ChallengeRecordNotFoundException(
-                        "challengeId: " + challengeId+"에 대한 챌린지 기록을 찾을 수 없습니다."));
+                        "challengeId: " + challengeId + "에 대한 챌린지 기록을 찾을 수 없습니다."));
 
         return ChallengeRecordResponse.fromEntity(record);
     }
@@ -478,7 +399,7 @@ public class ChallengeService {
         Member member = userDetailsService.getMemberByContextHolder();
         Challenge challenge = challengeRepository.findById(request.getChallengeId())
                 .orElseThrow(() -> new ChallengeNotFoundException(
-                        "id: " + request.getChallengeId()+"인 챌린지를 찾을 수 없습니다."));
+                        "id: " + request.getChallengeId() + "인 챌린지를 찾을 수 없습니다."));
 
         boolean isAlreadyJoined = challengeMemberRepository.existsByChallengeIdAndMemberId(challenge.getId(),
                 member.getId());

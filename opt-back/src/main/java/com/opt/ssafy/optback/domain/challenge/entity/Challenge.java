@@ -1,5 +1,7 @@
 package com.opt.ssafy.optback.domain.challenge.entity;
 
+import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
+import com.opt.ssafy.optback.domain.member.entity.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,7 +11,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -112,4 +113,26 @@ public class Challenge {
     public void setStatus(String newStatus) {
         status = newStatus;
     }
+
+    public static Challenge from(CreateChallengeRequest request, Member host) {
+        return Challenge.builder()
+                .type(request.getType())
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .reward(request.getReward())
+                .templateId(request.getTemplate_id())
+                .hostId(host.getId())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .currentParticipants(0)
+                .status(request.getStatus())
+                .maxParticipants(request.getMax_participants())
+                .frequency(request.getFrequency())
+                .progress(0F)
+                .imagePath(request.getImagePath())
+                .exerciseType(request.getExercise_type())
+                .exerciseCount(request.getExercise_count())
+                .build();
+    }
+
 }

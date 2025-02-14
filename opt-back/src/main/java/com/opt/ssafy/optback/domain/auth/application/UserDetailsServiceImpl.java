@@ -24,9 +24,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Member member = memberRepository.findByEmail(username)
+        Member member = memberRepository.findById(Integer.valueOf(username))
                 .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_EXCEPTION_MESSAGE));
-        return new User(member.getEmail(), member.getPassword(), getAuthorities(member));
+        return new User(String.valueOf(member.getId()), member.getPassword(), getAuthorities(member));
     }
 
     private Collection<? extends GrantedAuthority> getAuthorities(Member member) {
@@ -37,7 +37,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public Member getMemberByContextHolder() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         UserDetails userDetails = (UserDetails) principal;
-        return memberRepository.findByEmail(userDetails.getUsername())
+        Integer id = Integer.valueOf(userDetails.getUsername());
+        return memberRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_EXCEPTION_MESSAGE));
     }
 

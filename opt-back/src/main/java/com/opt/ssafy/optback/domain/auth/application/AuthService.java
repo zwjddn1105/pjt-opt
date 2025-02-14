@@ -60,7 +60,7 @@ public class AuthService {
     }
 
     private Authentication authenticate(Member member) {
-        User user = new User(member.getEmail(), "",
+        User user = new User(String.valueOf(member.getId()), "",
                 Collections.singletonList(new SimpleGrantedAuthority(member.getRole().name())));
         return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
     }

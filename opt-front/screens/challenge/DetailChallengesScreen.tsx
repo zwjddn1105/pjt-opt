@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 type RootStackParamList = {
   DetailChallenge: { challengeId: number };
 };
@@ -44,7 +44,7 @@ type Challenge = {
   exerciseDistance: number | null;
 };
 
-const BASE_URL = "https://i12a309.p.ssafy.io";
+const BASE_URL = EXPO_PUBLIC_BASE_URL;
 
 const getRefreshToken = async () => {
   try {

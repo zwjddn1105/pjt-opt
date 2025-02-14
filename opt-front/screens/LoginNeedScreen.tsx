@@ -13,6 +13,7 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 
 type RootStackParamList = {
   홈: undefined;
@@ -40,7 +41,7 @@ const LoginNeedScreen: React.FC = () => {
   const loginWithEmail = async () => {
     try {
       const response = await axios.post(
-        "https://i12a309.p.ssafy.io/auth/sign-in",
+        `${EXPO_PUBLIC_BASE_URL}/auth/sign-in`,
         {
           email,
         }

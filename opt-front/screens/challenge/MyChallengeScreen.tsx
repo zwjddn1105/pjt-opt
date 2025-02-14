@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
 import axios from "axios";
-
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 type RootStackParamList = {
   LoginNeedScreen: { returnScreen: string } | undefined;
   OngoingChallenges: undefined;
@@ -40,7 +40,7 @@ type SectionNavigationParams = Pick<
   RootStackParamList,
   "OngoingChallenges" | "AppliedChallenges" | "PastChallenges"
 >;
-const BASE_URL = "https://i12a309.p.ssafy.io";
+const BASE_URL = EXPO_PUBLIC_BASE_URL;
 
 const getRefreshToken = async () => {
   try {

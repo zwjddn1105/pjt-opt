@@ -13,7 +13,7 @@ import { TopHeader } from "../../components/TopHeader";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 type RootStackParamList = {
   MyChallenge: undefined;
 };
@@ -28,7 +28,7 @@ type Challenge = {
   status: string;
 };
 
-const BASE_URL = "https://i12a309.p.ssafy.io";
+const BASE_URL = EXPO_PUBLIC_BASE_URL;
 
 const getRefreshToken = async () => {
   try {

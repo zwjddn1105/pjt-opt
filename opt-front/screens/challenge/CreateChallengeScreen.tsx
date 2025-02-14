@@ -17,10 +17,13 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Dropdown } from "react-native-element-dropdown";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-type RootStackParamList = {};
+import { EXPO_PUBLIC_BASE_URL } from "@env";
+type RootStackParamList = {
+  ManageChallenge: undefined;
+};
 type DropdownItem = {
   label: string;
   value: string;
@@ -39,12 +42,13 @@ interface ChallengeData {
   exercise_count?: number;
   exercise_duration?: number;
   exercise_distance?: number;
+  imagePath?: string;
 }
 
 const placeholderTextColor = "#999";
 
 const CreateChallengeScreen = () => {
-  const BASE_URL = "https://i12a309.p.ssafy.io";
+  const BASE_URL = EXPO_PUBLIC_BASE_URL;
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedType, setSelectedType] = useState<DropdownItem | null>(null); // 종류
@@ -87,13 +91,20 @@ const CreateChallengeScreen = () => {
     { label: "딥스", value: "COUNT" },
   ];
   const periods = [
-    { label: "매일", value: "1" },
-    { label: "7일", value: "2" },
-    { label: "14일", value: "3" },
-    { label: "21일", value: "4" },
-    { label: "30일", value: "5" },
+    { label: "1", value: "1" },
+    { label: "7", value: "2" },
+    { label: "14", value: "3" },
+    { label: "21", value: "4" },
+    { label: "30", value: "5" },
     { label: "직접입력", value: "custom" },
   ];
+
+  const imageToBase64 = async (uri: string): Promise<string> => {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return base64;
+  };
 
   const handleConfirmStartDate = (date: Date) => {
     setStartDate(formatDate(date));
@@ -112,7 +123,7 @@ const CreateChallengeScreen = () => {
   };
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -157,7 +168,7 @@ const CreateChallengeScreen = () => {
       const formData = new FormData();
       formData.append("data", JSON.stringify(challengeData));
 
-      if (isImageChecked && imageAttached) {
+      if (isImageChecked && imageAttached && imageUri) {
         formData.append("imagePath", {
           uri: imageUri,
           type: "image/jpeg",
@@ -167,17 +178,16 @@ const CreateChallengeScreen = () => {
 
       const response = await axios.post(`${BASE_URL}/challenges`, formData, {
         headers: {
-          // "Content-Type": "multipart/form-data",
+          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${refreshToken}`,
         },
       });
 
       console.log("Challenge created:", response.data);
       setModalVisible(false);
-      // 성공 메시지 표시 또는 다른 화면으로 네비게이션
+      navigation.navigate("ManageChallenge");
     } catch (error) {
       console.error("Error creating challenge:", error);
-      // 에러 메시지 표시
     }
   };
 
@@ -262,7 +272,7 @@ const CreateChallengeScreen = () => {
               {frequency === "custom" ? (
                 <TextInput
                   style={styles.input}
-                  placeholder="직접 입력"
+                  placeholder="숫자만 입력해주세요."
                   value={customPeriod}
                   onChangeText={setCustomPeriod}
                   keyboardType="numeric"

@@ -6,6 +6,7 @@ build/
 !**/src/test/**/build/
 .env.infastapi
 .env.outfastapi
+.env
 
 ### STS ###
 .apt_generated

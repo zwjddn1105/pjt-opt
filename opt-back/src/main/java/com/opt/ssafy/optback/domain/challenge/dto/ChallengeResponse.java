@@ -1,6 +1,7 @@
 package com.opt.ssafy.optback.domain.challenge.dto;
 
 import java.util.Date;
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,9 +13,10 @@ public class ChallengeResponse {
     private String title;
     private String description;
     private String reward;
-    private int templateId;
+    private Integer templateId;
     private String winnerName;
     private String hostName;
+    private String realName;
     private Date startDate;
     private Date endDate;
     private String status;
@@ -28,5 +30,4 @@ public class ChallengeResponse {
     private Integer exerciseCount;
     private Integer exerciseDuration;
     private Integer exerciseDistance;
-
 }

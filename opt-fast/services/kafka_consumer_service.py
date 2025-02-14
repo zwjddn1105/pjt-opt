@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.ocr_service import process_ocr
 from services.business_validator import validate_business_info
 from services.gym_finder import find_most_similar_gym
+from services.document_aligner import scan_document
 import json
 import base64
 import requests
@@ -186,9 +187,13 @@ class KafkaConsumerService:
             image = cv2.imdecode(file_bytes2, cv2.IMREAD_COLOR)
 
             # ✅ scan_document() 호출 (파일 경로 대신 OpenCV 이미지 배열 전달)
-            scanned_image = self.scan_document(image)
+            scanned_image = scan_document(image)
             if scanned_image is None:
                 logger.error("❌ 문서 영역을 찾을 수 없습니다.")
+                final_result_with_id2 = {}
+                final_result_with_id2["status"] = "error"
+                final_result_with_id2["message"] = "문서를 인식할 수 없습니다. 문서가 전체가 보이도록 다시 촬영해주세요"
+                await self.send_kafka_message("certificate_response", final_result_with_id2)
                 return
 
             # ✅ OCR 수행
@@ -201,13 +206,20 @@ class KafkaConsumerService:
             logger.info(f"🔍 OCR 결과 분석 완료: {result}")
 
             if result["status"] == "error":
+                final_result_with_id3 = {}
+                final_result_with_id3["status"] = "error"
+                final_result_with_id3["message"] = result.get('message')
+                await self.send_kafka_message("certificate_response", final_result_with_id3)
                 return result
 
             # ✅ 자격증 정보 검증
             final_result = self.process_certification_result(result)
             logger.info(f"✅ 최종 검증 결과: {final_result}")
-
-            return final_result
+            final_result_with_id = json.loads(final_result)  # JSON 문자열 → dict 변환
+            final_result_with_id["id"] = user_id  # 사용자 ID 추가  
+            final_result_with_id["path"] = image_url
+            await self.send_kafka_message("certificate_response", final_result_with_id)
+            # return final_result
 
         except Exception as e:
             logger.error(f"❌ handle_certificate_request 중 오류 발생: {e}")
@@ -265,52 +277,6 @@ class KafkaConsumerService:
         warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
         
         return warped
-    
-    def scan_document(self, image_path):
-        # 1. 이미지 로드 및 복사본 생성
-        image = cv2.imread(image_path)
-        if image is None:
-            print("이미지를 불러올 수 없습니다:", image_path)
-            return None
-        orig = image.copy()
-
-        # 2. 전처리: 그레이 스케일 변환, 가우시안 블러, Canny 엣지 검출
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (5, 5), 0)
-        edged = cv2.Canny(gray, 75, 200)
-
-        # 필요에 따라 중간 결과 확인
-        # cv2.imshow("Edged", edged)
-        # cv2.waitKey(0)
-
-        # 3. 컨투어 검출: 외곽선을 찾아 내림차순(면적 기준)으로 정렬
-        contours, _ = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
-
-        # 4. 가장 큰 컨투어 중 꼭짓점이 4개인 컨투어를 찾아 문서 영역으로 간주
-        docContour = None
-        for c in contours:
-            # 컨투어의 둘레 길이 계산
-            peri = cv2.arcLength(c, True)
-            # 컨투어 근사화: contour의 모양을 단순화
-            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-
-            if len(approx) == 4:
-                docContour = approx
-                break
-
-        if docContour is None:
-            print("문서 영역을 찾을 수 없습니다.")
-            return None
-
-        # 5. (선택 사항) 검출된 문서 영역을 원본 이미지에 그려 확인
-        cv2.drawContours(image, [docContour], -1, (0, 255, 0), 2)
-        # cv2.imshow("Document Contour", image)
-        # cv2.waitKey(0)
-
-        # 6. 검출한 4개 좌표를 이용해 perspective 변환하여 스캔된 이미지 생성
-        scanned = self.four_point_transform(orig, docContour.reshape(4, 2))
-        return scanned
 
     # 프로젝트 정보 설정
     PROJECT_ID = "opt-ocr"  # GCP 프로젝트 ID
@@ -343,7 +309,7 @@ class KafkaConsumerService:
 
         return result.document.text
 
-    def extract_certification_details(text: str):
+    def extract_certification_details(self, text: str):
         # OCR 후처리를 위한 기준 키워드
         title_keywords = ["생활스포츠지도사", "스포츠지도사", "생활 스포츠"]
         category_keywords = ["자격종목", "종목", "분야"]
@@ -406,7 +372,7 @@ class KafkaConsumerService:
             "category": category
         }
 
-    def fetch_certification_info(qf_no: str, srch_usr_nm: str):
+    def fetch_certification_info(self, qf_no: str, srch_usr_nm: str):
         url = "https://sqms.kspo.or.kr/license/docTrueCheckActJs.kspo"
         
         # 요청 헤더 설정

@@ -18,7 +18,9 @@ import com.opt.ssafy.optback.domain.challenge.repository.ChallengeRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import com.opt.ssafy.optback.global.application.S3Service;
 import jakarta.transaction.Transactional;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -27,11 +29,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -43,7 +47,10 @@ public class ChallengeService {
     private final ChallengeMemberRepository challengeMemberRepository;
     private final UserDetailsServiceImpl userDetailsService;
     private final MemberRepository memberRepository;
+    private final S3Service s3Service;
 
+    @Value("${challenge.image.bucket.name}")
+    private String bucketName;
 
     @Transactional
     public Page<ChallengeResponse> getChallenges(String status, Pageable pageable) {
@@ -111,6 +118,31 @@ public class ChallengeService {
     }
 
 
+    // 기존 createChallenge 메서드를 오버로드하여 이미지 파일도 함께 받도록 수정
+    @Transactional
+    public void createChallenge(CreateChallengeRequest request, MultipartFile image) {
+        // 인증된 사용자(트레이너) 조회
+        Member host = userDetailsService.getMemberByContextHolder();
+
+        String imgUrl = null;
+        // 이미지가 제공되었을 때만 S3 업로드 진행
+        if (image != null && !image.isEmpty()) {
+            try {
+                imgUrl = s3Service.uploadImageFile(image, bucketName);
+            } catch (IOException e) {
+                log.error("S3 이미지 업로드 실패", e);
+                throw new RuntimeException("S3 이미지 업로드 실패", e);
+            }
+        }
+        // 요청 객체에 이미지 URL 설정 (없으면 null 또는 기본값)
+        request.setImagePath(imgUrl);
+
+        // 챌린지 엔티티 생성 후 DB에 저장
+        Challenge challenge = Challenge.from(request, host);
+        challengeRepository.save(challenge);
+    }
+
+
     // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)
     public void createChallenge(CreateChallengeRequest request) {
         Member host = userDetailsService.getMemberByContextHolder();
@@ -140,6 +172,7 @@ public class ChallengeService {
         } else if (challenge.getExerciseDuration() != null) {
             recordDuration(memberId, challengeId, duration);
         }
+        throw new IllegalStateException("count, duration, distance가 모두 null이면 안됩니다.");
     }
 
     @Transactional
@@ -175,8 +208,10 @@ public class ChallengeService {
                     .build();
             challengeRecordRepository.save(newRecord);
         }
+        if(challenge.getType().equals("TEAM")) {
+            updateCountProgress(challenge);
 
-        updateCountProgress(challenge);
+        }
     }
 
 
@@ -213,8 +248,9 @@ public class ChallengeService {
                     .build();
             challengeRecordRepository.save(newRecord);
         }
-
-        updateDistanceProgress(challenge);
+        if(challenge.getType().equals("TEAM")) {
+            updateDistanceProgress(challenge);
+        }
     }
 
 
@@ -250,8 +286,9 @@ public class ChallengeService {
                     .build();
             challengeRecordRepository.save(newRecord);
         }
-
-        updateDurationProgress(challenge);
+        if(challenge.getType().equals("TEAM")) {
+            updateDurationProgress(challenge);
+        }
     }
 
 

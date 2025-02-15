@@ -132,6 +132,8 @@ public class Challenge {
                 .imagePath(request.getImagePath())
                 .exerciseType(request.getExercise_type())
                 .exerciseCount(request.getExercise_count())
+                .exerciseDuration(request.getExercise_duration())
+                .exerciseDistance(request.getExercise_distance())
                 .build();
     }
 

@@ -3,10 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
-  Dimensions,
   Animated,
+  FlatList,
+  Dimensions,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -15,8 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
+
 type RootStackParamList = {
-  LoginNeedScreen: { returnScreen: string } | undefined;
   AllOngoingChallenge: undefined;
   AllUpComingChallenge: undefined;
   AllEndedChallenge: undefined;
@@ -33,10 +34,26 @@ type Challenge = {
   title: string;
   description: string;
   reward: string;
+  templateId: number;
+  winnerName: string | null;
+  hostId: number;
+  hostNickname: string;
+  hostRealName: string;
   startDate: string;
   endDate: string;
   status: string;
+  createdAt: string;
+  currentParticipants: number;
+  maxParticipants: number;
+  frequency: number;
+  progress: number | null;
+  imagePath: string;
+  exerciseType: string;
+  exerciseCount: number | null;
+  exerciseDuration: number | null;
+  exerciseDistance: number | null;
 };
+
 type SectionNavigationParams = Pick<
   RootStackParamList,
   "AllOngoingChallenge" | "AllUpComingChallenge" | "AllEndedChallenge"
@@ -44,82 +61,49 @@ type SectionNavigationParams = Pick<
 
 const BASE_URL = EXPO_PUBLIC_BASE_URL;
 
-const getRefreshToken = async () => {
+const fetchChallenges = async (
+  status: string,
+  page: number,
+  setChallengeFn: React.Dispatch<React.SetStateAction<Challenge[]>>,
+  setPage: React.Dispatch<React.SetStateAction<number>>,
+  setHasMore: React.Dispatch<React.SetStateAction<boolean>>
+) => {
   try {
-    return await AsyncStorage.getItem("refreshToken");
-  } catch (error) {
-    console.error("Error retrieving refresh token:", error);
-    return null;
-  }
-};
-
-const fetchOngoingChallenges = async () => {
-  try {
-    const refreshToken = await getRefreshToken();
-    if (!refreshToken) throw new Error("Refresh token not found");
-    const response = await axios.get<Challenge[]>(
-      `${BASE_URL}/challenges/ongoing`,
+    const response = await axios.get<{ content: Challenge[]; last: boolean }>(
+      `${BASE_URL}/challenges`,
       {
-        headers: {
-          Authorization: `Bearer ${refreshToken}`,
+        params: {
+          status,
+          page,
+          size: 20,
         },
       }
     );
-    return response.data;
+    setChallengeFn((prev) => [...prev, ...response.data.content]);
+    setPage(page + 1);
+    setHasMore(!response.data.last);
   } catch (error) {
-    console.error("전체 진행 중인 챌린지 불러오기 실패:", error);
+    console.error(`${status} 챌린지 불러오기 실패:`, error);
     throw error;
   }
 };
 
-const fetchUpComingChallenges = async () => {
-  try {
-    const refreshToken = await getRefreshToken();
-    if (!refreshToken) throw new Error("Refresh token not found");
-    const response = await axios.get<Challenge[]>(
-      `${BASE_URL}/challenges/upcoming`,
-      {
-        headers: {
-          Authorization: `Bearer ${refreshToken}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("개최 예정인 챌린지 불러오기 실패:", error);
-    throw error;
-  }
-};
-
-const fetchEndedChallenges = async () => {
-  try {
-    const refreshToken = await getRefreshToken();
-    if (!refreshToken) throw new Error("Refresh token not found");
-    const response = await axios.get<Challenge[]>(
-      `${BASE_URL}/challenges/ended`,
-      {
-        headers: {
-          Authorization: `Bearer ${refreshToken}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("내가 참여했던 챌린지 불러오기 실패:", error);
-    throw error;
-  }
-};
-
-const MyChallengeScreen: React.FC = () => {
+const AllChallengeScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [ongoingChallenges, setOngoingChallenges] = useState<Challenge[]>([]);
   const [upComingChallenges, setUpComingChallenges] = useState<Challenge[]>([]);
   const [endedChallenges, setEndedChallenges] = useState<Challenge[]>([]);
-  const [userRole, setUserRole] = useState<string | null>(null);
+
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const [ongoingPage, setOngoingPage] = useState(0);
+  const [upcomingPage, setUpcomingPage] = useState(0);
+  const [endedPage, setEndedPage] = useState(0);
+  const [hasMoreOngoing, setHasMoreOngoing] = useState(true);
+  const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
+  const [hasMoreEnded, setHasMoreEnded] = useState(true);
 
   const toggleSwitch = () => {
     Animated.timing(fadeAnim, {
@@ -137,55 +121,38 @@ const MyChallengeScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    const fetchInitialChallenges = async () => {
       try {
-        const refreshToken = await AsyncStorage.getItem("refreshToken");
-        const role = await AsyncStorage.getItem("role");
-        setIsLoggedIn(refreshToken !== null);
-        setUserRole(role);
-      } catch (error) {
-        console.error("Error checking login status:", error);
-        setIsLoggedIn(false);
-      }
-    };
-
-    checkLoginStatus();
-  }, []);
-
-  useEffect(() => {
-    if (isLoggedIn === false) {
-      navigation.replace("LoginNeedScreen", {
-        returnScreen: "MyChallenge",
-      });
-    }
-  }, [isLoggedIn, navigation]);
-
-  useEffect(() => {
-    const fetchChallenges = async () => {
-      try {
-        const ongoing = await fetchOngoingChallenges();
-        setOngoingChallenges(ongoing);
-
-        const upcoming = await fetchUpComingChallenges();
-        setUpComingChallenges(upcoming);
-
-        const ended = await fetchEndedChallenges();
-        setEndedChallenges(ended);
+        await Promise.all([
+          fetchChallenges(
+            "progress",
+            ongoingPage,
+            setOngoingChallenges,
+            setOngoingPage,
+            setHasMoreOngoing
+          ),
+          fetchChallenges(
+            "open",
+            upcomingPage,
+            setUpComingChallenges,
+            setUpcomingPage,
+            setHasMoreUpcoming
+          ),
+          fetchChallenges(
+            "end",
+            endedPage,
+            setEndedChallenges,
+            setEndedPage,
+            setHasMoreEnded
+          ),
+        ]);
       } catch (error) {
         console.error("챌린지 데이터 불러오기 실패:", error);
       }
     };
 
-    fetchChallenges();
+    fetchInitialChallenges();
   }, []);
-
-  if (isLoggedIn === null) {
-    return (
-      <View>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
 
   const renderSectionHeader = (
     title: string,
@@ -236,21 +203,47 @@ const MyChallengeScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const handleLoadMore = async (type: "ongoing" | "upcoming" | "ended") => {
+    switch (type) {
+      case "ongoing":
+        if (hasMoreOngoing)
+          await fetchChallenges(
+            "progress",
+            ongoingPage,
+            setOngoingChallenges,
+            setOngoingPage,
+            setHasMoreOngoing
+          );
+        break;
+      case "upcoming":
+        if (hasMoreUpcoming)
+          await fetchChallenges(
+            "open",
+            upcomingPage,
+            setUpComingChallenges,
+            setUpcomingPage,
+            setHasMoreUpcoming
+          );
+        break;
+      case "ended":
+        if (hasMoreEnded)
+          await fetchChallenges(
+            "end",
+            endedPage,
+            setEndedChallenges,
+            setEndedPage,
+            setHasMoreEnded
+          );
+        break;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
       <ScrollView style={styles.container}>
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.headerContainer}>
-            {userRole === "ROLE_TRAINER" && (
-              <TouchableOpacity
-                style={styles.manageButton}
-                onPress={() => navigation.navigate("ManageChallenge")}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.manageButtonText}>챌린지 관리</Text>
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={styles.toggleContainer}
               onPress={toggleSwitch}
@@ -264,51 +257,39 @@ const MyChallengeScreen: React.FC = () => {
           </View>
           <View style={styles.section}>
             {renderSectionHeader("진행 중인 챌린지", "AllOngoingChallenge")}
-            <ScrollView
-              horizontal={true}
+            <FlatList
+              data={ongoingChallenges}
+              renderItem={({ item }) => renderChallengeCard(item)}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
               showsHorizontalScrollIndicator={false}
-            >
-              {ongoingChallenges.map((challenge, index) => (
-                <React.Fragment key={challenge.id}>
-                  {renderChallengeCard(challenge)}
-                  {index % 2 === 0 && index < ongoingChallenges.length - 1 && (
-                    <View style={styles.cardSpacer} />
-                  )}
-                </React.Fragment>
-              ))}
-            </ScrollView>
+              onEndReached={() => handleLoadMore("ongoing")}
+              onEndReachedThreshold={0.1}
+            />
           </View>
           <View style={styles.section}>
             {renderSectionHeader("개최 예정인 챌린지", "AllUpComingChallenge")}
-            <ScrollView
-              horizontal={true}
+            <FlatList
+              data={upComingChallenges}
+              renderItem={({ item }) => renderChallengeCard(item)}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
               showsHorizontalScrollIndicator={false}
-            >
-              {upComingChallenges.map((challenge, index) => (
-                <React.Fragment key={challenge.id}>
-                  {renderChallengeCard(challenge)}
-                  {index % 2 === 0 && index < upComingChallenges.length - 1 && (
-                    <View style={styles.cardSpacer} />
-                  )}
-                </React.Fragment>
-              ))}
-            </ScrollView>
+              onEndReached={() => handleLoadMore("upcoming")}
+              onEndReachedThreshold={0.1}
+            />
           </View>
           <View style={styles.section}>
             {renderSectionHeader("종료된 챌린지", "AllEndedChallenge")}
-            <ScrollView
-              horizontal={true}
+            <FlatList
+              data={endedChallenges}
+              renderItem={({ item }) => renderChallengeCard(item)}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
               showsHorizontalScrollIndicator={false}
-            >
-              {endedChallenges.map((challenge, index) => (
-                <React.Fragment key={challenge.id}>
-                  {renderChallengeCard(challenge)}
-                  {index % 2 === 0 && index < endedChallenges.length - 1 && (
-                    <View style={styles.cardSpacer} />
-                  )}
-                </React.Fragment>
-              ))}
-            </ScrollView>
+              onEndReached={() => handleLoadMore("ended")}
+              onEndReachedThreshold={0.1}
+            />
           </View>
         </Animated.View>
       </ScrollView>
@@ -481,4 +462,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MyChallengeScreen;
+export default AllChallengeScreen;

@@ -2,20 +2,22 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
+  FlatList,
   SafeAreaView,
   TouchableOpacity,
+  StyleSheet,
+  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { TopHeader } from "../../components/TopHeader";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
+
 type RootStackParamList = {
   MyChallenge: undefined;
+  DetailChallenge: { challengeId: number };
 };
 
 type Challenge = {
@@ -26,47 +28,75 @@ type Challenge = {
   startDate: string;
   endDate: string;
   status: string;
+  reward: string;
 };
 
 const BASE_URL = EXPO_PUBLIC_BASE_URL;
-
-const getRefreshToken = async () => {
-  try {
-    return await AsyncStorage.getItem("refreshToken");
-  } catch (error) {
-    console.error("Error retrieving refresh token:", error);
-    return null;
-  }
-};
 
 const AllEndedChallengesScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchChallenges = async () => {
+    if (!hasMore) return;
+
+    try {
+      const response = await axios.get<{ content: Challenge[]; last: boolean }>(
+        `${BASE_URL}/challenges`,
+        {
+          params: {
+            status: "end",
+            page,
+            size: 20,
+          },
+        }
+      );
+      setChallenges((prev) => [...prev, ...response.data.content]);
+      setPage((prev) => prev + 1);
+      setHasMore(!response.data.last);
+    } catch (error) {
+      console.error("종료된 챌린지 불러오기 실패:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchChallenges = async () => {
-      try {
-        const refreshToken = await getRefreshToken();
-        if (!refreshToken) throw new Error("Refresh token not found");
-
-        const response = await axios.get<Challenge[]>(
-          `${BASE_URL}/challenges/ended`,
-          {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
-          }
-        );
-        setChallenges(response.data);
-      } catch (error) {
-        console.error("전체 진행 중인 챌린지 불러오기 실패:", error);
-      }
-    };
-
     fetchChallenges();
   }, []);
 
+  const renderChallengeCard = ({ item: challenge }: { item: Challenge }) => (
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("DetailChallenge", { challengeId: challenge.id })
+      }
+      activeOpacity={0.8}
+    >
+      <View style={styles.challengeCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{challenge.title}</Text>
+          <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>기간</Text>
+            <Text
+              style={styles.infoValue}
+            >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>상태</Text>
+            <Text style={styles.infoValue}>{challenge.status}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>보상</Text>
+            <Text style={styles.infoValue}>{challenge.reward}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
   const renderSectionHeader = (title: string) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -76,7 +106,7 @@ const AllEndedChallengesScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
-      <ScrollView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.headerContainer}>
           <TouchableOpacity
             style={styles.backButton}
@@ -85,42 +115,26 @@ const AllEndedChallengesScreen = () => {
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
         </View>
-
         <View style={styles.section}>
           {renderSectionHeader("종료된 챌린지")}
-          <View style={styles.cardContainer}>
-            {challenges.map((challenge) => (
-              <View key={challenge.id} style={styles.challengeCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>{challenge.title}</Text>
-                  <Text style={styles.cardSubtitle}>{challenge.type}</Text>
-                </View>
-                <View style={styles.cardContent}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>기간</Text>
-                    <Text style={styles.infoValue}>
-                      {`${challenge.startDate} ~ ${challenge.endDate}`}
-                    </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>상태</Text>
-                    <Text style={styles.infoValue}>{challenge.status}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>설명</Text>
-                    <Text style={styles.infoValue}>
-                      {challenge.description}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
         </View>
-      </ScrollView>
+        <FlatList
+          data={challenges}
+          renderItem={renderChallengeCard}
+          keyExtractor={(item) => item.id.toString()}
+          onEndReached={fetchChallenges}
+          onEndReachedThreshold={0.1}
+          contentContainerStyle={styles.section}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+        />
+      </View>
     </SafeAreaView>
   );
 };
+
+const { width } = Dimensions.get("window");
+const cardWidth = (width - 60) / 2;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -135,6 +149,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 20,
   },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  backButton: {
+    marginRight: 10,
+  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -146,13 +169,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     lineHeight: 30,
   },
-  cardContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
   challengeCard: {
-    width: "48%",
+    width: cardWidth,
+    marginRight: 12,
+    marginBottom: 12,
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 16,
@@ -165,7 +185,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginBottom: 14,
+    elevation: 3,
   },
   cardHeader: {
     marginBottom: 20,
@@ -196,15 +216,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-  backButton: {
-    padding: 8,
-    marginLeft: 12,
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  columnWrapper: {
     justifyContent: "space-between",
-    paddingRight: 20,
   },
 });
 

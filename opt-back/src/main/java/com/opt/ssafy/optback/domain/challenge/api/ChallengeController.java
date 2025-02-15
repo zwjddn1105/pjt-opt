@@ -57,12 +57,21 @@ public class ChallengeController {
     }
 
     // POST /challenges - 챌린지 생성 (TRAINER 전용)
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    @PreAuthorize("hasRole('TRAINER')")
+//    public ResponseEntity<SuccessResponse> createChallenge(
+//            @RequestPart("request") CreateChallengeRequest request,
+//            @RequestPart(value = "image", required = false) MultipartFile image) {
+//        challengeService.createChallenge(request, image);
+//        return ResponseEntity.ok(SuccessResponse.builder()
+//                .message("챌린지가 성공적으로 생성되었습니다.")
+//                .build());
+//    }
+
+    @PostMapping
     @PreAuthorize("hasRole('TRAINER')")
-    public ResponseEntity<SuccessResponse> createChallenge(
-            @RequestPart("request") CreateChallengeRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
-        challengeService.createChallenge(request, image);
+    public ResponseEntity<SuccessResponse> createChallenge(@RequestBody CreateChallengeRequest request) {
+        challengeService.createChallenge(request);
         return ResponseEntity.ok(SuccessResponse.builder()
                 .message("챌린지가 성공적으로 생성되었습니다.")
                 .build());

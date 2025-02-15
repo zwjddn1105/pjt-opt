@@ -121,3 +121,4 @@ xxhash==3.5.0
 yarl==1.18.3
 aiokafka==0.8.0
 fuzzywuzzy==0.18.0
+boto3==1.34.22

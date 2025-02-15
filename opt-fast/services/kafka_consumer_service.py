@@ -18,10 +18,23 @@ from google.cloud import documentai_v1beta3 as documentai
 from fuzzywuzzy import process
 import re
 import json
+import boto3
+import uuid
+import os
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# ✅ AWS S3 설정
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+S3_REGION = os.getenv("AWS_REGION")  # .env에서 불러오기
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=S3_REGION
+)
+
 
 class KafkaConsumerService:
     def __init__(self, bootstrap_servers, group_id, db):
@@ -198,8 +211,13 @@ class KafkaConsumerService:
 
             # ✅ OCR 수행
             scanned_image_rgb = cv2.cvtColor(scanned_image, cv2.COLOR_BGR2RGB)
-            ocr_result = self.run_ocr(scanned_image_rgb)
-            logger.info(f"🔍 OCR 처리 완료 - 결과: {ocr_result}")
+            ocr_result_document = self.run_ocr(scanned_image_rgb)
+            # logger.info(f"@@@@   {ocr_result_document}")
+            ocr_result = ocr_result_document.text
+
+            masked_image = self.mask_first_certificate_number(scanned_image_rgb, ocr_result_document)
+            
+            # logger.info(f"🔍 OCR 처리 완료 - 결과: {ocr_result}")
 
             # ✅ OCR 결과에서 자격증 정보 추출
             result = self.extract_certification_details(ocr_result)
@@ -213,7 +231,7 @@ class KafkaConsumerService:
                 return result
 
             # ✅ 자격증 정보 검증
-            final_result = self.process_certification_result(result)
+            final_result = self.process_certification_result(result, masked_image)
             logger.info(f"✅ 최종 검증 결과: {final_result}")
             final_result_with_id = json.loads(final_result)  # JSON 문자열 → dict 변환
             final_result_with_id["id"] = user_id  # 사용자 ID 추가  
@@ -304,10 +322,10 @@ class KafkaConsumerService:
 
         # OCR 실행
         result = self.client.process_document(request=request)
-        print("📝 OCR 결과:")
-        print(result.document.text)
+        logger.info("📝 OCR 결과:")
+        logger.info(result.document.text)
 
-        return result.document.text
+        return result.document
 
     def extract_certification_details(self, text: str):
         # OCR 후처리를 위한 기준 키워드
@@ -403,7 +421,7 @@ class KafkaConsumerService:
             print("데이터 요청 중 오류 발생:", e)
             return None
 
-    def process_certification_result(self, result):
+    def process_certification_result(self, result, image):
         data = self.fetch_certification_info(result.get('cert_number'), result.get('name'))
         if data is None or not isinstance(data, dict):
             return json.dumps({
@@ -421,13 +439,15 @@ class KafkaConsumerService:
         
         if "resultList" in data and data["resultList"]:
             cert_info = data["resultList"][0]
+            url = self.upload_to_s3(image)
             return json.dumps({
                 "status": "success",
                 "cert_number": cert_info["QF_NO"],
                 "name": cert_info["USR_NM"],
                 "level": cert_info["QF_GRADE_NM"],
                 "category": cert_info["QF_ITM_NM"],
-                "acquisition_date": cert_info["AQ_DT"]
+                "acquisition_date": cert_info["AQ_DT"],
+                "newPath": url
             }, ensure_ascii=False)
         
         return json.dumps({"status": "error", "message": "알 수 없는 오류가 발생했습니다."}, ensure_ascii=False)
@@ -454,3 +474,97 @@ class KafkaConsumerService:
             logger.info(f"📤 Kafka 메시지 전송 성공: {message}")
         except Exception as e:
             logger.error(f"❌ Kafka 메시지 전송 실패: {e}")
+
+    def mask_first_certificate_number(self, image, ocr_document):
+        """OCR 결과를 기반으로 '제 ~~호' 부분을 검은색 마스킹 처리"""
+    
+        # ✅ 첫 번째 "제 ~~호" 찾으면 마스킹 후 즉시 반환
+        for page in ocr_document.pages:
+            for block in page.blocks:
+                extracted_text = ""
+                if block.layout.text_anchor.text_segments:
+                    for segment in block.layout.text_anchor.text_segments:
+                        start = int(segment.start_index) if segment.start_index else 0
+                        end = int(segment.end_index) if segment.end_index else 0
+                        extracted_text += ocr_document.text[start:end]
+
+                # "제 ~~호" 패턴 찾기 (첫 번째만 처리)
+                if "제" in extracted_text and "호" in extracted_text:
+                    bounding_box = block.layout.bounding_poly.vertices
+                    x_min = int(min([v.x for v in bounding_box])) - 10  # 좌우 여백 추가
+                    y_min = int(min([v.y for v in bounding_box])) - 5   # 위 여백 추가
+                    x_max = int(max([v.x for v in bounding_box])) + 10  # 좌우 여백 추가
+                    y_max = int(max([v.y for v in bounding_box])) + 5   # 아래 여백 추가
+
+                    # ✅ 검은색 마스킹 적용 (완전 블러)
+                    cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (0, 0, 0), -1)
+                    print(f"✅ 첫 번째 '제 ~~호' 부분 검은색 블러 처리 완료: {extracted_text}")
+                    return image  # ✅ 블러 처리된 이미지 반환
+
+        return image  # ✅ 블러 적용 없이 원본 반환
+
+    def upload_to_s3(self, image):
+        s3_filename = f"{uuid.uuid4()}.png"
+        """OpenCV 이미지(Numpy 배열)를 S3에 업로드 후 URL 반환"""
+        _, image_bytes = cv2.imencode(".png", image)
+        logger.info("s3 함수 실행")
+        try:
+            s3_client.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=s3_filename,
+                Body=image_bytes.tobytes(),
+                ContentType="image/png",
+                ACL="public-read"
+            )
+            s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
+            logger.info(f"✅ S3 업로드 완료: {s3_url}")
+            return s3_url
+        except Exception as e:
+            logger.info(f"❌ S3 업로드 실패: {e}")
+            return None
+
+    def scan_document(self, image_path):
+        # 1. 이미지 로드 및 복사본 생성
+        image = cv2.imread(image_path)
+        if image is None:
+            print("이미지를 불러올 수 없습니다:", image_path)
+            return None
+        orig = image.copy()
+
+        # 2. 전처리: 그레이 스케일 변환, 가우시안 블러, Canny 엣지 검출
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        edged = cv2.Canny(gray, 75, 200)
+
+        # 필요에 따라 중간 결과 확인
+        # cv2.imshow("Edged", edged)
+        # cv2.waitKey(0)
+
+        # 3. 컨투어 검출: 외곽선을 찾아 내림차순(면적 기준)으로 정렬
+        contours, _ = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
+
+        # 4. 가장 큰 컨투어 중 꼭짓점이 4개인 컨투어를 찾아 문서 영역으로 간주
+        docContour = None
+        for c in contours:
+            # 컨투어의 둘레 길이 계산
+            peri = cv2.arcLength(c, True)
+            # 컨투어 근사화: contour의 모양을 단순화
+            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+
+            if len(approx) == 4:
+                docContour = approx
+                break
+
+        if docContour is None:
+            print("문서 영역을 찾을 수 없습니다.")
+            return None
+
+        # 5. (선택 사항) 검출된 문서 영역을 원본 이미지에 그려 확인
+        cv2.drawContours(image, [docContour], -1, (0, 255, 0), 2)
+        # cv2.imshow("Document Contour", image)
+        # cv2.waitKey(0)
+
+        # 6. 검출한 4개 좌표를 이용해 perspective 변환하여 스캔된 이미지 생성
+        scanned = self.four_point_transform(orig, docContour.reshape(4, 2))
+        return scanned

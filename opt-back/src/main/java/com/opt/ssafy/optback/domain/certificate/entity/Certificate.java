@@ -41,7 +41,7 @@ public class Certificate {
                 .name(dto.getLevel())
                 .trainerId(dto.getId())
                 .isVerified(true)
-                .path(dto.getPath())
+                .path(dto.getNewPath())
                 .build();
     }
 }

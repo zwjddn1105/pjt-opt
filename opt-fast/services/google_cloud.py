@@ -35,4 +35,4 @@ def run_ocr(image):
     print("📝 OCR 결과:")
     print(result.document.text)
 
-    return result.document.text
+    return result.document

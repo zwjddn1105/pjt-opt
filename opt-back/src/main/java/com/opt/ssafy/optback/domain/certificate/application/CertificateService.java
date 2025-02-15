@@ -44,12 +44,17 @@ public class CertificateService {
                 return;
             }
             CertificateDto dto = objectMapper.treeToValue(jsonNode, CertificateDto.class);
+            deleteUnmaskedCertificate(dto.getPath());
             Certificate certificate = Certificate.from(dto);
             certificateRepository.save(certificate);
             log.info("자격증 저장 완료: {}", certificate);
         } catch (Exception e) {
             log.error("자격증 처리 중 오류 발생: {}", e.getMessage());
         }
+    }
+
+    public void deleteUnmaskedCertificate(String imagePath) {
+        s3Service.deleteMedia(imagePath, bucketName);
     }
 
     public void sendCertificateFailMessage(Integer memberId) {

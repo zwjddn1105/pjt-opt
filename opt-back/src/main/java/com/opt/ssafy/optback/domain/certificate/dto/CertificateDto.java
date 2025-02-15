@@ -12,4 +12,5 @@ public class CertificateDto {
     private String level;
     private Integer id;
     private String path;
+    private String newPath;
 }

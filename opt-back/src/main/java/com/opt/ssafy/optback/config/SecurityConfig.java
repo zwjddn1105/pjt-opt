@@ -47,6 +47,7 @@ public class SecurityConfig {
                             auth.requestMatchers("/app/**").permitAll();
                             auth.requestMatchers("/profile/**").permitAll();
                             auth.requestMatchers("/exercises").permitAll();
+                            auth.requestMatchers("/health").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

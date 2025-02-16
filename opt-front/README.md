@@ -16,6 +16,10 @@ npx expo install @react-native-community/datetimepicker
 npm install axios
 npm install react-native-dotenv --save-dev
 
+<!-- npm install react-native-chart-kit react-native-svg -->
+
+npm install victory-native react-native-svg
+
 혹시 버전관련 오류뜰 때.
 npx expo install --fix
 

@@ -54,6 +54,9 @@ public class TrainerReview {
     @OneToMany(mappedBy = "trainerReview")
     private List<TrainerReviewImage> images = new ArrayList<>();
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
+
     public void addImage(TrainerReviewImage image) {
         if (this.images == null) {
             this.images = new ArrayList<>();

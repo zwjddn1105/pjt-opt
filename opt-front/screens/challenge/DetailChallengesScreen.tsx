@@ -10,7 +10,7 @@ import {
 import { RouteProp } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
@@ -19,6 +19,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 type RootStackParamList = {
   DetailChallenge: { challengeId: number };
+  OtherProfileScreen: { hostId: number }; // OtherProfileScreen의 라우트 추가
 };
 
 type DetailChallengeProps = {
@@ -93,6 +94,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
     };
     fetchChallengeDetails();
   }, [challengeId]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -100,6 +102,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       </View>
     );
   }
+
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -107,6 +110,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       </View>
     );
   }
+
   if (!challenge) {
     return (
       <View style={styles.errorContainer}>
@@ -119,13 +123,76 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
       <ScrollView style={styles.container}>
-        <View style={styles.headerContainer}>
+        {/* 백버튼 */}
+        <View style={styles.backButtonContainer}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
+        </View>
+
+        {/* 콘텐츠 */}
+        <View style={styles.contentContainer}>
+          {/* 호스트 정보 */}
+          <View style={styles.hostInfoContainer}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("OtherProfileScreen", {
+                  hostId: challenge.hostId,
+                })
+              }
+            >
+              <FontAwesome
+                name="user-circle-o"
+                size={40}
+                color="#666"
+                style={styles.profileIcon}
+              />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.hostNameText}>{challenge.hostRealName}</Text>
+              <Text style={styles.hostSubtitleText}>
+                {challenge.hostNickname}
+              </Text>
+            </View>
+          </View>
+          {/* 챌린지 카드 */}
+          <View style={styles.rowContainer}>
+            <View style={styles.challengeCard}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{challenge.title}</Text>
+                <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>기간</Text>
+                  <Text
+                    style={styles.infoValue}
+                  >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>상태</Text>
+                  <Text style={styles.infoValue}>{challenge.status}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>보상</Text>
+                  <Text style={styles.infoValue}>{challenge.reward}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 챌린지 설명 */}
+            <View style={styles.challengeDescription}>
+              <Text style={styles.descriptionTitle}>
+                챌린지 내용에 대한 설명
+              </Text>
+              <Text style={styles.descriptionContent}>
+                {challenge.description}
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -138,18 +205,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   container: {
-    marginBottom: 10,
     flex: 1,
   },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingRight: 20,
+  backButtonContainer: {
+    marginTop: 10,
+    marginLeft: 10,
+    marginBottom: 5, // 백버튼과 카드 사이 간격
   },
   backButton: {
-    padding: 8,
-    marginLeft: 12,
+    padding: 10,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  hostInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  hostNameText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  hostSubtitleText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  profileIcon: {
+    paddingHorizontal: 10,
+    marginRight: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -160,12 +246,81 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 16,
   },
   errorText: {
     fontSize: 18,
     color: "red",
     textAlign: "center",
+  },
+  rowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    // alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  challengeCard: {
+    flex: 1,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginRight: 10,
+  },
+  cardHeader: {
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#666",
+  },
+  cardContent: {
+    marginTop: 10,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 5,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "bold",
+  },
+  infoValue: {
+    fontSize: 14,
+    color: "#555",
+  },
+  challengeDescription: {
+    flex: 1,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  descriptionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000",
+    marginBottom: 10,
+  },
+  descriptionContent: {
+    fontSize: 14,
+    color: "#444",
+    lineHeight: 22,
   },
 });
 

@@ -21,7 +21,7 @@ import AllOngoingChallengesScreen from "../screens/challenge/AllOngoingChallenge
 import AllUpComingChallengesScreen from "../screens/challenge/AllUpComingChallengesScreen";
 import AllEndedChallengesScreen from "../screens/challenge/AllEndedChallengesScreen";
 import DetailChallengeScreen from "../screens/challenge/DetailChallengesScreen";
-
+import OtherProfileScreen from "screens/profile/OtherProfileScreen";
 export type RootStackParamList = {
   Main: undefined;
   KakaoLogin: undefined;
@@ -45,6 +45,7 @@ export type RootStackParamList = {
   DetailChallenge: { challengeId: number };
   Badge: undefined;
   SettingScreen: undefined;
+  OtherProfileScreen: { hostId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -61,6 +62,7 @@ export const StackNavigator = () => {
       <Stack.Screen name="TrainerChat" component={TrainerChatScreen} />
       <Stack.Screen name="UserChat" component={UserChatScreen} />
       <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+      <Stack.Screen name="OtherProfileScreen" component={OtherProfileScreen} />
       <Stack.Screen
         name="OngoingChallenges"
         component={OngoingChallengesScreen}

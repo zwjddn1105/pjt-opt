@@ -44,7 +44,17 @@ interface ChallengeData {
   exercise_distance?: number;
   imagePath?: string;
 }
+interface FormDataValue {
+  name: string;
+  type: string;
+  uri: string;
+}
 
+declare global {
+  interface FormData {
+    append(name: string, value: FormDataValue): void;
+  }
+}
 const placeholderTextColor = "#999";
 
 const CreateChallengeScreen = () => {
@@ -142,41 +152,37 @@ const CreateChallengeScreen = () => {
         console.error("Refresh token not found");
         return;
       }
-      const challengeData = {
-        type: selectedType?.value || "",
-        title: title,
-        description: description,
-        reward: isRewardChecked ? rewardText : null,
-        startDate: startDate,
-        endDate: endDate,
-        max_participants: parseInt(maxParticipants),
-        frequency:
-          frequency === "custom"
-            ? parseInt(customPeriod)
-            : parseInt(frequency || "0"),
-        exercise_type: exerciseType?.value || "",
-      } as ChallengeData;
+      const formatDate2 = (date: Date) => {
+        return date.toISOString().split("T")[0]; // '2025-02-16T00:00:00.000Z' → '2025-02-16'
+      };
 
-      if (exerciseType?.value === "COUNT") {
-        challengeData.exercise_count = parseInt(exerciseValue);
-      } else if (exerciseType?.value === "DURATION") {
-        challengeData.exercise_duration = parseInt(exerciseValue);
-      } else if (exerciseType?.value === "DISTANCE") {
-        challengeData.exercise_distance = parseFloat(exerciseValue);
-      }
       console.log("a");
       const formData = new FormData();
-      // const blob = new Blob([JSON.stringify(challengeData)], {
-      //   type: "application/json",
-      // });
-      // formData.append("request", blob);
-      formData.append("request", JSON.stringify(challengeData));
-      console.log("b");
+
+      formData.append("type", selectedType?.value || "");
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("reward", isRewardChecked ? rewardText : "");
+      formData.append("startDate", formatDate2(new Date(startDate)));
+      formData.append("endDate", formatDate2(new Date(endDate)));
+      formData.append("max_participants", maxParticipants.toString());
+      formData.append(
+        "frequency",
+        (frequency === "custom" ? customPeriod : frequency || "0").toString()
+      );
+      formData.append("exercise_type", exerciseType?.value || "");
+
+      if (exerciseType?.value === "COUNT") {
+        formData.append("exercise_count", exerciseValue.toString());
+      } else if (exerciseType?.value === "DURATION") {
+        formData.append("exercise_duration", exerciseValue.toString());
+      } else if (exerciseType?.value === "DISTANCE") {
+        formData.append("exercise_distance", exerciseValue.toString());
+      }
 
       if (isImageChecked && imageAttached && imageUri) {
         const fileName = imageUri.split("/").pop() || "challenge_image.jpg";
         const fileType = fileName.split(".").pop()?.toLowerCase();
-
         formData.append("image", {
           uri: imageUri,
           type: fileType === "png" ? "image/png" : "image/jpeg", // 간단한 타입 체크
@@ -189,8 +195,6 @@ const CreateChallengeScreen = () => {
           Authorization: `Bearer ${refreshToken}`,
         },
       });
-      console.log("d");
-
       console.log("Challenge created:", response.data);
       setModalVisible(false);
       navigation.navigate("ManageChallenge");

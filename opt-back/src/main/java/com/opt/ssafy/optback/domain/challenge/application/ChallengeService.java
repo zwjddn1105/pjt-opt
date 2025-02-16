@@ -118,9 +118,9 @@ public class ChallengeService {
     }
 
     @Transactional
-    public void createChallenge(CreateChallengeRequest request, MultipartFile image) {
+    public void createChallenge(CreateChallengeRequest request) {
         Member host = userDetailsService.getMemberByContextHolder();
-
+        MultipartFile image = request.getImage();
         String imgUrl = null;
         if (image != null && !image.isEmpty()) {
             try {
@@ -138,13 +138,12 @@ public class ChallengeService {
         challengeRepository.save(challenge);
     }
 
-
-    // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)
-    public void createChallenge(CreateChallengeRequest request) {
-        Member host = userDetailsService.getMemberByContextHolder();
-        Challenge challenge = Challenge.from(request, host);
-        challengeRepository.save(challenge);
-    }
+//    // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)
+//    public void createChallenge(CreateChallengeRequest request) {
+//        Member host = userDetailsService.getMemberByContextHolder();
+//        Challenge challenge = Challenge.from(request, host);
+//        challengeRepository.save(challenge);
+//    }
 
 
     public void deleteChallenge(int id) {
@@ -204,7 +203,7 @@ public class ChallengeService {
                     .build();
             challengeRecordRepository.save(newRecord);
         }
-        if(challenge.getType().equals("TEAM")) {
+        if (challenge.getType().equals("TEAM")) {
             updateCountProgress(challenge);
 
         }
@@ -244,7 +243,7 @@ public class ChallengeService {
                     .build();
             challengeRecordRepository.save(newRecord);
         }
-        if(challenge.getType().equals("TEAM")) {
+        if (challenge.getType().equals("TEAM")) {
             updateDistanceProgress(challenge);
         }
     }
@@ -282,7 +281,7 @@ public class ChallengeService {
                     .build();
             challengeRecordRepository.save(newRecord);
         }
-        if(challenge.getType().equals("TEAM")) {
+        if (challenge.getType().equals("TEAM")) {
             updateDurationProgress(challenge);
         }
     }

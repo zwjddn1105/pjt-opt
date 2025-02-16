@@ -15,4 +15,8 @@ public class ContributionResponse {
     public void setContributionPercentage(double contributionPercentage) {
         this.contributionPercentage = contributionPercentage;
     }
+
+    public void setMeasurement(double v) {
+        this.measurement = v;
+    }
 }

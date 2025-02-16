@@ -24,7 +24,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +87,7 @@ public class ChallengeService {
         List<Object[]> contributionData = challengeRecordRepository.findAllContributionsByChallengeId(id);
 
         double totalContribution = 0.0;
-        List<ContributionResponse> contributions = new ArrayList<>();
+        Map<Integer, ContributionResponse> contributionMap = new HashMap<>();
 
         for (Object[] record : contributionData) {
             int memberId = (int) record[0];
@@ -101,11 +103,18 @@ public class ChallengeService {
                     (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
 
             totalContribution += validContribution;
-
             boolean isMyRecord = (currentUser.getId() == memberId);
 
-            contributions.add(new ContributionResponse(memberId, nickname, validContribution, 0.0, isMyRecord));
+            // 기존 memberId가 이미 존재하면 값 누적
+            if (contributionMap.containsKey(memberId)) {
+                ContributionResponse existing = contributionMap.get(memberId);
+                existing.setMeasurement(existing.getMeasurement() + validContribution);
+            } else {
+                contributionMap.put(memberId, new ContributionResponse(memberId, nickname, validContribution, 0.0, isMyRecord));
+            }
         }
+
+        List<ContributionResponse> contributions = new ArrayList<>(contributionMap.values());
 
         // 총 기여도를 이용하여 각 사용자의 기여도(%) 재계산
         for (ContributionResponse contribution : contributions) {
@@ -116,6 +125,7 @@ public class ChallengeService {
 
         return contributions;
     }
+
 
     @Transactional
     public void createChallenge(CreateChallengeRequest request) {

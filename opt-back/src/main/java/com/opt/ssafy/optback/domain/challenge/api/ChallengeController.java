@@ -4,6 +4,7 @@ import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.challenge.application.ChallengeService;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordRequest;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordResponse;
+import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordWithRankResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ContributionResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
@@ -86,9 +87,9 @@ public class ChallengeController {
 
     @GetMapping("/record/{challengeId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ChallengeRecordResponse> getChallengeRecord(@PathVariable int challengeId) {
+    public ResponseEntity<ChallengeRecordWithRankResponse> getChallengeRecord(@PathVariable int challengeId) {
         Member member = userDetailsService.getMemberByContextHolder();
-        ChallengeRecordResponse record = challengeService.getChallengeRecord(member.getId(), challengeId);
+        ChallengeRecordWithRankResponse record = challengeService.getChallengeRecord(member.getId(), challengeId);
         return ResponseEntity.ok(record);
     }
 

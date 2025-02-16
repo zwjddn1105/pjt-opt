@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.challenge.application;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordResponse;
+import com.opt.ssafy.optback.domain.challenge.dto.ChallengeRecordWithRankResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ChallengeResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.ContributionResponse;
 import com.opt.ssafy.optback.domain.challenge.dto.CreateChallengeRequest;
@@ -23,6 +24,7 @@ import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -147,14 +149,6 @@ public class ChallengeService {
         Challenge challenge = Challenge.from(request, host);
         challengeRepository.save(challenge);
     }
-
-//    // 챌린지 생성 (host_id는 인증된 사용자의 id로 처리)
-//    public void createChallenge(CreateChallengeRequest request) {
-//        Member host = userDetailsService.getMemberByContextHolder();
-//        Challenge challenge = Challenge.from(request, host);
-//        challengeRepository.save(challenge);
-//    }
-
 
     public void deleteChallenge(int id) {
         if (!challengeRepository.existsById(id)) {
@@ -427,14 +421,79 @@ public class ChallengeService {
                 .collect(Collectors.toList());
     }
 
-    public ChallengeRecordResponse getChallengeRecord(int memberId, int challengeId) {
-        ChallengeRecord record = challengeRecordRepository
-                .findByMemberIdAndChallengeId(memberId, challengeId)
-                .orElseThrow(() -> new ChallengeRecordNotFoundException(
-                        "challengeId: " + challengeId + "에 대한 챌린지 기록을 찾을 수 없습니다."));
+//    public ChallengeRecordWithRankResponse getChallengeRecord(int memberId, int challengeId) {
+//        ChallengeRecord record = challengeRecordRepository
+//                .findByMemberIdAndChallengeId(memberId, challengeId)
+//                .orElseThrow(() -> new ChallengeRecordNotFoundException(
+//                        "challengeId: " + challengeId + "에 대한 챌린지 기록을 찾을 수 없습니다."));
+//
+//        return ChallengeRecordWithRankResponse.fromEntity(record);
+//    }
+public ChallengeRecordWithRankResponse getChallengeRecord(int memberId, int challengeId) {
+    ChallengeRecord record = challengeRecordRepository
+            .findByMemberIdAndChallengeId(memberId, challengeId)
+            .orElseThrow(() -> new ChallengeRecordNotFoundException(
+                    "challengeId: " + challengeId + "에 대한 챌린지 기록을 찾을 수 없습니다."));
 
-        return ChallengeRecordResponse.fromEntity(record);
+    // 같은 챌린지에 속한 모든 참가자의 기록을 가져옴
+    List<ChallengeRecord> challengeRecords = challengeRecordRepository.findByChallengeId(challengeId);
+
+    // 랭킹 계산
+    int rank = calculateRank(record, challengeRecords);
+
+    // 기존 `fromEntity()` 메서드를 호출한 후, rank 값을 추가하여 반환
+    ChallengeRecordWithRankResponse response = ChallengeRecordWithRankResponse.fromEntity(record);
+    response.setRank(rank);
+
+    return response;
+}
+
+    private int calculateRank(ChallengeRecord record, List<ChallengeRecord> challengeRecords) {
+        // 챌린지 유형 가져오기
+        String challengeType = record.getChallenge().getType();
+
+        // 참가자의 기여도를 저장할 리스트
+        List<Double> contributions = new ArrayList<>();
+        Map<Integer, Double> memberContributionMap = new HashMap<>();
+
+        for (ChallengeRecord cr : challengeRecords) {
+            int memberId = cr.getMemberId();
+
+            Double count = cr.getCount() != null ? cr.getCount().doubleValue() : null;
+            Double duration = cr.getDuration() != null ? cr.getDuration().doubleValue() : null;
+            Double distance = cr.getDistance() != null ? cr.getDistance().doubleValue() : null;
+
+            double bestValue;
+            if ("TEAM".equals(challengeType)) {
+                // TEAM 챌린지: 모든 날의 측정치를 합산
+                double totalValue = (count != null ? count : 0.0) +
+                        (duration != null ? duration : 0.0) +
+                        (distance != null ? distance : 0.0);
+                memberContributionMap.put(memberId, memberContributionMap.getOrDefault(memberId, 0.0) + totalValue);
+            } else {
+                // NORMAL, SURVIVAL 챌린지: 가장 높은 측정치를 기준으로 랭킹 결정
+                bestValue = (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
+                if (!memberContributionMap.containsKey(memberId) || memberContributionMap.get(memberId) < bestValue) {
+                    memberContributionMap.put(memberId, bestValue);
+                }
+            }
+        }
+
+        // 모든 참가자의 기여도를 리스트에 저장
+        contributions.addAll(memberContributionMap.values());
+
+        // 내 기여도 계산
+        Double myBestValue = memberContributionMap.getOrDefault(record.getMemberId(), 0.0);
+
+        // 내 기여도가 더 높은 순서대로 정렬 후, 내 순위 찾기
+        contributions.sort(Collections.reverseOrder());
+        int rank = contributions.indexOf(myBestValue) + 1; // 1등부터 시작하도록 설정
+
+        return rank;
     }
+
+
+
 
     // 챌린지 참여
     public void joinChallenge(JoinChallengeRequest request) {

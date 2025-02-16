@@ -164,24 +164,32 @@ const CreateChallengeScreen = () => {
       } else if (exerciseType?.value === "DISTANCE") {
         challengeData.exercise_distance = parseFloat(exerciseValue);
       }
-
+      console.log("a");
       const formData = new FormData();
-      formData.append("data", JSON.stringify(challengeData));
+      // const blob = new Blob([JSON.stringify(challengeData)], {
+      //   type: "application/json",
+      // });
+      // formData.append("request", blob);
+      formData.append("request", JSON.stringify(challengeData));
+      console.log("b");
 
       if (isImageChecked && imageAttached && imageUri) {
-        formData.append("imagePath", {
+        const fileName = imageUri.split("/").pop() || "challenge_image.jpg";
+        const fileType = fileName.split(".").pop()?.toLowerCase();
+
+        formData.append("image", {
           uri: imageUri,
-          type: "image/jpeg",
-          name: "challenge_image.jpg",
+          type: fileType === "png" ? "image/png" : "image/jpeg", // 간단한 타입 체크
+          name: fileName,
         } as any);
       }
-
+      console.log("c");
       const response = await axios.post(`${BASE_URL}/challenges`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${refreshToken}`,
         },
       });
+      console.log("d");
 
       console.log("Challenge created:", response.data);
       setModalVisible(false);

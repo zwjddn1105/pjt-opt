@@ -1,11 +1,15 @@
 package com.opt.ssafy.optback.domain.challenge.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
-import java.util.Date;
+import lombok.ToString;
+import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
+@ToString
 public class CreateChallengeRequest {
     private String type;
     private String title;
@@ -13,8 +17,10 @@ public class CreateChallengeRequest {
     private String reward;
     private int template_id;
     private int host_id;
-    private Date startDate;
-    private Date endDate;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate startDate;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate endDate;
     private String imagePath;
     private String status;
     private int max_participants;
@@ -23,4 +29,5 @@ public class CreateChallengeRequest {
     private Integer exercise_count;
     private Integer exercise_distance;
     private Integer exercise_duration;
+    private MultipartFile image;
 }

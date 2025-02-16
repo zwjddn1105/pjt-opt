@@ -24,9 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -59,10 +57,8 @@ public class ChallengeController {
     // POST /challenges - 챌린지 생성 (TRAINER 전용)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('TRAINER')")
-    public ResponseEntity<SuccessResponse> createChallenge(
-            @RequestPart("request") CreateChallengeRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
-        challengeService.createChallenge(request, image);
+    public ResponseEntity<SuccessResponse> createChallenge(CreateChallengeRequest createChallengeRequest) {
+        challengeService.createChallenge(createChallengeRequest);
         return ResponseEntity.ok(SuccessResponse.builder()
                 .message("챌린지가 성공적으로 생성되었습니다.")
                 .build());

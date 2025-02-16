@@ -27,16 +27,8 @@ public class ChallengeRecordResponse {
         boolean isPassed = record.isPassed();
         Date createdAt = record.getCreatedAt();
 
-        if (record.getChallenge() != null
-                && ("NORMAL".equals(record.getChallenge().getType())
-                || "SURVIVAL".equals(record.getChallenge().getType()))
-                && record.getChallenge().getExerciseCount() > 0) {
-            progress = Math.round((float) record.getCount() / record.getChallenge().getExerciseCount() * 100);
-        }
-        // challenge가 null이 아닐 때만 challengeId 가져오기
         Integer challengeId = (record.getChallenge() != null) ? record.getChallenge().getId() : null;
 
-        // progress 계산 (null이 아닌 값 기준)
         if (record.getChallenge() != null && ("NORMAL".equals(record.getChallenge().getType()) || "SURVIVAL".equals(record.getChallenge().getType()))) {
             if (count != null && count>0 && record.getChallenge().getExerciseCount() > 0) {
                 progress = Math.round((float) count / record.getChallenge().getExerciseCount() * 100);

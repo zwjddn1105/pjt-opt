@@ -16,7 +16,7 @@ public class ChallengeRecordResponse {
     private Integer duration;
     private boolean isPassed;
     private Date createdAt;
-    private float progressPerDay;
+    private float progress;
 
     public static ChallengeRecordResponse fromEntity(ChallengeRecord record) {
         float progress = 0.0f;
@@ -37,6 +37,9 @@ public class ChallengeRecordResponse {
             } else if (distance != null && record.getChallenge().getExerciseDistance() != null && record.getChallenge().getExerciseDistance() > 0) {
                 progress = Math.round((float) distance / record.getChallenge().getExerciseDistance() * 100);
             }
+        }
+        if(record.getChallenge() != null && "TEAM".equals(record.getChallenge().getType())) {
+            progress = record.getChallenge().getProgress() != null ? record.getChallenge().getProgress() : 0.0f;
         }
 
         return new ChallengeRecordResponse(

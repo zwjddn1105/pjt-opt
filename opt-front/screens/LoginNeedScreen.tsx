@@ -43,22 +43,24 @@ const LoginNeedScreen: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
+  
       if (!response.ok) {
         throw new Error("로그인 실패");
       }
-
+  
       const data = await response.json();
-      console.log(data)
-      const { accessToken, refreshToken, nickname } = data;
-
+      console.log('Login response:', data);
+      const { accessToken, refreshToken, id, nickname, role } = data;
+  
       // 모든 필요한 데이터 저장
       await Promise.all([
-        AsyncStorage.setItem("token", accessToken),       // API 호출용 토큰
+        AsyncStorage.setItem("token", accessToken),
         AsyncStorage.setItem("refreshToken", refreshToken),
-        AsyncStorage.setItem("nickname", nickname)        // 필요하다면 닉네임도 저장
+        AsyncStorage.setItem("nickname", nickname),
+        AsyncStorage.setItem("userId", id.toString()),
+        AsyncStorage.setItem("userType", role === "ROLE_USER" ? "USER" : "TRAINER")
       ]);
-
+  
       Alert.alert("로그인 성공", "환영합니다!");
       if (route.params?.returnScreen) {
         const screen = route.params.returnScreen as keyof RootStackParamList;

@@ -40,7 +40,7 @@ export type RootStackParamList = {
   Chat: {
     roomId: string;
     otherUserName: string;
-    otherUserType: 'USER' | 'TRAINER';
+    otherUserType: 'USER' | 'TRAINER' | 'ADMIN';
   };
 };
 

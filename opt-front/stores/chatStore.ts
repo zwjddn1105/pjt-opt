@@ -1,15 +1,16 @@
+// stores/chatStore.ts
 import { create } from 'zustand';
-import { ChatRoom, ChatMessage } from '../types/chat';
+import { ChatRoom, Message } from '../types/chat';
 
 interface ChatStore {
   rooms: Record<string, ChatRoom>;
-  messages: Record<string, Record<string, ChatMessage>>;
+  messages: Record<string, Record<string, Message>>;
   roomIds: string[];
   currentRoomId: string | null;
   
   addRoom: (room: ChatRoom) => void;
-  addMessage: (message: ChatMessage) => void;
-  clearRooms: () => void;  // 추가
+  addMessage: (message: Message) => void;
+  clearRooms: () => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -19,12 +20,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   currentRoomId: null,
 
   addRoom: (room) => set(state => {
-    // 이미 존재하는 방이면 업데이트하지 않음
+    // 이미 존재하는 방이면 방 정보만 업데이트
     if (state.rooms[room.id]) {
-      return state;
+      return {
+        ...state,
+        rooms: { 
+          ...state.rooms, 
+          [room.id]: {
+            ...state.rooms[room.id],
+            ...room
+          }
+        }
+      };
     }
 
+    // 새로운 방이면 rooms와 roomIds 모두 업데이트
     return {
+      ...state,
       rooms: { ...state.rooms, [room.id]: room },
       roomIds: [...state.roomIds, room.id],
     };

@@ -1,4 +1,3 @@
-// screens/chat/DMScreens.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -10,7 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,15 +22,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export const DMScreen = () => {
+const DMScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [isUserListVisible, setUserListVisible] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
   const { rooms, roomIds, addRoom, clearRooms } = useChatStore();
   const [isLoading, setIsLoading] = useState(true);
   const roomsArray = roomIds.map(id => rooms[id]);
 
-  // 샘플 유저 데이터
   const users: User[] = [
     { id: 1, email: "a" },
     { id: 2, email: "b@b" },
@@ -45,44 +43,56 @@ export const DMScreen = () => {
     { id: 10, email: "jack10@example.com" },
   ];
 
-  // 채팅방 목록 로드
   const loadChatRooms = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
-        console.log('No token found');
         setIsLoading(false);
         return;
       }
-
+  
       const apiRooms = await chatApi.getChatRooms(token);
-      const currentUserId = parseInt(await AsyncStorage.getItem('userId') || '1');
-
+      const currentUserId = parseInt(await AsyncStorage.getItem('userId') || '0');
+  
       clearRooms();
-
+  
       apiRooms.forEach((apiRoom: ApiChatRoom) => {
-        const otherUserId = apiRoom.participants.find(id => id !== currentUserId);
+        let userType: 'USER' | 'TRAINER' | 'ADMIN' = 'USER';
+        
+        if (apiRoom.participants.includes(0)) {
+          userType = 'ADMIN';
+        }
         
         const chatRoom: ChatRoom = {
           id: apiRoom.id,
-          name: apiRoom.roomName || `User ${otherUserId || 'Unknown'}`,
-          lastMessage: '',
+          name: apiRoom.otherMemberNickname || apiRoom.roomName || '알 수 없음',
+          lastMessage: apiRoom.lastMessage || "새로운 채팅방이 생성되었습니다.",
           time: new Date().toLocaleTimeString('ko-KR', { 
             hour: '2-digit', 
             minute: '2-digit' 
           }),
-          userType: 'USER',
+          userType: userType,
           unreadCount: 0
         };
-
+  
         addRoom(chatRoom);
       });
     } catch (error) {
       console.error('채팅방 목록 로드 오류:', error);
+      Alert.alert('오류', '채팅방 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
   }, [clearRooms, addRoom]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadChatRooms();
+      return () => {
+        // 화면이 포커스를 잃을 때 정리할 작업이 있다면 여기에 추가
+      };
+    }, [loadChatRooms])
+  );
 
   const setupWebSocket = useCallback(async () => {
     try {
@@ -103,7 +113,6 @@ export const DMScreen = () => {
     }
   }, [roomsArray]);
 
-  // 채팅방 생성 함수
   const createChatRoom = async (user: User) => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -115,7 +124,7 @@ export const DMScreen = () => {
       const apiRoom = await chatApi.createChatRoom(user.id, token);
       
       const chatRoomData: ChatRoom = {
-        id: Number(apiRoom.id),
+        id: apiRoom.id,
         name: user.email,
         lastMessage: "새로운 채팅방이 생성되었습니다.",
         time: new Date().toLocaleTimeString('ko-KR', { 
@@ -127,6 +136,7 @@ export const DMScreen = () => {
       };
   
       addRoom(chatRoomData);
+      await loadChatRooms();
   
       if (!ChatService.isConnected()) {
         await ChatService.connect(token);
@@ -134,32 +144,32 @@ export const DMScreen = () => {
       
       ChatService.subscribeToRoom(chatRoomData.id, (message) => {
         console.log('New message received:', message);
-        // 메시지 처리 로직 구현
       });
   
-      setUserListVisible(false);
+      setShowUserList(false);
       
       navigation.navigate('Chat', {
-        roomId: chatRoomData.id.toString(), // number를 string으로 변환
+        roomId: chatRoomData.id,
         otherUserName: chatRoomData.name,
         otherUserType: chatRoomData.userType
       });
   
     } catch (error) {
       console.error('채팅방 생성 오류:', error);
-      Alert.alert('오류', '채팅방 생성에 실패했습니다.');
+      if (error instanceof Error) {
+        Alert.alert('오류', `채팅방 생성에 실패했습니다: ${error.message}`);
+      } else {
+        Alert.alert('오류', '채팅방 생성에 실패했습니다.');
+      }
     }
   };
 
-  // 컴포넌트 마운트 시 채팅방 목록 로드
   useEffect(() => {
     let isMounted = true;
     let wsCleanup = false;
 
     const initialize = async () => {
       if (!isMounted) return;
-
-      await loadChatRooms();
 
       if (!wsCleanup && roomsArray.length > 0) {
         const token = await AsyncStorage.getItem('token');
@@ -184,9 +194,8 @@ export const DMScreen = () => {
         ChatService.unsubscribeFromRoom(room.id);
       });
     };
-  }, [loadChatRooms]);
+  }, [roomsArray]);
 
-  // 로딩 중일 때 표시할 UI
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -206,7 +215,7 @@ export const DMScreen = () => {
   const renderChatRoom = ({ item }: { item: ChatRoom }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate('Chat', {
-        roomId: item.id.toString(), // number를 string으로 변환
+        roomId: item.id,
         otherUserName: item.name,
         otherUserType: item.userType
       })}
@@ -255,7 +264,9 @@ export const DMScreen = () => {
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => {
-              if (navigation.canGoBack()) {
+              if (showUserList) {
+                setShowUserList(false);
+              } else if (navigation.canGoBack()) {
                 navigation.goBack();
               }
             }}
@@ -263,16 +274,22 @@ export const DMScreen = () => {
           >
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>채팅</Text>
-          <TouchableOpacity
-            onPress={() => setUserListVisible(!isUserListVisible)}
-            style={styles.addButton}
-          >
-            <Ionicons name="add" size={24} color="black" />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {showUserList ? '팔로우 목록' : '채팅'}
+          </Text>
+          <View style={styles.addButtonContainer}>
+            {!showUserList && (
+              <TouchableOpacity
+                onPress={() => setShowUserList(true)}
+                style={styles.addButton}
+              >
+                <Ionicons name="add" size={24} color="black" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {isUserListVisible ? (
+        {showUserList ? (
           <View style={styles.contentContainer}>
             <Text style={styles.sectionTitle}>사용자 목록</Text>
             <FlatList
@@ -303,8 +320,13 @@ export const DMScreen = () => {
             <FlatList
               data={filteredChatRooms}
               renderItem={renderChatRoom}
-              keyExtractor={(item) => item.id}  // toString() 제거
-              extraData={rooms}  // rooms 상태가 변경될 때 리렌더링
+              keyExtractor={(item) => item.id}
+              extraData={rooms}
+              ListEmptyComponent={() => (
+                <View style={styles.emptyContainer}>
+                  <Text>채팅방이 없습니다.</Text>
+                </View>
+              )}
             />
           </View>
         )}
@@ -327,14 +349,19 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    justifyContent: "space-between",
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: 'center',
+  },
+  addButtonContainer: {
+    width: 32,
+    alignItems: 'center',
   },
   addButton: {
     padding: 4,
@@ -418,6 +445,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginLeft: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
 });
 

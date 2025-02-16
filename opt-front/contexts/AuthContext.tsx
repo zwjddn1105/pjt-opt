@@ -20,17 +20,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userType, setUserType] = useState<'USER' | 'TRAINER' | null>(null);
 
   useEffect(() => {
-    // 앱 시작 시 저장된 인증 정보 로드
     const loadAuthInfo = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('accessToken');
-        const storedUserId = await AsyncStorage.getItem('userId');
-        const storedUserType = await AsyncStorage.getItem('userType') as 'USER' | 'TRAINER' | null;
+        const token = await AsyncStorage.getItem('token');
+        console.log('Loading token from storage:', token ? `${token.substring(0, 10)}...` : 'null');
         
-        if (storedToken && storedUserId && storedUserType) {
-          setAccessToken(storedToken);
+        if (token) {
+          setAccessToken(token);
+          const storedUserId = await AsyncStorage.getItem('userId');
+          const storedUserType = await AsyncStorage.getItem('userType') as 'USER' | 'TRAINER' | null;
+          
           setUserId(storedUserId);
           setUserType(storedUserType);
+          console.log('Auth info loaded successfully');
+        } else {
+          console.log('No token found in storage');
         }
       } catch (error) {
         console.error('Failed to load auth info:', error);
@@ -46,10 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     type: 'USER' | 'TRAINER'
   ) => {
     try {
-      await AsyncStorage.setItem('accessToken', token);
+      await AsyncStorage.setItem('token', token);
       await AsyncStorage.setItem('userId', id);
       await AsyncStorage.setItem('userType', type);
       
+      console.log('Setting token in state:', token.substring(0, 10) + '...');
       setAccessToken(token);
       setUserId(id);
       setUserType(type);
@@ -61,8 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = async () => {
     try {
-      await AsyncStorage.multiRemove(['accessToken', 'userId', 'userType']);
-      
+      await AsyncStorage.multiRemove(['token', 'userId', 'userType']);
       setAccessToken(null);
       setUserId(null);
       setUserType(null);
@@ -72,14 +76,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const value = {
+    accessToken,
+    userId,
+    userType,
+    login,
+    logout
+  };
+
+  console.log('AuthContext current value:', { 
+    hasAccessToken: !!accessToken,
+    hasUserId: !!userId,
+    userType 
+  });
+
   return (
-    <AuthContext.Provider value={{ 
-      accessToken, 
-      userId, 
-      userType,
-      login, 
-      logout 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

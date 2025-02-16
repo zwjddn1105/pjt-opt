@@ -12,13 +12,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TrainerReviewResponse {
 
-    private int trainerId;
+    private Integer id;
+    private Integer trainerId;
     private String comment;
     private LocalDateTime createdAt;
-    private int rate;
+    private Integer rate;
     private List<String> imageUrls;
 
     public TrainerReviewResponse(TrainerReview trainerReview) {
+        this.id = trainerReview.getId();
         this.trainerId = trainerReview.getTrainerDetail().getTrainerId();
         this.comment = trainerReview.getComment();
         this.createdAt = trainerReview.getCreatedAt();

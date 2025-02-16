@@ -5,12 +5,16 @@ import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequest;
+import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewResponse;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotFoundException;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotSaveException;
 import com.opt.ssafy.optback.domain.trainer_review.repository.TrainerReviewRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -80,28 +84,27 @@ public class TrainerReviewService {
     }
 
     // 트레이너 ID로 리뷰 조회
-    public List<TrainerReview> getReviewsByTrainerId(int trainerId) {
+    public Page<TrainerReviewResponse> getReviewsByTrainerId(int trainerId, Pageable pageable) {
         TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerId)
                 .orElseThrow(() -> new TrainerReviewNotFoundException("트레이너 ID 값이 잘못되었습니다"));
-
-        // 유효성 검사
-        if (trainerReviewRepository.findByTrainerDetail(trainerDetail) == null) {
-            throw new TrainerReviewNotFoundException("트레이너 ID 값이 잘못 되었습니다");
-        }
-        return trainerReviewRepository.findByTrainerDetail(trainerDetail);
+        List<TrainerReviewResponse> reviews = trainerReviewRepository.findByTrainerDetailAndIsDeletedIsFalse(
+                        trainerDetail, pageable)
+                .stream()
+                .map(TrainerReviewResponse::new)
+                .toList();
+        return new PageImpl<>(reviews, pageable, reviews.size());
     }
 
     // 멤버 ID(=로그인 멤버)로 리뷰 조회
-    public List<TrainerReview> getReviewsByreviewerId() {
+    public Page<TrainerReviewResponse> getReviewsByreviewerId(Pageable pageable) {
 
         Member member = userDetailsService.getMemberByContextHolder();
         int reviewerId = member.getId();
-
-        // 유효성 검사
-        if (trainerReviewRepository.findByreviewerId(reviewerId) == null) {
-            throw new TrainerReviewNotFoundException("멤버 ID 값이 잘못 되었습니다");
-        }
-        return trainerReviewRepository.findByreviewerId(reviewerId);
+        List<TrainerReviewResponse> myReviews = trainerReviewRepository.findByreviewerId(reviewerId, pageable)
+                .stream()
+                .map(TrainerReviewResponse::new)
+                .toList();
+        return new PageImpl<>(myReviews, pageable, myReviews.size());
     }
 
 }

@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.badge.service;
 
+import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.badge.dto.ActivityType;
 import com.opt.ssafy.optback.domain.badge.entity.Badge;
 import com.opt.ssafy.optback.domain.badge.entity.BadgeDefinition;
@@ -37,11 +38,13 @@ public class BadgeService {
     private final PushService pushService;
     private final FcmTokenRepository fcmTokenRepository;
     private final SystemMessageService systemMessageService;
+    private final UserDetailsServiceImpl userDetailsService;
 
     public BadgeService(List<BadgeEvaluator> evaluatorList, BadgeDefinitionRepository badgeDefinitionRepository,
                         MemberBadgeRepository memberBadgeRepository, BadgeRepository badgeRepository,
                         PushService pushService,
-                        FcmTokenRepository fcmTokenRepository, SystemMessageService systemMessageService) {
+                        FcmTokenRepository fcmTokenRepository, SystemMessageService systemMessageService,
+                        UserDetailsServiceImpl userDetailsService) {
         this.evaluators = evaluatorList.stream()
                 .collect(Collectors.toMap(BadgeEvaluator::getType, Function.identity()));
         this.badgeDefinitionRepository = badgeDefinitionRepository;
@@ -50,6 +53,7 @@ public class BadgeService {
         this.pushService = pushService;
         this.fcmTokenRepository = fcmTokenRepository;
         this.systemMessageService = systemMessageService;
+        this.userDetailsService = userDetailsService;
     }
 
     public List<Badge> findAllBadges() {
@@ -85,6 +89,12 @@ public class BadgeService {
         }
     }
 
+    @Transactional
+    public List<MemberBadge> findBadgesByMemberId() {
+        Member member = userDetailsService.getMemberByContextHolder();
+        return memberBadgeRepository.findMemberBadgeByMemberId(member.getId());
+    }
+    
     @Transactional
     public void saveBadge(Member member, BadgeDefinition badgeDefinition) {
         Badge badge = badgeRepository.findById(badgeDefinition.getBadgeId())

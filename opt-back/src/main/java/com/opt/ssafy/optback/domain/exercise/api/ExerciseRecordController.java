@@ -37,10 +37,10 @@ public class ExerciseRecordController {
     }
 
     @PostMapping
-    public ResponseEntity<SuccessResponse> createExerciseRecord(
-            @RequestPart(name = "data") CreateExerciseRecordRequest request,
-            @RequestPart @Nullable List<MultipartFile> medias) throws IOException {
-        exerciseRecordService.createExerciseRecord(request, medias);
+    public ResponseEntity<SuccessResponse> createExerciseRecord(CreateExerciseRecordRequest request)
+            throws IOException {
+        System.out.println(request.getExerciseId());
+        exerciseRecordService.createExerciseRecord(request, request.getMedias());
         return ResponseEntity.ok(SuccessResponse.builder()
                 .message("등록되었습니다").build());
     }

@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
+import ResetStorageButton from "components/reset";
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = WINDOW_WIDTH;
@@ -289,6 +290,7 @@ const HomeScreen: React.FC = () => {
 
   const renderChallengeSection = () => (
     <View style={styles.section}>
+      <ResetStorageButton />
       <Text style={styles.sectionTitle}>진행중인 챌린지</Text>
       <View style={styles.carouselContainer}>
         <FlatList

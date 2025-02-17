@@ -8,15 +8,16 @@ import { RootStackParamList } from "../navigation/StackNavigator";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL, EXPO_PUBLIC_API_KEY } from "@env";
 
-// type RootStackParamList = {
-//   홈: undefined;
-//   LoginNeedScreen: { returnScreen: string } | undefined;
-//   DMScreen: undefined;
-//   ProfileScreen: { profileData: any };
-//   Main: {
-//     screen?: string;
-//   };
-// };
+
+type RootStackParamList = {
+  홈: undefined;
+  LoginNeedScreen: { returnScreen: string } | undefined;
+  Main: {
+    screen?: string;
+  };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const REST_API_KEY = EXPO_PUBLIC_API_KEY;
 const REDIRECT_URI = `${EXPO_PUBLIC_BASE_URL}/auth/kakao`;
@@ -33,6 +34,8 @@ const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const handleMessage = async (event: any) => {
+    const navigation = useNavigation<NavigationProp>();
+
     const data: string = event.nativeEvent.data;
 
     const codeMatch = data.match(/[?&]code=([^&]+)/);
@@ -56,8 +59,10 @@ const LoginScreen: React.FC = () => {
         console.log(role);
         console.log(email);
         console.log(id);
+
         console.log(EXPO_PUBLIC_BASE_URL);
         console.log(response.data);
+
         Alert.alert("로그인 성공", "환영합니다!", [
           {
             text: "확인",

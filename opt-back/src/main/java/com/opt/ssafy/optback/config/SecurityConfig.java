@@ -57,6 +57,7 @@ public class SecurityConfig {
                             auth.requestMatchers("/challenges/{id}/contributions").permitAll();
                             auth.requestMatchers("/gyms/{id}").permitAll();
                             auth.requestMatchers(HttpMethod.GET, "/certificate").permitAll();
+                            auth.requestMatchers(HttpMethod.GET, "/trainer-reviews/summary").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

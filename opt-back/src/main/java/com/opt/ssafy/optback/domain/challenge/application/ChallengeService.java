@@ -106,7 +106,10 @@ public class ChallengeService {
                     (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
 
             totalContribution += validContribution;
-            boolean isMyRecord = (currentUser.getId() == memberId);
+            boolean isMyRecord = false;
+            if(currentUser != null) {
+                isMyRecord = (currentUser.getId() == memberId);
+            }
 
             // 기존 memberId가 이미 존재하면 값 누적
             if (contributionMap.containsKey(memberId)) {

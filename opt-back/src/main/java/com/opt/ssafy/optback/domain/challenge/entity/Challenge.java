@@ -128,6 +128,7 @@ public class Challenge {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .currentParticipants(0)
+                .status("OPEN")
                 .maxParticipants(request.getMax_participants())
                 .frequency(request.getFrequency())
                 .progress(0F)

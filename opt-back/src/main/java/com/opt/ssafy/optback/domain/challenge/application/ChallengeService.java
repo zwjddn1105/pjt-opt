@@ -10,6 +10,7 @@ import com.opt.ssafy.optback.domain.challenge.dto.JoinChallengeRequest;
 import com.opt.ssafy.optback.domain.challenge.entity.Challenge;
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeMember;
 import com.opt.ssafy.optback.domain.challenge.entity.ChallengeRecord;
+import com.opt.ssafy.optback.domain.challenge.exception.ChallengeCreationException;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeNotFoundException;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeRecordNotFoundException;
 import com.opt.ssafy.optback.domain.challenge.exception.ChallengeTypeMismatchException;
@@ -105,7 +106,10 @@ public class ChallengeService {
                     (count != null) ? count : (duration != null) ? duration : (distance != null) ? distance : 0.0;
 
             totalContribution += validContribution;
-            boolean isMyRecord = (currentUser.getId() == memberId);
+            boolean isMyRecord = false;
+            if(currentUser != null) {
+                isMyRecord = (currentUser.getId() == memberId);
+            }
 
             // 기존 memberId가 이미 존재하면 값 누적
             if (contributionMap.containsKey(memberId)) {
@@ -131,24 +135,43 @@ public class ChallengeService {
 
     @Transactional
     public void createChallenge(CreateChallengeRequest request) {
-        Member host = userDetailsService.getMemberByContextHolder();
-        MultipartFile image = request.getImage();
-        String imgUrl = null;
-        if (image != null && !image.isEmpty()) {
-            try {
-                imgUrl = s3Service.uploadImageFile(image, bucketName);
-            } catch (IOException e) {
-                log.error("S3 이미지 업로드 실패", e);
-                throw new RuntimeException("S3 이미지 업로드 실패", e);
-            }
+        if (request == null) {
+            log.error("챌린지 생성 요청이 null입니다.");
+            throw new ChallengeCreationException("챌린지 생성 요청이 유효하지 않습니다.");
         }
-        // 요청 객체에 이미지 URL 설정 (없으면 null 또는 기본값)
-        request.setImagePath(imgUrl);
 
-        // 챌린지 엔티티 생성 후 DB에 저장
-        Challenge challenge = Challenge.from(request, host);
-        challengeRepository.save(challenge);
+        try {
+            Member host = userDetailsService.getMemberByContextHolder();
+            MultipartFile image = request.getImage();
+            String imgUrl = null;
+
+            if (image != null && !image.isEmpty()) {
+                try {
+                    imgUrl = s3Service.uploadImageFile(image, bucketName);
+                } catch (IOException e) {
+                    log.error("S3 이미지 업로드 실패", e);
+                    throw new ChallengeCreationException("S3 이미지 업로드 실패", e);
+                }
+            }
+
+            request.setImagePath(imgUrl);
+
+            Challenge challenge = Challenge.from(request, host);
+
+            if (challenge == null) {
+                log.error("Challenge 엔티티 변환 실패");
+                throw new ChallengeCreationException("챌린지 엔티티 변환 중 오류 발생");
+            }
+
+            challengeRepository.save(challenge);
+            log.info("챌린지 저장 성공: {}", challenge.getId());
+
+        } catch (Exception e) {
+            log.error("챌린지 생성 중 오류 발생", e);
+            throw new ChallengeCreationException("챌린지 생성 실패", e);
+        }
     }
+
 
     public void deleteChallenge(int id) {
         if (!challengeRepository.existsById(id)) {
@@ -453,7 +476,6 @@ public ChallengeRecordWithRankResponse getChallengeRecord(int memberId, int chal
         String challengeType = record.getChallenge().getType();
 
         // 참가자의 기여도를 저장할 리스트
-        List<Double> contributions = new ArrayList<>();
         Map<Integer, Double> memberContributionMap = new HashMap<>();
 
         for (ChallengeRecord cr : challengeRecords) {
@@ -480,7 +502,7 @@ public ChallengeRecordWithRankResponse getChallengeRecord(int memberId, int chal
         }
 
         // 모든 참가자의 기여도를 리스트에 저장
-        contributions.addAll(memberContributionMap.values());
+        List<Double> contributions = new ArrayList<>(memberContributionMap.values());
 
         // 내 기여도 계산
         Double myBestValue = memberContributionMap.getOrDefault(record.getMemberId(), 0.0);

@@ -1,8 +1,8 @@
 // api/exercises.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ServerResponse, Exercise, FetchExercisesResult } from '../types/exercise';
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 
-const API_URL = 'https://i12a309.p.ssafy.io';
 const FAVORITES_STORAGE_KEY = 'exercise_favorites';
 
 interface FetchExercisesParams {
@@ -20,8 +20,8 @@ export const fetchExercises = async ({
     bodyPart = ''
 }: FetchExercisesParams = {}): Promise<FetchExercisesResult> => {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('No authentication token found');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token found');
 
         const params = new URLSearchParams();
         params.append('page', page.toString());
@@ -30,9 +30,9 @@ export const fetchExercises = async ({
         if (name) params.append('name', name);
         if (bodyPart) params.append('bodyPart', bodyPart);
 
-        const response = await fetch(`${API_URL}/exercises?${params}`, {
+        const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercises?${params}`, {
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${refreshToken}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -57,11 +57,9 @@ export const fetchExercises = async ({
             imageSource: exercise.gifPath,
         }));
 
-        const hasMore = exercises.length === size;
-
         return {
             exercises,
-            hasMore,
+            hasMore: exercises.length === size,
             totalElements: data.totalElements
         };
     } catch (error) {
@@ -73,14 +71,14 @@ export const fetchExercises = async ({
 // 즐겨찾기 관련 함수들
 export const toggleFavorite = async (exerciseId: number, isFavorite: boolean): Promise<boolean> => {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('No authentication token found');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token found');
     
         const method = isFavorite ? 'DELETE' : 'POST';
-        const response = await fetch(`${API_URL}/exercises/favorites`, {
+        const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercises/favorites`, {
             method,
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${refreshToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ exerciseId })
@@ -101,12 +99,12 @@ export const toggleFavorite = async (exerciseId: number, isFavorite: boolean): P
 // 즐겨찾기 목록 가져오기
 export const fetchFavoriteExercises = async (): Promise<Exercise[]> => {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('No authentication token found');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token found');
 
-        const response = await fetch(`${API_URL}/exercises/favorites`, {
+        const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercises/favorites`, {
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${refreshToken}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -146,12 +144,12 @@ const updateLocalFavorite = async (exerciseId: number, isFavorite: boolean) => {
 
 export const syncFavorites = async (): Promise<void> => {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('No authentication token found');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token found');
 
-        const response = await fetch(`${API_URL}/exercises/favorites`, {
+        const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercises/favorites`, {
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${refreshToken}`,
                 'Content-Type': 'application/json',
             },
         });

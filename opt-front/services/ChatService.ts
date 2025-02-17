@@ -4,6 +4,7 @@ import { Message, ApiMessage } from '../types/chat';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { EXPO_PUBLIC_BASE_URL } from '@env';
 
 class ChatService {
   private client: Client | null = null;
@@ -14,6 +15,7 @@ class ChatService {
   private readonly RECONNECT_INTERVAL = 5000;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private messageCache: Map<string, Message[]> = new Map();
+  private readTimestamps: Map<string, string> = new Map();
 
   public getCachedMessages(roomId: string): Message[] {
     return this.messageCache.get(roomId) || [];
@@ -23,11 +25,7 @@ class ChatService {
     this.messageCache.set(roomId, messages);
   }
 
-  // 읽음 상태 관리
-  private readTimestamps: Map<string, string> = new Map(); // roomId -> timestamp
-
   constructor() {
-    // 알림 설정 초기화
     if (Platform.OS !== 'web') {
       this.initializeNotifications();
     }
@@ -61,16 +59,21 @@ class ChatService {
     return this.client?.connected || false;
   }
 
-  async connect(token: string): Promise<boolean> {
+  async connect(): Promise<boolean> {
     if (this.client?.connected) {
       console.log('Already connected');
       return true;
     }
+
+    const refreshToken = await AsyncStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
   
     this.client = new Client({
-      brokerURL: 'wss://i12a309.p.ssafy.io/ws-chat',
+      brokerURL: `${EXPO_PUBLIC_BASE_URL.replace('https', 'wss')}/ws-chat`,
       connectHeaders: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${refreshToken}`,
         'accept-version': '1.1',
         'heart-beat': '0,0'
       },
@@ -113,7 +116,7 @@ class ChatService {
     });
   }
 
-  private async handleConnectionError(error: string, token: string) {
+  private async handleConnectionError() {
     if (this.reconnectAttempts < 5) {
       this.reconnectAttempts++;
       console.log(`재연결 시도 ${this.reconnectAttempts}/5...`);
@@ -122,16 +125,16 @@ class ChatService {
         clearTimeout(this.reconnectTimeout);
       }
       
-      this.reconnectTimeout = setTimeout(() => {
-        this.connect(token);
+      this.reconnectTimeout = setTimeout(async () => {
+        await this.connect();
       }, this.RECONNECT_INTERVAL);
     } else {
       console.error('최대 재연결 시도 횟수 초과');
     }
   }
 
-  private handleDisconnection(token: string) {
-    this.handleConnectionError('연결 끊김', token);
+  private handleDisconnection() {
+    this.handleConnectionError();
   }
 
   disconnect(): void {
@@ -151,24 +154,21 @@ class ChatService {
       return;
     }
   
-    // 기존 구독이 있더라도, 실제로 활성화된 상태인지 확인
     const existingSubscription = this.subscriptions.get(roomId);
     if (existingSubscription) {
       try {
-        // 구독 상태 확인을 위한 더미 메시지 전송
         existingSubscription.send("");
         console.log(`Existing subscription for room ${roomId} is active`);
         return;
       } catch (e) {
-        // 구독이 비활성 상태면 제거
         console.log(`Removing inactive subscription for room ${roomId}`);
         this.subscriptions.delete(roomId);
       }
     }
   
     console.log(`Creating new subscription for room: ${roomId}`);
-    return new Promise<void>((resolve) => {
-      // this.client는 null이 아님이 보장됨 (위에서 체크했으므로)
+    return new Promise<void>(async (resolve) => {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
       const client = this.client!;
       const subscription = client.subscribe(
         `/topic/chat-room/${roomId}`,
@@ -176,17 +176,7 @@ class ChatService {
           try {
             console.log('Received WebSocket message:', message.body);
             const apiMessage = JSON.parse(message.body) as ApiMessage;
-            
-            const convertedMessage: Message = {
-              id: apiMessage.id,
-              roomId: apiMessage.roomId,
-              senderId: apiMessage.senderId.toString(),
-              receiverId: apiMessage.receiverId.toString(),
-              content: apiMessage.content,
-              timestamp: apiMessage.createdAt,
-              messageType: apiMessage.messageType
-            };
-    
+            const convertedMessage = this.convertApiMessage(apiMessage);
             console.log('Converted message:', convertedMessage);
             callback(convertedMessage);
           } catch (error) {
@@ -195,7 +185,7 @@ class ChatService {
         },
         {
           id: `room-${roomId}`,
-          Authorization: client.connectHeaders.Authorization
+          Authorization: `Bearer ${refreshToken}`
         }
       );
     
@@ -242,16 +232,21 @@ class ChatService {
     }
   }
 
-  sendMessage(roomId: string, content: string, token: string): boolean {
+  async sendMessage(roomId: string, content: string): Promise<boolean> {
     if (!this.client?.connected) {
       console.warn('Cannot send message: WebSocket not connected');
       return false;
     }
-  
+
     try {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+  
       this.client.publish({
-        destination: `/app/chat-room/${roomId}`,  // 발행 경로 수정
-        headers: { Authorization: `Bearer ${token}` },
+        destination: `/app/chat-room/${roomId}`,
+        headers: { Authorization: `Bearer ${refreshToken}` },
         body: JSON.stringify({ roomId, content })
       });
       return true;
@@ -264,6 +259,9 @@ class ChatService {
   private async processMessageQueue() {
     if (!this.client?.connected) return;
 
+    const refreshToken = await AsyncStorage.getItem('refreshToken');
+    if (!refreshToken) return;
+
     for (const [messageId, { content, retries }] of this.messageQueue.entries()) {
       if (retries >= this.MAX_RETRIES) {
         this.messageQueue.delete(messageId);
@@ -271,13 +269,10 @@ class ChatService {
       }
 
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) continue;
-
         this.client.publish({
           destination: `/app/chat/message`,
           body: content,
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${refreshToken}` }
         });
         
         this.messageQueue.delete(messageId);
@@ -293,14 +288,13 @@ class ChatService {
     this.readTimestamps.set(roomId, timestamp);
     
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) return;
 
-      // 서버에 읽음 상태 전송
-      await fetch(`https://i12a309.p.ssafy.io/chat-rooms/read/${roomId}`, {
+      await fetch(`${EXPO_PUBLIC_BASE_URL}/chat-rooms/read/${roomId}`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${refreshToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ timestamp })
@@ -312,11 +306,11 @@ class ChatService {
 
   async getUnreadCount(roomId: string): Promise<number> {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return 0;
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) return 0;
 
-      const response = await fetch(`https://i12a309.p.ssafy.io/chat-rooms/unread/${roomId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/chat-rooms/unread/${roomId}`, {
+        headers: { Authorization: `Bearer ${refreshToken}` }
       });
 
       const data = await response.json();

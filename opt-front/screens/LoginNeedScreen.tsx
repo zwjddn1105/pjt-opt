@@ -15,10 +15,12 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
 
+import { useAuth } from "../contexts/AuthContext";
+
 type RootStackParamList = {
   홈: undefined;
   MyChallenge: undefined;
-  KakaoLogin: undefined;
+  LoginScreen: undefined;
   Main: { screen?: string };
   LoginNeedScreen: { returnScreen: string } | undefined;
 };
@@ -37,26 +39,37 @@ const LoginNeedScreen: React.FC = () => {
   const video = useRef<Video>(null);
   const navigation = useNavigation<LoginNeedScreenNavigationProp>();
   const [email, setEmail] = useState("");
+  const { login } = useAuth();
 
   const loginWithEmail = async () => {
     try {
+      console.log(EXPO_PUBLIC_BASE_URL);
       const response = await axios.post(
         `${EXPO_PUBLIC_BASE_URL}/auth/sign-in`,
         {
           email,
         }
       );
-      // console.log(EXPO_PUBLIC_BASE_URL);
       // console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;
+
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
       console.log(refreshToken);
       console.log(role);
       console.log(id);
+      console.log(EXPO_PUBLIC_BASE_URL);
+
+      await login(refreshToken, String(id), role === 'TRAINER' ? 'TRAINER' : 'USER');
+      
+      console.log('Login successful:', {
+        refreshToken: refreshToken.substring(0, 10) + '...',
+        role,
+        id
+      });
       Alert.alert("로그인 성공", "환영합니다!");
 
       if (route.params?.returnScreen) {
@@ -123,7 +136,7 @@ const LoginNeedScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate("KakaoLogin")}
+          onPress={() => navigation.navigate("LoginScreen")}
         >
           <Ionicons
             name="chatbubble"

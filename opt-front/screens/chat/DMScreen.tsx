@@ -43,19 +43,36 @@ const DMScreen = () => {
     { id: 10, email: "jack10@example.com" },
   ];
 
+  const formatMessageTime = (dateString: string): string => {
+    const messageDate = new Date(dateString);
+    const now = new Date();
+    
+    // 날짜가 같은 경우 시간만 표시
+    if (messageDate.toDateString() === now.toDateString()) {
+      return messageDate.toLocaleTimeString('ko-KR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+    
+    // 1주일 이내인 경우 요일 표시
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    if (messageDate > weekAgo) {
+      return messageDate.toLocaleDateString('ko-KR', { weekday: 'short' });
+    }
+    
+    // 그 외의 경우 날짜 표시
+    return messageDate.toLocaleDateString('ko-KR', {
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const loadChatRooms = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-  
-      const apiRooms = await chatApi.getChatRooms(token);
-      const currentUserId = parseInt(await AsyncStorage.getItem('userId') || '0');
-  
+      const apiRooms = await chatApi.getChatRooms();
       clearRooms();
-  
+      
       apiRooms.forEach((apiRoom: ApiChatRoom) => {
         let userType: 'USER' | 'TRAINER' | 'ADMIN' = 'USER';
         
@@ -67,10 +84,9 @@ const DMScreen = () => {
           id: apiRoom.id,
           name: apiRoom.otherMemberNickname || apiRoom.roomName || '알 수 없음',
           lastMessage: apiRoom.lastMessage || "새로운 채팅방이 생성되었습니다.",
-          time: new Date().toLocaleTimeString('ko-KR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
+          time: apiRoom.lastMessageTime 
+            ? formatMessageTime(apiRoom.lastMessageTime)
+            : formatMessageTime(new Date().toISOString()),
           userType: userType,
           unreadCount: 0
         };
@@ -85,22 +101,10 @@ const DMScreen = () => {
     }
   }, [clearRooms, addRoom]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadChatRooms();
-      return () => {
-        // 화면이 포커스를 잃을 때 정리할 작업이 있다면 여기에 추가
-      };
-    }, [loadChatRooms])
-  );
-
   const setupWebSocket = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
       if (!ChatService.isConnected()) {
-        await ChatService.connect(token);
+        await ChatService.connect();
         
         roomsArray.forEach(room => {
           ChatService.subscribeToRoom(room.id, (message) => {
@@ -115,22 +119,14 @@ const DMScreen = () => {
 
   const createChatRoom = async (user: User) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        Alert.alert('오류', '로그인이 필요합니다.');
-        return;
-      }
-  
-      const apiRoom = await chatApi.createChatRoom(user.id, token);
+      const apiRoom = await chatApi.createChatRoom(user.id);
+      const currentTime = new Date().toISOString();
       
       const chatRoomData: ChatRoom = {
         id: apiRoom.id,
         name: user.email,
         lastMessage: "새로운 채팅방이 생성되었습니다.",
-        time: new Date().toLocaleTimeString('ko-KR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
+        time: formatMessageTime(currentTime),
         userType: 'USER',
         unreadCount: 0
       };
@@ -139,7 +135,7 @@ const DMScreen = () => {
       await loadChatRooms();
   
       if (!ChatService.isConnected()) {
-        await ChatService.connect(token);
+        await ChatService.connect();
       }
       
       ChatService.subscribeToRoom(chatRoomData.id, (message) => {
@@ -164,6 +160,15 @@ const DMScreen = () => {
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      loadChatRooms();
+      return () => {
+        // 화면이 포커스를 잃을 때 정리할 작업이 있다면 여기에 추가
+      };
+    }, [loadChatRooms])
+  );
+
   useEffect(() => {
     let isMounted = true;
     let wsCleanup = false;
@@ -172,9 +177,8 @@ const DMScreen = () => {
       if (!isMounted) return;
 
       if (!wsCleanup && roomsArray.length > 0) {
-        const token = await AsyncStorage.getItem('token');
-        if (token && !ChatService.isConnected()) {
-          await ChatService.connect(token);
+        if (!ChatService.isConnected()) {
+          await ChatService.connect();
           
           roomsArray.forEach(room => {
             ChatService.subscribeToRoom(room.id, (message) => {

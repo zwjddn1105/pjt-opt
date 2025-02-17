@@ -145,7 +145,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               },
             }
           );
-          console.log(contributionsResponse);
           if (contributionsResponse.data.length > 0) {
             setContributions(contributionsResponse.data);
           }
@@ -247,7 +246,10 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               />
             </TouchableOpacity>
             <View style={styles.hostInfoTextContainer}>
-              <Text style={styles.hostNameText}>{challenge.hostRealName}</Text>
+              <Text style={styles.hostNameText}>
+                개최자: {challenge.hostRealName}
+              </Text>
+
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>

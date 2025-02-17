@@ -4,5 +4,5 @@ import lombok.Getter;
 
 @Getter
 public class UpdateIntroRequest {
-    private String content;
+    private String text;
 }

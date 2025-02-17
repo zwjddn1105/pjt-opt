@@ -1,11 +1,14 @@
 package com.opt.ssafy.optback.domain.trainer_detail.Service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
+import com.opt.ssafy.optback.domain.counsel.exception.TrainerNotFoundException;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import com.opt.ssafy.optback.domain.member.repository.TrainerSpecialtyRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.Specification.TrainerSpecification;
+import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerDetailResponse;
 import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerSearchRequest;
 import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.repository.TrainerReviewRepository;
@@ -28,9 +31,15 @@ public class TrainerDetailService {
     private final MemberRepository memberRepository;
     private final UserDetailsServiceImpl userDetailsService;
     private final TrainerReviewRepository trainerReviewRepository;
+    private final TrainerSpecialtyRepository trainerSpecialtyRepository;
 
-    public TrainerDetail findById(int id) {
-        return trainerDetailRepository.findById(id).orElse(null);
+    public TrainerDetailResponse getTrainerDetail(int trainerId) {
+        TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerId)
+                .orElseThrow(() -> new TrainerNotFoundException("해당 트레이너 정보를 찾을 수 없습니다: " + trainerId));
+
+        List<String> keywords = trainerSpecialtyRepository.findKeywordsByTrainerId(trainerId);
+
+        return new TrainerDetailResponse(trainerDetail, keywords);
     }
 
     // 트레이너 검색 + 정렬

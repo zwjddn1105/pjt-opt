@@ -4,10 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.certificate.dto.CertificateDto;
+import com.opt.ssafy.optback.domain.certificate.dto.CertificateResponse;
 import com.opt.ssafy.optback.domain.certificate.entity.Certificate;
 import com.opt.ssafy.optback.domain.certificate.infrastructure.CertificateProducer;
 import com.opt.ssafy.optback.domain.certificate.infrastructure.CertificateRepository;
+import com.opt.ssafy.optback.domain.trainer_detail.Service.TrainerDetailService;
+import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.global.application.S3Service;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class CertificateService {
 
+    private final TrainerDetailService trainerDetailService;
     @Value("${certificate.bucket.name}")
     private String bucketName;
     private final S3Service s3Service;
@@ -26,6 +31,12 @@ public class CertificateService {
     private final UserDetailsServiceImpl userDetailsService;
     private final CertificateRepository certificateRepository;
     private final ObjectMapper objectMapper;
+
+    public List<CertificateResponse> getTrainerCertificate(Integer trainerId) {
+        TrainerDetail trainerDetail = trainerDetailService.findById(trainerId);
+        List<Certificate> certificates = trainerDetail.getCertificates();
+        return certificates.stream().map(CertificateResponse::from).toList();
+    }
 
     public void registerCertificate(MultipartFile image) {
         try {
@@ -45,7 +56,8 @@ public class CertificateService {
             }
             CertificateDto dto = objectMapper.treeToValue(jsonNode, CertificateDto.class);
             deleteUnmaskedCertificate(dto.getPath());
-            Certificate certificate = Certificate.from(dto);
+            TrainerDetail trainerDetail = trainerDetailService.findById(dto.getId());
+            Certificate certificate = Certificate.from(dto, trainerDetail);
             certificateRepository.save(certificate);
             log.info("자격증 저장 완료: {}", certificate);
         } catch (Exception e) {

@@ -86,28 +86,32 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
   const [individualRecord, setIndividualRecord] =
     useState<IndividualRecord | null>(null);
   const [contributions, setContributions] = useState(null);
+  const [isParticipating, setIsParticipating] = useState(false);
+
+  const fetchChallengeDetails = async () => {
+    try {
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) throw new Error("Refresh token not found");
+      const response = await axios.get<Challenge>(
+        `${BASE_URL}/challenges/${challengeId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        }
+      );
+      setChallenge(response.data);
+      // 사용자의 참여 여부를 확인합니다. 이 부분은 API 응답에 따라 수정이 필요할 수 있습니다.
+      setIsParticipating(response.data.currentParticipants > 0);
+      setLoading(false);
+    } catch (error) {
+      console.error("챌린지 상세 정보 불러오기 실패:", error);
+      setError("챌린지 정보를 불러오는데 실패했습니다.");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchChallengeDetails = async () => {
-      try {
-        const refreshToken = await getRefreshToken();
-        if (!refreshToken) throw new Error("Refresh token not found");
-        const response = await axios.get<Challenge>(
-          `${BASE_URL}/challenges/${challengeId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
-          }
-        );
-        setChallenge(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("챌린지 상세 정보 불러오기 실패:", error);
-        setError("챌린지 정보를 불러오는데 실패했습니다.");
-        setLoading(false);
-      }
-    };
     fetchChallengeDetails();
   }, [challengeId]);
 
@@ -153,7 +157,40 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
 
     fetchChallengeRecords();
   }, [challengeId, challenge]);
+  const handleChallengeAction = async () => {
+    try {
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) throw new Error("Refresh token not found");
 
+      const endpoint = isParticipating
+        ? `/challenges/quit?id=${challengeId}`
+        : "/challenges/join";
+
+      const response = await axios({
+        method: isParticipating ? "DELETE" : "POST",
+        url: `${BASE_URL}${endpoint}`,
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+        data: isParticipating ? null : { challengeId: challengeId },
+      });
+
+      if (response.status === 200) {
+        setIsParticipating(!isParticipating);
+        Alert.alert(
+          isParticipating ? "챌린지 탈퇴 성공" : "챌린지 참여 성공",
+          isParticipating
+            ? "챌린지에서 탈퇴했습니다."
+            : "챌린지에 참여했습니다."
+        );
+        // 챌린지 정보를 다시 불러옵니다.
+        fetchChallengeDetails();
+      }
+    } catch (error) {
+      console.error("API 호출 중 오류 발생:", error);
+      Alert.alert("오류", "작업 중 문제가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -209,12 +246,22 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
                 style={styles.profileIcon}
               />
             </TouchableOpacity>
-            <View>
+            <View style={styles.hostInfoTextContainer}>
               <Text style={styles.hostNameText}>{challenge.hostRealName}</Text>
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>
             </View>
+            {challenge.status === "OPEN" && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleChallengeAction}
+              >
+                <Text style={styles.actionButtonText}>
+                  {isParticipating ? "챌린지 탈퇴하기" : "챌린지 참여하기"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           {/* 챌린지 카드 */}
           <View style={styles.rowContainer}>
@@ -360,7 +407,21 @@ const styles = StyleSheet.create({
   hostInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  hostInfoTextContainer: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  actionButton: {
+    backgroundColor: "#0C508B",
+    padding: 10,
+    borderRadius: 10,
+  },
+  actionButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
   hostNameText: {
     fontSize: 18,

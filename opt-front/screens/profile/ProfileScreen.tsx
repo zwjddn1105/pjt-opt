@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     flex: 1,
-    backgroundColor: "#4169E1",
+    backgroundColor: "#0C508B",
     padding: 16,
     borderRadius: 8,
     marginRight: 8,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   scheduleButton: {
     flex: 1,
-    backgroundColor: "#4169E1",
+    backgroundColor: "#0C508B",
     padding: 16,
     borderRadius: 8,
     marginLeft: 8,

@@ -16,16 +16,12 @@ public class FollowController {
 
     @GetMapping("/following")
     public ResponseEntity<List<FollowResponse>> getFollowing() {
-        return ResponseEntity.ok(followService.getFollowingList().stream()
-                .map(FollowResponse::fromFollowingEntity)
-                .toList());
+        return ResponseEntity.ok(followService.getFollowingList());
     }
 
     @GetMapping("/follower")
     public ResponseEntity<List<FollowResponse>> getFollower() {
-        return ResponseEntity.ok(followService.getFollowerList().stream()
-                .map(FollowResponse::fromFollowerEntity)
-                .toList());
+        return ResponseEntity.ok(followService.getFollowerList());
     }
 
 

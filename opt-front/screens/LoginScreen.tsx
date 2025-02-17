@@ -8,15 +8,6 @@ import { RootStackParamList } from "../navigation/StackNavigator";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL, EXPO_PUBLIC_API_KEY } from "@env";
 
-
-type RootStackParamList = {
-  홈: undefined;
-  LoginNeedScreen: { returnScreen: string } | undefined;
-  Main: {
-    screen?: string;
-  };
-};
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const REST_API_KEY = EXPO_PUBLIC_API_KEY;

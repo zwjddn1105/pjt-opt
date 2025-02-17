@@ -173,7 +173,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         },
         data: isParticipating ? null : { challengeId: challengeId },
       });
-      console.log(response);
       if (response.status === 200) {
         setIsParticipating(!isParticipating);
         Alert.alert(

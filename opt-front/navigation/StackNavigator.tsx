@@ -16,7 +16,7 @@ import ManageChallengeScreen from "../screens/challenge/ManageChallengeScreen";
 import CreateChallengeScreen from "../screens/challenge/CreateChallengeScreen";
 import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
 import ChatScreen from "../screens/chat/ChatScreen";
-import BadgeScreen from "../screens/BadgeScreen";
+import BadgeScreen from "../screens/profile/BadgeScreen";
 import SettingScreen from "../screens/profile/SettingScreen";
 import AllChallengeScreen from "../screens/challenge/AllChallengeScreen";
 import AllOngoingChallengesScreen from "../screens/challenge/AllOngoingChallengesScreen";

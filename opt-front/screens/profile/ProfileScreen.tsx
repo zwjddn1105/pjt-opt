@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,18 +8,22 @@ import {
   TouchableOpacity,
   Platform,
   StatusBar,
+  Modal,
+  FlatList,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type RootStackParamList = {
   ProfileScreen: { profileData: any };
   Badge: undefined;
   SettingScreen: undefined;
 };
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ProfileScreenRouteProp = RouteProp<RootStackParamList, "ProfileScreen">;
 interface Review {
@@ -32,9 +36,14 @@ interface Review {
   rating: number;
   content: string;
 }
-
-interface TrainerProfile {
+interface Badge {
+  description: string;
+  id: number;
+  imagePath: string;
   name: string;
+}
+interface Profile {
+  nickname: string;
   image: string;
   followers: number;
   following: number;
@@ -51,8 +60,16 @@ interface TrainerProfile {
   rating: number;
   interests: string[];
   reviews: Review[];
+  mainBadge: Badge;
 }
-
+interface Follower {
+  id: string;
+  memberId: number;
+  name: string;
+  nickname: string;
+  imagePath: string;
+  role: string;
+}
 const generateStars = (rating: number) => {
   const stars = [];
   for (let i = 0; i < 5; i++) {
@@ -70,13 +87,23 @@ const generateStars = (rating: number) => {
 
 const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   const navigation = useNavigation<NavigationProp>();
+  const BASE_URL = EXPO_PUBLIC_BASE_URL;
   const profileData = route.params.profileData;
-
-  const trainer: TrainerProfile = {
-    name: "김멸멸 Trainer",
-    image: "trainer_image_url",
-    followers: 44,
-    following: 32,
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null
+  );
+  const [cityDistrict, setCityDistrict] = useState("위치 정보 없음");
+  const [followers, setFollowers] = useState<Follower[]>([]);
+  const [following, setFollowing] = useState<Follower[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<"followers" | "following" | null>(
+    null
+  );
+  const profile: Profile = {
+    nickname: profileData.nickname || "닉네임 안함",
+    image: profileData.imagePath,
+    followers: followers.length,
+    following: following.length,
     certification: "경력, 학력 자유로운 폼 (자기소개포함)",
     licenses: [
       "(국가공인) 생활스포츠지도사 2급",
@@ -105,8 +132,82 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           "너무 맞는 선생님이에요. 컨디션 글러스를 잃은 이후 10년째 이 선생님과 운동중입니다. 다들 추천해요!",
       },
     ],
+    mainBadge: profileData.mainBadge,
   };
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("위치 정보 권한이 거부되었습니다.");
+        return;
+      }
 
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+
+      // Geocoding을 통해 주소 정보 가져오기
+      try {
+        let geocode = await Location.reverseGeocodeAsync({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        });
+        if (geocode && geocode.length > 0) {
+          const address = geocode[0];
+          // "시" 정보 추출
+          const city = address.city || "";
+          // "구" 정보 추출 (address.district가 없는 경우 address.street를 사용할 수도 있습니다)
+          const district = address.district || address.street || "";
+
+          if (city && district) {
+            setCityDistrict(`${city} ${district}`);
+          } else if (city) {
+            setCityDistrict(city);
+          }
+        }
+      } catch (e) {
+        console.log("Geocoding 에러:", e);
+      }
+    })();
+  }, []);
+  const fetchFollowList = async (endpoint: string) => {
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+    try {
+      const response = await fetch(`${BASE_URL}${endpoint}`, {
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch follow list");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching follow list:", error);
+      return [];
+    }
+  };
+  useEffect(() => {
+    const loadFollowers = async () => {
+      const followersData = await fetchFollowList("/follows/follower");
+      setFollowers(followersData);
+    };
+
+    const loadFollowing = async () => {
+      const followingData = await fetchFollowList("/follows/following");
+      setFollowing(followingData);
+    };
+
+    loadFollowers();
+    loadFollowing();
+  }, []);
+  const openModal = (type: "followers" | "following") => {
+    setModalType(type);
+    setIsModalVisible(true);
+  };
+  const closeModal = () => {
+    setIsModalVisible(false);
+  };
   return (
     <View style={styles.container}>
       <View style={styles.fixedHeader}>
@@ -118,7 +219,10 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           >
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{trainer.name}</Text>
+          <Text style={styles.headerTitle}>
+            {profile.nickname}
+            {/* 이름받아오기 */}
+          </Text>
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.headerIcon}
@@ -140,47 +244,116 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {/* Profile Section */}
+        {/* 프로필섹션 */}
         <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
             <Image
-              source={require("../../assets/trainer-placeholder.png")}
+              source={{ uri: profile.image }}
               style={styles.profileImage}
             />
-            <View style={styles.badgeOverlay} />
+            <View style={styles.badgeOverlay}>
+              {profileData.mainBadge?.imagePath ? (
+                <Image
+                  source={{ uri: profileData.mainBadge.imagePath }}
+                  style={styles.badgeImage}
+                />
+              ) : (
+                <Text>뱃지</Text>
+              )}
+            </View>
           </View>
 
-          <Text style={styles.profileName}>{trainer.name}</Text>
+          <Text style={styles.profileName}>
+            {profile.nickname}
+            {/* 이름 받아오기 */}
+          </Text>
 
           <View style={styles.locationContainer}>
             <Ionicons name="location-outline" size={18} color="#666" />
-            <Text style={styles.locationText}>서울시 강남구</Text>
+            <Text style={styles.locationText}>{cityDistrict}</Text>
           </View>
 
           <TouchableOpacity style={styles.ratingContainer}>
             <View style={styles.ratingInner}>
-              <Text style={styles.ratingNumber}>{trainer.rating}</Text>
+              <Text style={styles.ratingNumber}>{profile.rating}</Text>
               <View style={styles.starsContainer}>
-                {generateStars(trainer.rating)}
+                {generateStars(profile.rating)}
               </View>
             </View>
           </TouchableOpacity>
 
           {/* 팔로워/팔로잉 */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{trainer.followers}</Text>
-              <Text style={styles.statLabel}>팔로워</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{trainer.following}</Text>
-              <Text style={styles.statLabel}>팔로잉</Text>
-            </View>
+          <View style={styles.followContainer}>
+            <TouchableOpacity onPress={() => openModal("followers")}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{profile.followers}</Text>
+                <Text style={styles.statLabel}>팔로워</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => openModal("following")}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{profile.following}</Text>
+                <Text style={styles.statLabel}>팔로잉</Text>
+              </View>
+            </TouchableOpacity>
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={isModalVisible}
+              onRequestClose={closeModal}
+            >
+              <View style={styles.centeredView}>
+                <View style={styles.modalView}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>
+                      {modalType === "followers" ? "팔로워" : "팔로잉"}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={closeModal}
+                    >
+                      <Text style={styles.closeButtonText}>닫기</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView style={styles.modalContent}>
+                    <View style={styles.followList}>
+                      {modalType === "followers"
+                        ? followers.map((item, index) => (
+                            <View key={index} style={styles.followItem}>
+                              <Image
+                                style={styles.followImage}
+                                source={{
+                                  uri: `${item?.imagePath}`,
+                                }}
+                              />
+                              <Text style={styles.followNickname}>
+                                {item?.nickname}
+                              </Text>
+                            </View>
+                          ))
+                        : following.map((item, index) => (
+                            <View key={index} style={styles.followItem}>
+                              <Image
+                                style={styles.followImage}
+                                source={{
+                                  uri: `${BASE_URL}${item?.imagePath}`,
+                                }}
+                              />
+                              <Text style={styles.followNickname}>
+                                {item?.nickname}
+                              </Text>
+                            </View>
+                          ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              </View>
+            </Modal>
           </View>
 
           {/* 관심사 태그 */}
           <View style={styles.interestsContainer}>
-            {trainer.interests.map((interest, index) => (
+            {profile.interests.map((interest, index) => (
               <View key={index} style={styles.interestTag}>
                 <Text style={styles.interestText}>{interest}</Text>
               </View>
@@ -193,19 +366,19 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           <Text style={styles.sectionTitle}>
             자격, 학력 자유로운 폼 (자기소개포함)
           </Text>
-          <Text style={styles.certificationText}>{trainer.certification}</Text>
+          <Text style={styles.certificationText}>{profile.certification}</Text>
         </View>
 
         {/* Licenses Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>증명된자격증</Text>
-          {trainer.licenses.map((license, index) => (
+          {profile.licenses.map((license, index) => (
             <View key={index} style={styles.licenseItem}>
               <MaterialIcons name="verified" size={24} color="#4169E1" />
               <Text style={styles.licenseText}>{license}</Text>
             </View>
           ))}
-          {trainer.awards.map((award, index) => (
+          {profile.awards.map((award, index) => (
             <View key={index} style={styles.licenseItem}>
               <MaterialIcons name="emoji-events" size={24} color="#FFD700" />
               <Text style={styles.licenseText}>{award}</Text>
@@ -227,14 +400,14 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           <View style={styles.reviewHeader}>
             <Text style={styles.sectionTitle}>후기</Text>
             <View style={styles.ratingContainer}>
-              <Text style={styles.ratingNumber}>{trainer.rating}</Text>
+              <Text style={styles.ratingNumber}>{profile.rating}</Text>
               <View style={styles.starsContainer}>
-                {generateStars(trainer.rating)}
+                {generateStars(profile.rating)}
               </View>
             </View>
           </View>
 
-          {trainer.reviews.map((review) => (
+          {profile.reviews.map((review) => (
             <View key={review.id} style={styles.reviewItem}>
               <View style={styles.reviewHeader}>
                 <Image
@@ -259,7 +432,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           <TouchableOpacity style={styles.pricingButton}>
             <View style={styles.priceItem}>
               <Text style={styles.priceCount}>1회</Text>
-              <Text style={styles.priceAmount}>{trainer.prices.single}원</Text>
+              <Text style={styles.priceAmount}>{profile.prices.single}원</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -267,10 +440,10 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           >
             <View style={styles.priceItem}>
               <Text style={styles.priceCount}>
-                {trainer.prices.bulk.count}회
+                {profile.prices.bulk.count}회
               </Text>
               <Text style={styles.priceAmount}>
-                {trainer.prices.bulk.price}원
+                {profile.prices.bulk.price}원
               </Text>
             </View>
           </TouchableOpacity>
@@ -302,7 +475,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
   statusBarPlaceholder: {
-    height: StatusBar.currentHeight || 0, // 안드로이드 상태 바 높이
+    height: StatusBar.currentHeight || 0,
   },
   headerContent: {
     flexDirection: "row",
@@ -357,13 +530,10 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#FFFFFF",
   },
-  statsContainer: {
-    flexDirection: "row",
-    marginBottom: 16,
-  },
   statItem: {
     alignItems: "center",
     marginHorizontal: 20,
+    flex: 1,
   },
   statNumber: {
     fontSize: 18,
@@ -372,16 +542,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: "#666",
-  },
-  followButton: {
-    backgroundColor: "#4169E1",
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  followButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
   },
   section: {
     padding: 16,
@@ -507,7 +667,7 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     flex: 1,
-    backgroundColor: "#4169E1",
+    backgroundColor: "#0C508B",
     padding: 16,
     borderRadius: 8,
     marginRight: 8,
@@ -515,7 +675,7 @@ const styles = StyleSheet.create({
   },
   scheduleButton: {
     flex: 1,
-    backgroundColor: "#4169E1",
+    backgroundColor: "#0C508B",
     padding: 16,
     borderRadius: 8,
     marginLeft: 8,
@@ -525,15 +685,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  badgeText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: "#666",
+  badgeImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 50,
   },
   interestsContainer: {
     flexDirection: "row",
@@ -559,13 +714,77 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
     gap: 4,
   },
   locationText: {
     fontSize: 14,
     color: "#666",
-    lineHeight: 14, // 텍스트의 lineHeight를 아이콘 크기와 동일하게 설정
+    lineHeight: 30,
+  },
+  followContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 40,
+    width: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "left",
+  },
+  closeButton: {
+    backgroundColor: "#0C508B",
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  modalContent: {
+    flexGrow: 1,
+  },
+  followList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
+  followItem: {
+    width: 80,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  followImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginBottom: 5,
+    borderWidth: 3,
+    borderColor: "gray",
+  },
+  followNickname: {
+    fontSize: 14,
+    textAlign: "center",
   },
 });
 

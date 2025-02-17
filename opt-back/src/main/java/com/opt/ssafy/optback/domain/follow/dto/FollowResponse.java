@@ -2,13 +2,9 @@ package com.opt.ssafy.optback.domain.follow.dto;
 
 import com.opt.ssafy.optback.domain.follow.entity.Follow;
 import com.opt.ssafy.optback.domain.member.entity.Member;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Builder
@@ -21,16 +17,27 @@ public class FollowResponse {
     private String imagePath;
     private String role;
 
-    public static FollowResponse fromEntity(Follow follow) {
-        Member member = follow.getTarget();
+    public static FollowResponse fromFollowingEntity(Follow follow) {
+        Member target = follow.getTarget();
         return FollowResponse.builder()
                 .id(follow.getId())
-                .memberId(member.getId())
-                .name(member.getName())
-                .nickname(member.getNickname())
-                .imagePath(member.getImagePath())
-                .role(member.getRole().name())
+                .memberId(target.getId())
+                .name(target.getName())
+                .nickname(target.getNickname())
+                .imagePath(target.getImagePath())
+                .role(target.getRole().name())
+                .build();
+    }
+
+    public static FollowResponse fromFollowerEntity(Follow follow) {
+        Member follower = follow.getMember();
+        return FollowResponse.builder()
+                .id(follow.getId())
+                .memberId(follower.getId())
+                .name(follower.getName())
+                .nickname(follower.getNickname())
+                .imagePath(follower.getImagePath())
+                .role(follower.getRole().name())
                 .build();
     }
 }
-

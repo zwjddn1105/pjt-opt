@@ -43,6 +43,18 @@ public class ChatMessageService {
             throw new ChatMessageException("❌ 인증되지 않은 사용자입니다");
         }
 
+        boolean isAdmin = (senderId == 0);
+
+        String roomName = chatRoomRepository.findById(request.getRoomId())
+                .map(ChatRoom::getRoomName)
+                .orElse(null);
+
+        boolean isAdminChatRoom = roomName.startsWith("0_");
+
+        if (!isAdmin && isAdminChatRoom) {
+            throw new ChatMessageException("🚫 일반 유저는 관리자 채팅에 메시지를 보낼 수 없습니다");
+        }
+        
         int receiverId = getReceiverId(request.getRoomId(), senderId);
 
         log.info("📩 메시지 전송 요청: Room ID = {}, Sender ID = {}, Receiver ID = {}", request.getRoomId(), senderId,

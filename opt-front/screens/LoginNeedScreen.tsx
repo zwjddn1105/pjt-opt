@@ -14,11 +14,10 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
-
 type RootStackParamList = {
   홈: undefined;
   MyChallenge: undefined;
-  KakaoLogin: undefined;
+  LoginScreen: undefined;
   Main: { screen?: string };
   LoginNeedScreen: { returnScreen: string } | undefined;
 };
@@ -40,6 +39,7 @@ const LoginNeedScreen: React.FC = () => {
 
   const loginWithEmail = async () => {
     try {
+      console.log(EXPO_PUBLIC_BASE_URL);
       const response = await axios.post(
         `${EXPO_PUBLIC_BASE_URL}/auth/sign-in`,
         {
@@ -123,7 +123,7 @@ const LoginNeedScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate("KakaoLogin")}
+          onPress={() => navigation.navigate("LoginScreen")}
         >
           <Ionicons
             name="chatbubble"

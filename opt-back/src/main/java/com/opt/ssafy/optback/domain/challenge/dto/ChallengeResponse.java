@@ -29,6 +29,7 @@ public class ChallengeResponse {
     private String exerciseType;
     private Integer exerciseCount;
     private Integer hostId;
+    private String hostImagePath;
     private String hostNickname;
     private String hostRealName;
     private Integer exerciseDuration;
@@ -45,6 +46,7 @@ public class ChallengeResponse {
                 .winnerName(winnerNickname)
                 .hostNickname(host.getNickname())
                 .hostRealName(host.getName())
+                .hostImagePath(host.getImagePath())
                 .startDate(challenge.getStartDate())
                 .hostId(host.getId())
                 .endDate(challenge.getEndDate())

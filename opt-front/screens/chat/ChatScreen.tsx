@@ -1,4 +1,3 @@
-// screens/chat/ChatScreen.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -21,7 +20,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ChatErrorView } from '../../components/ChatErrorView';
 import { ChatLoadingIndicator } from '../../components/ChatLoadingIndicator';
 import { ApiMessage, Message } from '../../types/chat';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ChatScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Chat'>;
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
@@ -47,15 +45,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     }, 100);
   }, []);
 
-  useEffect(() => {
-    const checkToken = async () => {
-      const storedToken = await AsyncStorage.getItem('token');
-      console.log('Stored token in AsyncStorage:', storedToken ? `${storedToken.substring(0, 10)}...` : 'null');
-      console.log('Token from AuthContext:', accessToken ? `${accessToken.substring(0, 10)}...` : 'null');
-    };
-    checkToken();
-  }, [accessToken]);
-
   const connectWebSocket = useCallback(async () => {
     if (!accessToken) {
       setError('인증 토큰이 없습니다. 다시 로그인해주세요.');
@@ -69,9 +58,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       }
       setIsConnected(true);
 
-      // 연결 후 바로 구독 설정
-      ChatService.subscribeToRoom(roomId, (newMessage) => {
-        console.log('Received new message:', newMessage);
+      await ChatService.subscribeToRoom(roomId, (newMessage) => {
         setMessages(prevMessages => [...prevMessages, newMessage]);
         scrollToBottom();
       });
@@ -84,12 +71,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
   const loadPreviousMessages = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('Fetching messages for roomId:', roomId);
-      console.log('Using accessToken:', accessToken?.substring(0, 10) + '...');
-  
       const response = await fetch(
         `https://i12a309.p.ssafy.io/chat-rooms/message?roomId=${roomId}`,
         {
@@ -100,39 +81,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           },
         }
       );
-      
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-  
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-  
+
       if (!response.ok) {
-        console.error('Server error details:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: responseText
-        });
-        throw new Error(`서버 응답 오류: ${response.status} ${response.statusText}`);
+        throw new Error(`서버 응답 오류: ${response.status}`);
       }
-  
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('서버 응답을 파싱할 수 없습니다.');
-      }
-  
-      console.log('Parsed response data:', data);
-  
-      // 페이지네이션 응답에서 content 배열 추출
+
+      const data = await response.json();
       const messageArray = data.content;
+
       if (!Array.isArray(messageArray)) {
-        console.error('Expected content to be array but got:', typeof messageArray);
         throw new Error('잘못된 응답 형식입니다.');
       }
-  
+
       const convertedMessages: Message[] = messageArray.map((msg: ApiMessage) => ({
         id: msg.id,
         roomId: msg.roomId,
@@ -142,21 +102,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         timestamp: msg.createdAt,
         messageType: 'CHAT'
       }));
-  
-      // 시간순으로 메시지 정렬 (오래된 순)
+
       const sortedMessages = convertedMessages.sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
-  
+
       setMessages(sortedMessages);
-      
-      // 메시지 설정 후 자동 스크롤
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-      
+      scrollToBottom();
     } catch (error) {
-      console.error('Message loading error details:', error);
       setError(error instanceof Error ? error.message : '메시지를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -165,7 +118,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
   useEffect(() => {
     let isSubscribed = true;
-  
+
     const initialize = async () => {
       try {
         if (isSubscribed) {
@@ -173,15 +126,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           await loadPreviousMessages();
         }
       } catch (error) {
-        console.error('초기화 중 오류:', error);
         if (isSubscribed) {
           setError('연결에 실패했습니다.');
         }
       }
     };
-  
+
     initialize();
-  
+
     return () => {
       isSubscribed = false;
       ChatService.unsubscribeFromRoom(roomId);
@@ -189,36 +141,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   }, [roomId, connectWebSocket, loadPreviousMessages]);
 
   const sendMessage = useCallback(async () => {
-    console.log('Send message attempted:', {
-      hasMessage: Boolean(newMessage.trim()),
-      isConnected,
-      hasToken: Boolean(accessToken)
-    });
-
-    if (!newMessage.trim()) {
-      console.log('Message is empty');
-      return;
-    }
-    if (!isConnected) {
-      console.log('WebSocket is not connected');
-      return;
-    }
-    if (!accessToken) {
-      console.log('No access token available');
+    if (!newMessage.trim() || !isConnected || !accessToken) {
       return;
     }
 
     try {
       const success = await ChatService.sendMessage(roomId, newMessage, accessToken);
       if (success) {
-        console.log('Message sent successfully');
         setNewMessage('');
       } else {
-        console.log('Failed to send message');
         setError('메시지 전송에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Error sending message:', error);
       setError('메시지 전송 중 오류가 발생했습니다.');
     }
   }, [newMessage, roomId, isConnected, accessToken]);
@@ -299,8 +233,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             keyExtractor={item => item.id}
             contentContainerStyle={styles.messagesList}
             inverted={false}
-            onContentSizeChange={() => scrollToBottom()} // 컨텐츠 크기 변경 시에도 스크롤
-            onLayout={() => scrollToBottom()} // 레이아웃 완료 시에도 스크롤
+            onContentSizeChange={() => scrollToBottom()}
+            onLayout={() => scrollToBottom()}
           />
         )}
 
@@ -313,27 +247,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
               placeholder="메시지를 입력하세요"
               multiline
             />
-            <View>
-              {/* 디버깅 정보 표시 */}
-              <Text style={styles.debugInfo}>
-                {`메시지: ${Boolean(newMessage.trim())}, 
-                  연결: ${isConnected}, 
-                  토큰: ${Boolean(accessToken)}`}
-              </Text>
-              {!isConnected && (
-                <Text style={styles.connectionWarning}>연결 중...</Text>
-              )}
-              <TouchableOpacity
-                onPress={sendMessage}
-                style={styles.sendButton}
-              >
-                <Ionicons 
-                  name="send" 
-                  size={24} 
-                  color="#007AFF"
-                />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={sendMessage}
+              style={styles.sendButton}
+            >
+              <Ionicons 
+                name="send" 
+                size={24} 
+                color="#007AFF"
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -342,12 +265,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 };
 
 const styles = StyleSheet.create({
-  connectionWarning: {
-    color: '#ff9500',
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
@@ -450,14 +367,6 @@ const styles = StyleSheet.create({
   sendButton: {
     marginLeft: 8,
     padding: 4,
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-  debugInfo: {
-    fontSize: 10,
-    color: '#999',
-    textAlign: 'right',
   },
 });
 

@@ -13,6 +13,15 @@ class ChatService {
   private readonly MAX_RETRIES = 3;
   private readonly RECONNECT_INTERVAL = 5000;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private messageCache: Map<string, Message[]> = new Map();
+
+  public getCachedMessages(roomId: string): Message[] {
+    return this.messageCache.get(roomId) || [];
+  }
+  
+  public setCachedMessages(roomId: string, messages: Message[]) {
+    this.messageCache.set(roomId, messages);
+  }
 
   // 읽음 상태 관리
   private readTimestamps: Map<string, string> = new Map(); // roomId -> timestamp
@@ -52,21 +61,21 @@ class ChatService {
     return this.client?.connected || false;
   }
 
-  async connect(token: string): Promise<void> {
+  async connect(token: string): Promise<boolean> {
     if (this.client?.connected) {
       console.log('Already connected');
-      return;
+      return true;
     }
   
     this.client = new Client({
       brokerURL: 'wss://i12a309.p.ssafy.io/ws-chat',
       connectHeaders: {
         Authorization: `Bearer ${token}`,
-        'accept-version': '1.1',  // 버전을 1.1로만 지정
+        'accept-version': '1.1',
         'heart-beat': '0,0'
       },
-      forceBinaryWSFrames: true,  // 바이너리 프레임 강제
-      appendMissingNULLonIncoming: true,  // NULL 바이트 추가
+      forceBinaryWSFrames: true,
+      appendMissingNULLonIncoming: true,
       debug: (str) => {
         console.log('STOMP Debug:', str);
       },
@@ -84,7 +93,7 @@ class ChatService {
       this.client!.onConnect = (frame) => {
         clearTimeout(connectionTimeout);
         console.log('Connected, frame:', frame);
-        resolve();
+        resolve(true);
       };
   
       this.client!.onStompError = (frame) => {
@@ -136,52 +145,64 @@ class ChatService {
     }
   }
 
-  subscribeToRoom(roomId: string, callback: (message: Message) => void) {
+  async subscribeToRoom(roomId: string, callback: (message: Message) => void) {
     if (!this.client?.connected) {
       console.warn('Cannot subscribe: WebSocket not connected');
       return;
     }
   
-    // 이미 구독 중인 경우 기존 구독 유지
-    if (this.subscriptions.has(roomId)) {
-      console.log(`Already subscribed to room: ${roomId}`);
-      return;
+    // 기존 구독이 있더라도, 실제로 활성화된 상태인지 확인
+    const existingSubscription = this.subscriptions.get(roomId);
+    if (existingSubscription) {
+      try {
+        // 구독 상태 확인을 위한 더미 메시지 전송
+        existingSubscription.send("");
+        console.log(`Existing subscription for room ${roomId} is active`);
+        return;
+      } catch (e) {
+        // 구독이 비활성 상태면 제거
+        console.log(`Removing inactive subscription for room ${roomId}`);
+        this.subscriptions.delete(roomId);
+      }
     }
   
-    console.log(`Subscribing to room: ${roomId}`);
-    const subscription = this.client.subscribe(
-      `/topic/chat-room/${roomId}`,
-      message => {
-        try {
-          console.log('Received WebSocket message:', message.body);
-          const apiMessage = JSON.parse(message.body) as ApiMessage;
-          
-          // ApiMessage를 Message 형식으로 변환
-          const convertedMessage: Message = {
-            id: apiMessage.id,
-            roomId: apiMessage.roomId,
-            senderId: apiMessage.senderId.toString(),
-            receiverId: apiMessage.receiverId.toString(),
-            content: apiMessage.content,
-            timestamp: apiMessage.createdAt,
-            messageType: apiMessage.messageType // 서버에서 온 messageType 그대로 사용
-          };
-  
-          console.log('Converted message:', convertedMessage);
-          callback(convertedMessage);
-        } catch (error) {
-          console.error('Error parsing message:', error);
+    console.log(`Creating new subscription for room: ${roomId}`);
+    return new Promise<void>((resolve) => {
+      // this.client는 null이 아님이 보장됨 (위에서 체크했으므로)
+      const client = this.client!;
+      const subscription = client.subscribe(
+        `/topic/chat-room/${roomId}`,
+        message => {
+          try {
+            console.log('Received WebSocket message:', message.body);
+            const apiMessage = JSON.parse(message.body) as ApiMessage;
+            
+            const convertedMessage: Message = {
+              id: apiMessage.id,
+              roomId: apiMessage.roomId,
+              senderId: apiMessage.senderId.toString(),
+              receiverId: apiMessage.receiverId.toString(),
+              content: apiMessage.content,
+              timestamp: apiMessage.createdAt,
+              messageType: apiMessage.messageType
+            };
+    
+            console.log('Converted message:', convertedMessage);
+            callback(convertedMessage);
+          } catch (error) {
+            console.error('Error parsing message:', error);
+          }
+        },
+        {
+          id: `room-${roomId}`,
+          Authorization: client.connectHeaders.Authorization
         }
-      },
-      {
-        id: `room-${roomId}`,
-        Authorization: this.client.connectHeaders.Authorization // Bearer 중복 제거
-      }
-    );
-  
-    this.subscriptions.set(roomId, subscription);
-    console.log(`Successfully subscribed to room: ${roomId}`);
-    return subscription;
+      );
+    
+      this.subscriptions.set(roomId, subscription);
+      console.log(`Successfully subscribed to room: ${roomId}`);
+      resolve();
+    });
   }
 
   private convertApiMessage(apiMessage: ApiMessage): Message {

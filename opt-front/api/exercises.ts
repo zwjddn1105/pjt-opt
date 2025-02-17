@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ServerResponse, Exercise, FetchExercisesResult } from '../types/exercise';
 
-const API_URL = 'http://70.12.246.176:8080';
+const API_URL = 'https://i12a309.p.ssafy.io';
 const FAVORITES_STORAGE_KEY = 'exercise_favorites';
 
 interface FetchExercisesParams {

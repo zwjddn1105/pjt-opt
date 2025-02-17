@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
 
-const API_URL = 'http://70.12.246.176:8080';
+const API_URL = 'https://i12a309.p.ssafy.io';
 
 // API 응답 타입
 export interface Media {
@@ -85,59 +85,40 @@ export const createExerciseRecord = async (formData: FormData): Promise<Exercise
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
 
-    // 요청 URL 확인
     const url = `${API_URL}/exercise-records`;
-    console.log('Making request to:', url);
+    console.log('Request URL:', url);
 
-    // 헤더 설정
+    // 모든 플랫폼에서 Content-Type 헤더 제거 (FormData가 자동으로 설정)
     const headers: any = {
       'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
+      'Accept': 'application/json',
     };
 
-    // Android에서는 Content-Type 설정
-    if (Platform.OS === 'android') {
-      headers['Content-Type'] = 'multipart/form-data';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    const responseText = await response.text();
+    console.log('Response status:', response.status);
+    console.log('Response text:', responseText);
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status} ${responseText}`);
+    }
+
+    if (!responseText) {
+      throw new Error('Empty response from server');
     }
 
     try {
-      // fetch 요청
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      const responseText = await response.text();
-      console.log('Response:', response.status, responseText);
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status} ${responseText}`);
-      }
-
-      // 빈 응답이 아닌 경우에만 JSON 파싱
-      return responseText ? JSON.parse(responseText) : null;
-
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        if (error.message.includes('Network request failed')) {
-          // Android 에뮬레이터에서 발생할 수 있는 네트워크 문제 해결 방법 제시
-          console.error('Network error. Please check:');
-          console.error('1. AndroidManifest.xml has INTERNET permission');
-          console.error('2. App allows cleartext traffic if using http');
-          console.error('3. Using correct IP address for emulator');
-          
-          Alert.alert(
-            '네트워크 오류',
-            '서버 연결에 실패했습니다. 다음을 확인해주세요:\n\n' +
-            '1. 서버가 실행 중인지 확인\n' +
-            '2. IP 주소가 올바른지 확인\n' +
-            '3. 에뮬레이터 네트워크 설정 확인'
-          );
-        }
-      }
-      throw error;
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      throw new Error('Invalid JSON response from server');
     }
+
   } catch (error) {
     console.error('Error in createExerciseRecord:', error);
     throw error;

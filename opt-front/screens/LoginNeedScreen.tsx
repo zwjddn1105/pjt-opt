@@ -12,6 +12,7 @@ import { Video, ResizeMode } from "expo-av";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from '../contexts/AuthContext';
 
 type RootStackParamList = {
   홈: undefined;
@@ -35,6 +36,7 @@ const LoginNeedScreen: React.FC = () => {
   const video = useRef<Video>(null);
   const navigation = useNavigation<LoginNeedScreenNavigationProp>();
   const [email, setEmail] = useState("");
+  const { login } = useAuth();
 
   const loginWithEmail = async () => {
     try {
@@ -52,13 +54,13 @@ const LoginNeedScreen: React.FC = () => {
       console.log('Login response:', data);
       const { accessToken, refreshToken, id, nickname, role } = data;
   
-      // 모든 필요한 데이터 저장
+      // AuthContext 상태 업데이트
+      await login(accessToken, id.toString(), role === "ROLE_USER" ? "USER" : "TRAINER");
+      
+      // AsyncStorage는 login 함수 내부에서 처리되므로 여기서는 refreshToken과 nickname만 추가로 저장
       await Promise.all([
-        AsyncStorage.setItem("token", accessToken),
         AsyncStorage.setItem("refreshToken", refreshToken),
         AsyncStorage.setItem("nickname", nickname),
-        AsyncStorage.setItem("userId", id.toString()),
-        AsyncStorage.setItem("userType", role === "ROLE_USER" ? "USER" : "TRAINER")
       ]);
   
       Alert.alert("로그인 성공", "환영합니다!");

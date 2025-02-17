@@ -97,14 +97,16 @@ public class ExerciseRecordService {
         exerciseRecordRepository.delete(exerciseRecord);
     }
 
+    @Transactional
     public void updateExerciseRecord(Integer exerciseRecordId,
                                      UpdateExerciseRecordRequest request,
-                                     List<MultipartFile> newMedias)
-            throws IOException {
+                                     List<MultipartFile> newMedias) throws IOException {
         ExerciseRecord exerciseRecord = exerciseRecordRepository.findById(exerciseRecordId).orElseThrow();
+        exerciseRecord.update(request.getSet(), request.getRep(), request.getWeight());
+
         List<ExerciseRecordMedia> medias = exerciseRecord.getMedias();
         for (ExerciseRecordMedia media : medias) {
-            if (request.getMediaIdsToDelete().contains(media.getId())) {
+            if (request.getMediaIdsToDelete() != null && request.getMediaIdsToDelete().contains(media.getId())) {
                 s3Service.deleteMedia(media.getMediaPath(), bucketName);
             }
         }

@@ -67,4 +67,11 @@ public class ExerciseRecord {
     public void prePersist() {
         this.createdAt = (this.createdAt == null) ? LocalDate.now() : this.createdAt;
     }
+
+    public void update(Integer sets, Integer rep, Integer weight) {
+        this.sets = sets;
+        this.rep = rep;
+        this.weight = weight;
+    }
+
 }

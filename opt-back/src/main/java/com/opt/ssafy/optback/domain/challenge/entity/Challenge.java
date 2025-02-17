@@ -18,10 +18,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicInsert;
 
 @Entity
 @Getter
 @Builder
+@DynamicInsert
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "challenge")
@@ -126,7 +128,6 @@ public class Challenge {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .currentParticipants(0)
-                .status(request.getStatus())
                 .maxParticipants(request.getMax_participants())
                 .frequency(request.getFrequency())
                 .progress(0F)

@@ -9,6 +9,7 @@ import lombok.Getter;
 public class SignInResponse {
     private Integer id;
     private String role;
+    private String imagePath;
     private String accessToken;
     private String refreshToken;
     private String nickname;
@@ -18,6 +19,7 @@ public class SignInResponse {
         return SignInResponse.builder()
                 .id(member.getId())
                 .role(member.getRole().name())
+                .imagePath(member.getImagePath())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .nickname(member.getNickname())

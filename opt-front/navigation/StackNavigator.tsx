@@ -1,3 +1,4 @@
+// navigation/StackNavigator.tsx
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BottomTabNavigator } from "./BottomTabNavigator";
 import KakaoLogin from "../screens/LoginScreen";
@@ -14,6 +15,7 @@ import PastChallengesScreen from "../screens/challenge/PastChallengesScreen";
 import ManageChallengeScreen from "../screens/challenge/ManageChallengeScreen";
 import CreateChallengeScreen from "../screens/challenge/CreateChallengeScreen";
 import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
+import ChatScreen from "../screens/chat/ChatScreen";
 import BadgeScreen from "../screens/BadgeScreen";
 import SettingScreen from "../screens/profile/SettingScreen";
 import AllChallengeScreen from "../screens/challenge/AllChallengeScreen";
@@ -45,6 +47,11 @@ export type RootStackParamList = {
   AllEndedChallenge: undefined;
   DetailChallenge: { challengeId: number };
   Badge: undefined;
+  Chat: {
+    roomId: string;
+    otherUserName: string;
+    otherUserType: 'USER' | 'TRAINER' | 'ADMIN';
+  };
   SettingScreen: undefined;
   OtherProfileScreen: { hostId: number };
   AuthChallengeScreen: { challengeId: number };
@@ -96,6 +103,7 @@ export const StackNavigator = () => {
         component={AuthChallengeScreen}
       />
       <Stack.Screen name="Badge" component={BadgeScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="SettingScreen" component={SettingScreen} />
     </Stack.Navigator>
   );

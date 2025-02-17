@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,75 +7,206 @@ import {
   Image,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type RootStackParamList = {
-  MainTabs: undefined;
-  ManagerChat: undefined;
-  TrainerChat: undefined;
-  UserChat: undefined;
-};
+import { RootStackParamList } from "../../navigation/StackNavigator";
+import { useChatStore } from '../../stores/chatStore';
+import { User, ApiChatRoom, ChatRoom } from '../../types/chat';
+import ChatService from '../../services/ChatService';
+import { chatApi } from '../../api/chatApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface ChatRoom {
-  id: string;
-  name: string;
-  lastMessage: string;
-  time: string;
-  profileImage: string;
-  isPinned?: boolean;
-}
-
-interface Follower {
-  id: string;
-  name: string;
-  profileImage: string;
-}
-
-export const DMScreen = () => {
+const DMScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [searchQuery, setSearchQuery] = React.useState<string>("");
-  const [isFollowerListVisible, setFollowerListVisible] = React.useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showUserList, setShowUserList] = useState(false);
+  const { rooms, roomIds, addRoom, clearRooms } = useChatStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const roomsArray = roomIds.map(id => rooms[id]);
 
-  const chatRooms: ChatRoom[] = [
-    {
-      id: "1",
-      name: "Manager",
-      lastMessage: "회원님의 회원권 첫 수강 곧 만료...",
-      time: "오후 1:28",
-      profileImage: "매니저프로필이미지경로",
-      isPinned: true,
-    },
-    {
-      id: "2",
-      name: "Trainer",
-      lastMessage: "오늘 세트를 좀 많이 했던데데 짝짝...",
-      time: "오후 1:28",
-      profileImage: "트레이너프로필이미지경로",
-      isPinned: true,
-    },
-    {
-      id: "3",
-      name: "User",
-      lastMessage: "오운레(오늘 운동 레전드) ㅋㅋ",
-      time: "오후 1:29",
-      profileImage: "일반회원프로필이미지경로",
-      isPinned: false,
-    },
+  const users: User[] = [
+    { id: 1, email: "a" },
+    { id: 2, email: "b@b" },
+    { id: 3, email: "c@c.com" },
+    { id: 4, email: "d@d.com" },
+    { id: 5, email: "e@example.com" },
+    { id: 6, email: "frank06@example.com" },
+    { id: 7, email: "grace07@example.com" },
+    { id: 8, email: "hank08@example.com" },
+    { id: 9, email: "ivy09@example.com" },
+    { id: 10, email: "jack10@example.com" },
   ];
 
-  const followers: Follower[] = [
-    { id: "1", name: "Follower1", profileImage: "팔로워1프로필이미지경로" },
-    { id: "2", name: "Follower2", profileImage: "팔로워2프로필이미지경로" },
-    { id: "3", name: "Follower3", profileImage: "팔로워3프로필이미지경로" },
-  ];
+  const loadChatRooms = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+  
+      const apiRooms = await chatApi.getChatRooms(token);
+      const currentUserId = parseInt(await AsyncStorage.getItem('userId') || '0');
+  
+      clearRooms();
+  
+      apiRooms.forEach((apiRoom: ApiChatRoom) => {
+        let userType: 'USER' | 'TRAINER' | 'ADMIN' = 'USER';
+        
+        if (apiRoom.participants.includes(0)) {
+          userType = 'ADMIN';
+        }
+        
+        const chatRoom: ChatRoom = {
+          id: apiRoom.id,
+          name: apiRoom.otherMemberNickname || apiRoom.roomName || '알 수 없음',
+          lastMessage: apiRoom.lastMessage || "새로운 채팅방이 생성되었습니다.",
+          time: new Date().toLocaleTimeString('ko-KR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          userType: userType,
+          unreadCount: 0
+        };
+  
+        addRoom(chatRoom);
+      });
+    } catch (error) {
+      console.error('채팅방 목록 로드 오류:', error);
+      Alert.alert('오류', '채팅방 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clearRooms, addRoom]);
 
-  const filteredChatRooms = chatRooms.filter(
+  useFocusEffect(
+    useCallback(() => {
+      loadChatRooms();
+      return () => {
+        // 화면이 포커스를 잃을 때 정리할 작업이 있다면 여기에 추가
+      };
+    }, [loadChatRooms])
+  );
+
+  const setupWebSocket = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      if (!ChatService.isConnected()) {
+        await ChatService.connect(token);
+        
+        roomsArray.forEach(room => {
+          ChatService.subscribeToRoom(room.id, (message) => {
+            console.log(`Received message in room ${room.id}:`, message);
+          });
+        });
+      }
+    } catch (error) {
+      console.error('WebSocket setup error:', error);
+    }
+  }, [roomsArray]);
+
+  const createChatRoom = async (user: User) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('오류', '로그인이 필요합니다.');
+        return;
+      }
+  
+      const apiRoom = await chatApi.createChatRoom(user.id, token);
+      
+      const chatRoomData: ChatRoom = {
+        id: apiRoom.id,
+        name: user.email,
+        lastMessage: "새로운 채팅방이 생성되었습니다.",
+        time: new Date().toLocaleTimeString('ko-KR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        userType: 'USER',
+        unreadCount: 0
+      };
+  
+      addRoom(chatRoomData);
+      await loadChatRooms();
+  
+      if (!ChatService.isConnected()) {
+        await ChatService.connect(token);
+      }
+      
+      ChatService.subscribeToRoom(chatRoomData.id, (message) => {
+        console.log('New message received:', message);
+      });
+  
+      setShowUserList(false);
+      
+      navigation.navigate('Chat', {
+        roomId: chatRoomData.id,
+        otherUserName: chatRoomData.name,
+        otherUserType: chatRoomData.userType
+      });
+  
+    } catch (error) {
+      console.error('채팅방 생성 오류:', error);
+      if (error instanceof Error) {
+        Alert.alert('오류', `채팅방 생성에 실패했습니다: ${error.message}`);
+      } else {
+        Alert.alert('오류', '채팅방 생성에 실패했습니다.');
+      }
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    let wsCleanup = false;
+
+    const initialize = async () => {
+      if (!isMounted) return;
+
+      if (!wsCleanup && roomsArray.length > 0) {
+        const token = await AsyncStorage.getItem('token');
+        if (token && !ChatService.isConnected()) {
+          await ChatService.connect(token);
+          
+          roomsArray.forEach(room => {
+            ChatService.subscribeToRoom(room.id, (message) => {
+              console.log(`Received message in room ${room.id}:`, message);
+            });
+          });
+        }
+      }
+    };
+
+    initialize();
+
+    return () => {
+      isMounted = false;
+      wsCleanup = true;
+      roomsArray.forEach(room => {
+        ChatService.unsubscribeFromRoom(room.id);
+      });
+    };
+  }, [roomsArray]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const filteredChatRooms = roomsArray.filter(
     (room) =>
       room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       room.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
@@ -83,19 +214,22 @@ export const DMScreen = () => {
 
   const renderChatRoom = ({ item }: { item: ChatRoom }) => (
     <TouchableOpacity
-      onPress={() => {
-        if (item.name === "Manager") {
-          navigation.navigate("ManagerChat");
-        } else if (item.name === "Trainer") {
-          navigation.navigate("TrainerChat");
-        } else if (item.name === "User") {
-          navigation.navigate("UserChat");
-        }
-      }}
+      onPress={() => navigation.navigate('Chat', {
+        roomId: item.id,
+        otherUserName: item.name,
+        otherUserType: item.userType
+      })}
     >
-      <View style={styles.chatRoomContainer}>
+      <View style={[
+        styles.chatRoomContainer,
+        item.userType === 'TRAINER' && styles.trainerChatRoom
+      ]}>
         <Image
-          source={{ uri: item.profileImage }}
+          source={{ 
+            uri: item.userType === 'TRAINER' 
+              ? "trainer-profile-image" 
+              : "user-profile-image" 
+          }}
           style={styles.profileImage}
         />
         <View style={styles.chatInfo}>
@@ -107,15 +241,18 @@ export const DMScreen = () => {
     </TouchableOpacity>
   );
 
-  const renderFollower = ({ item }: { item: Follower }) => (
-    <TouchableOpacity>
-      <View style={styles.chatRoomContainer}>
+  const renderUser = ({ item }: { item: User }) => (
+    <TouchableOpacity
+      style={styles.userItem}
+      onPress={() => createChatRoom(item)}
+    >
+      <View style={styles.userInfo}>
         <Image
-          source={{ uri: item.profileImage }}
+          source={{ uri: "user-profile-image" }}
           style={styles.profileImage}
         />
-        <View style={styles.chatInfo}>
-          <Text style={styles.name}>{item.name}</Text>
+        <View>
+          <Text style={styles.userEmail}>{item.email}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -127,7 +264,9 @@ export const DMScreen = () => {
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => {
-              if (navigation.canGoBack()) {
+              if (showUserList) {
+                setShowUserList(false);
+              } else if (navigation.canGoBack()) {
                 navigation.goBack();
               }
             }}
@@ -135,22 +274,28 @@ export const DMScreen = () => {
           >
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>nickname</Text>
-          <TouchableOpacity
-            onPress={() => setFollowerListVisible(!isFollowerListVisible)}
-            style={styles.addButton}
-          >
-            <Ionicons name="add" size={24} color="black" />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {showUserList ? '팔로우 목록' : '채팅'}
+          </Text>
+          <View style={styles.addButtonContainer}>
+            {!showUserList && (
+              <TouchableOpacity
+                onPress={() => setShowUserList(true)}
+                style={styles.addButton}
+              >
+                <Ionicons name="add" size={24} color="black" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {isFollowerListVisible ? (
+        {showUserList ? (
           <View style={styles.contentContainer}>
-            <Text style={styles.sectionTitle}>팔로워</Text>
+            <Text style={styles.sectionTitle}>사용자 목록</Text>
             <FlatList
-              data={followers}
-              renderItem={renderFollower}
-              keyExtractor={(item) => item.id}
+              data={users}
+              renderItem={renderUser}
+              keyExtractor={(item) => item.id.toString()}
             />
           </View>
         ) : (
@@ -172,11 +317,16 @@ export const DMScreen = () => {
                 />
               </View>
             </View>
-            <Text style={styles.sectionTitle}>메시지</Text>
             <FlatList
               data={filteredChatRooms}
               renderItem={renderChatRoom}
               keyExtractor={(item) => item.id}
+              extraData={rooms}
+              ListEmptyComponent={() => (
+                <View style={styles.emptyContainer}>
+                  <Text>채팅방이 없습니다.</Text>
+                </View>
+              )}
             />
           </View>
         )}
@@ -199,27 +349,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    justifyContent: "flex-start",
   },
   backButton: {
-    marginRight: 8,
     padding: 4,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: 'center',
+  },
+  addButtonContainer: {
+    width: 32,
+    alignItems: 'center',
   },
   addButton: {
     padding: 4,
-    marginLeft: "auto",
   },
   searchContainer: {
     padding: 8,
-  },
-  searchInput: {
-    flex: 1,
-    padding: 8,
-    fontSize: 16,
   },
   searchInputWrapper: {
     flexDirection: "row",
@@ -227,6 +375,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     borderRadius: 8,
     paddingHorizontal: 10,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 8,
+    fontSize: 16,
   },
   searchIcon: {
     marginRight: 8,
@@ -270,6 +423,34 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  trainerChatRoom: {
+    backgroundColor: '#f8f8f8',
+  },
+  userItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userEmail: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 12,
+  },
+  userType: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
 });
 

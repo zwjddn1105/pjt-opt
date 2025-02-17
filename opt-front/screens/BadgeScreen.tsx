@@ -1,93 +1,73 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  ScrollView, 
+  Dimensions, 
+  TouchableOpacity, 
+  Image, 
+  ActivityIndicator, 
+  Alert 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BADGES } from '../data/badges';
-import { Badge } from '../types/badge';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { fetchBadges } from '../api/badges';
 
-type BadgeScreenProps = {
-    navigation: NativeStackNavigationProp<any>;
-  };
+interface Badge {
+  id: number;
+  name: string;
+  description: string;
+  imagePath: string;
+}
 
-  const BadgeScreen: React.FC<BadgeScreenProps> = ({ navigation }) => {
+const BadgeScreen = ({ navigation }) => {
   const screenWidth = Dimensions.get('window').width;
   const itemSize = (screenWidth - 48) / 3;
+  const [badges, setBadges] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const getBadgeColor = (badge: Badge) => {
-    if (!badge.isUnlocked) return '#333333';
-    switch (badge.level) {
-      case 3:
-        return '#FFD700'; // 골드
-      case 2:
-        return '#C0C0C0'; // 실버
-      default:
-        return '#CD7F32'; // 브론즈
-    }
-  };
+  useEffect(() => {
+    const loadBadges = async () => {
+      try {
+        const data = await fetchBadges();
+        setBadges(data);
+      } catch (error) {
+        Alert.alert('오류', '뱃지 정보를 불러오는데 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const renderBadgeProgress = (badge: Badge) => {
-    if (!badge.requiredCount || !badge.currentCount) return null;
-    
-    const progress = (badge.currentCount / badge.requiredCount) * 100;
-    return (
-      <Text style={styles.progressText}>
-        {badge.currentCount}/{badge.requiredCount}
-      </Text>
-    );
-  };
+    loadBadges();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={32}
-            color="#000000"
-          />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialCommunityIcons name="chevron-left" size={32} color="#000000" />
         </TouchableOpacity>
       </View>
       <ScrollView>
         <Text style={styles.title}>운동</Text>
         <Text style={styles.subtitle}>새로운 기록과 뱃지로 목표를 달성해 보세요</Text>
-        <View style={styles.badgeContainer}>
-          {BADGES.map((badge) => (
-            <View
-              key={badge.id}
-              style={[
-                styles.badgeItem,
-                { width: itemSize, height: itemSize + 40 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: getBadgeColor(badge) },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={badge.icon as any}
-                  size={itemSize * 0.4}
-                  color={badge.isUnlocked ? '#000000' : '#666666'}
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#000" />
+        ) : (
+          <View style={styles.badgeContainer}>
+            {badges.map((badge) => (
+              <View key={badge.id} style={[styles.badgeItem, { width: itemSize, height: itemSize + 40 }]}> 
+                <Image 
+                  source={{ uri: `http://70.12.246.176:8080${badge.imagePath}` }} 
+                  style={styles.badge} 
                 />
+                <Text style={styles.badgeTitle} numberOfLines={2}>{badge.name}</Text>
+                <Text style={styles.progressText}>{badge.description}</Text>
               </View>
-              <Text
-                style={[
-                  styles.badgeTitle,
-                  { color: badge.isUnlocked ? '#000000' : '#666666' },
-                ]}
-                numberOfLines={2}
-              >
-                {badge.title}
-              </Text>
-              {renderBadgeProgress(badge)}
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -97,7 +77,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    },
+  },
   header: {
     height: 50,
     flexDirection: 'row',
@@ -133,18 +113,17 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 50,
     marginBottom: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   badgeTitle: {
     fontSize: 12,
     textAlign: 'center',
-    color: '#FFFFFF',
+    color: '#000000',
     marginBottom: 4,
   },
   progressText: {
     fontSize: 10,
     color: '#999999',
+    textAlign: 'center',
   },
 });
 

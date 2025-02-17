@@ -557,7 +557,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     width: 24,
   },
-  // 트레이너 카드 스타일
   trainerCard: {
     width: 300,
     marginHorizontal: 5,

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -13,24 +14,23 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import PlusButton from "../components/PlusButton";
-import ExerciseModal from "../components/ExerciseModal";
+import ExerciseModal from "../components/ExerciseModal/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
-interface ExerciseRecord {
-  id: string;
-  exerciseId: string;
-  date: string;
-  minutes: number;
-  sets: number;
-  weight: number;
-  reps: number;
-}
+import { fetchExercises } from "../api/exercises";
+import { fetchExerciseRecords, deleteExerciseRecord, type ExerciseRecord, type Media } from "../api/exerciseRecords";
+import EditExerciseModal from "../components/EditExerciseModal";
 
-interface Exercise {
-  id: string;
-  name: string;
-  isFavorite: boolean;
-  imageSource: any;
+interface MarkedDates {
+  [date: string]: {
+    dots?: Array<{
+      key: string;
+      color: string;
+      selectedDotColor: string;
+    }>;
+    selected?: boolean;
+    selectedColor?: string;
+  };
 }
 
 interface FoodRecord {
@@ -49,55 +49,27 @@ export const CalendarScreen = () => {
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<ExerciseRecord | null>(null);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [foodRecords, setFoodRecords] = useState<FoodRecord[]>([]);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [isLoading, setIsLoading] = useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const loadExercises = async () => {
+  const loadExerciseRecords = async (date: string) => {
     try {
-      const exercisesData = [
-        {
-          id: "1",
-          name: "바벨 백스쿼트",
-          isFavorite: false,
-          imageSource: null,
-        },
-        {
-          id: "2",
-          name: "프론트 스쿼트",
-          isFavorite: false,
-          imageSource: null,
-        },
-        { id: "3", name: "저처 스쿼트", isFavorite: false, imageSource: null },
-        {
-          id: "4",
-          name: "바벨 불가리안 스플릿 스쿼트",
-          isFavorite: false,
-          imageSource: null,
-        },
-        {
-          id: "5",
-          name: "덤벨 불가리안 스플릿 스쿼트",
-          isFavorite: false,
-          imageSource: null,
-        },
-      ];
-      setExercises(exercisesData);
-    } catch (error) {
-      console.error("Failed to load exercises:", error);
-    }
-  };
-
-  const loadRecords = async () => {
-    try {
-      const records = await AsyncStorage.getItem("exerciseRecords");
-      if (records) {
-        setExerciseRecords(JSON.parse(records));
-      }
+      setIsLoading(true);
+      const records = await fetchExerciseRecords(date);
+      setExerciseRecords(records);
     } catch (error) {
       console.error("Failed to load exercise records:", error);
+      Alert.alert(
+        "오류",
+        "운동 기록을 불러오는데 실패했습니다.",
+        [{ text: "확인" }]
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -114,42 +86,24 @@ export const CalendarScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      loadExercises();
-      loadRecords();
+      loadExerciseRecords(selectedDate);
       loadFoodRecords();
-    }, [])
+    }, [selectedDate])
   );
-
-  const getExerciseName = (exerciseId: string) => {
-    const exercise = exercises.find((ex) => ex.id === exerciseId);
-    return exercise ? exercise.name : "알 수 없는 운동";
-  };
 
   const handleFoodButtonPress = () => {
     navigation.navigate("Food", { date: selectedDate });
   };
 
-  const handleDeleteRecord = async (recordToDelete: ExerciseRecord) => {
+  const handleDeleteRecord = async (record: ExerciseRecord) => {
     Alert.alert("운동 기록 삭제", "이 운동 기록을 삭제하시겠습니까?", [
       { text: "취소" },
       {
         text: "삭제",
         onPress: async () => {
           try {
-            // 날짜와 exerciseId로 정확히 비교
-            const updatedRecords = exerciseRecords.filter(
-              (record) =>
-                !(
-                  new Date(record.date).toISOString().split("T")[0] ===
-                    new Date(recordToDelete.date).toISOString().split("T")[0] &&
-                  record.exerciseId === recordToDelete.exerciseId
-                )
-            );
-            await AsyncStorage.setItem(
-              "exerciseRecords",
-              JSON.stringify(updatedRecords)
-            );
-            setExerciseRecords(updatedRecords);
+            await deleteExerciseRecord(record.id);
+            await loadExerciseRecords(selectedDate);
           } catch (error) {
             console.error("Failed to delete exercise record:", error);
             Alert.alert("오류", "삭제 중 문제가 발생했습니다.");
@@ -159,13 +113,13 @@ export const CalendarScreen = () => {
     ]);
   };
 
-  const filteredRecords = exerciseRecords.filter((record) => {
-    const recordDate = record.date; // date가 이미 YYYY-MM-DD 형식으로 저장되어 있음
-    return recordDate === selectedDate;
-  });
+  const handleEditRecord = (record: ExerciseRecord) => {
+    setSelectedRecord(record);
+    setEditModalVisible(true);
+  };
 
   const renderExerciseRecords = () => {
-    if (filteredRecords.length === 0) {
+    if (exerciseRecords.length === 0) {
       return (
         <View style={styles.spacer}>
           <Text style={styles.spacerText}>
@@ -177,29 +131,51 @@ export const CalendarScreen = () => {
 
     return (
       <View style={styles.recordsContainer}>
-        {filteredRecords.map((record, index) => (
-          <View key={`${record.exerciseId}-${index}`} style={styles.recordItem}>
+        {exerciseRecords.map((record) => (
+          <View key={record.id} style={styles.recordItem}>
             <View style={styles.recordHeader}>
-              <Text style={styles.exerciseName}>
-                {getExerciseName(record.exerciseId)}
-              </Text>
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleDeleteRecord(record);
-                }}
-                style={styles.deleteButton}
-              >
-                <Ionicons name="trash-outline" size={20} color="#FF0000" />
-              </TouchableOpacity>
+              <View style={styles.exerciseInfoContainer}>
+                {record.exerciseImage && (
+                  <Image
+                    source={{ uri: record.exerciseImage }}
+                    style={styles.exerciseImage}
+                  />
+                )}
+                <Text style={styles.exerciseName}>{record.exerciseName}</Text>
+              </View>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  onPress={() => handleEditRecord(record)}
+                  style={styles.editButton}
+                >
+                  <Ionicons name="pencil-outline" size={20} color="#666" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDeleteRecord(record)}
+                  style={styles.deleteButton}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#FF0000" />
+                </TouchableOpacity>
+              </View>
             </View>
             <View style={styles.recordDetails}>
               <Text style={styles.recordText}>
-                {record.minutes}분{record.sets ? ` · ${record.sets}세트` : ""}
-                {record.weight ? ` · ${record.weight}kg` : ""}
-                {record.reps ? ` · ${record.reps}회` : ""}
+                {record.sets}세트 · {record.rep}회 · {record.weight}kg
+                {record.duration ? ` · ${record.duration}분` : ''}
+                {record.distance ? ` · ${record.distance}km` : ''}
               </Text>
             </View>
+            {record.medias && record.medias.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaContainer}>
+                {record.medias.map((media) => (
+                  <Image
+                    key={media.id}
+                    source={{ uri: media.path }}
+                    style={styles.mediaImage}
+                  />
+                ))}
+              </ScrollView>
+            )}
           </View>
         ))}
       </View>
@@ -243,24 +219,24 @@ export const CalendarScreen = () => {
     );
   };
 
+  const handleDateSelect = (day: DateData) => {
+    setSelectedDate(day.dateString);
+  };
+
   const getMarkedDates = () => {
-    const marked: any = {};
-
-    // 운동 기록이 있는 날짜에 파란색 점 추가
-    exerciseRecords.forEach((record) => {
-      const date = record.date;
-      if (!marked[date]) {
-        marked[date] = { dots: [] };
+    const marked: MarkedDates = {};
+  
+    // 현재 선택된 날짜의 운동 기록들이므로, selectedDate를 사용
+    if (exerciseRecords.length > 0) {
+      if (!marked[selectedDate]) {
+        marked[selectedDate] = { dots: [] };
       }
-
-      if (!marked[date].dots.some((dot: any) => dot.key === "exercise")) {
-        marked[date].dots.push({
-          key: "exercise",
-          color: "#007AFF", // 운동은 파란색 유지
-          selectedDotColor: "white",
-        });
-      }
-    });
+      marked[selectedDate].dots?.push({
+        key: "exercise",
+        color: "#007AFF",
+        selectedDotColor: "white",
+      });
+    }
 
     // 식단 기록이 있는 날짜에 보라색 점 추가
     foodRecords.forEach((record) => {
@@ -269,16 +245,16 @@ export const CalendarScreen = () => {
         marked[date] = { dots: [] };
       }
 
-      if (!marked[date].dots.some((dot: any) => dot.key === "meal")) {
+      if (marked[date].dots && !marked[date].dots.some(dot => dot.key === "meal")) {
         marked[date].dots.push({
           key: "meal",
-          color: "#8E44AD", // 식단은 보라색으로 변경
+          color: "#8E44AD",
           selectedDotColor: "white",
         });
       }
     });
 
-    // 선택된 날짜 표시 (dots 유지하면서)
+    // 선택된 날짜 표시
     if (selectedDate) {
       marked[selectedDate] = {
         ...marked[selectedDate],
@@ -296,7 +272,7 @@ export const CalendarScreen = () => {
       <ScrollView style={styles.container} bounces={false}>
         <View style={styles.calendarContainer}>
           <Calendar
-            onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
+            onDayPress={handleDateSelect}
             markedDates={getMarkedDates()}
             markingType="multi-dot"
             theme={{
@@ -326,7 +302,7 @@ export const CalendarScreen = () => {
             initialDate={today}
           />
         </View>
-        {selectedDate ? (
+        {selectedDate && (
           <View>
             <View style={styles.divider} />
             <Text style={styles.dateText}>{selectedDate}</Text>
@@ -340,14 +316,30 @@ export const CalendarScreen = () => {
               <PlusButton onPress={handleFoodButtonPress} />
             </View>
           </View>
-        ) : null}
+        )}
 
         <ExerciseModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
-          onSave={loadRecords} // 저장 시 기록 다시 로드
-          selectedDate={selectedDate} // 선택된 날짜 전달
+          onSave={() => loadExerciseRecords(selectedDate)}
+          selectedDate={selectedDate}
         />
+
+        {selectedRecord && (
+          <EditExerciseModal
+            visible={editModalVisible}
+            onClose={() => {
+              setEditModalVisible(false);
+              setSelectedRecord(null);
+            }}
+            onSave={() => {
+              loadExerciseRecords(selectedDate);
+              setEditModalVisible(false);
+              setSelectedRecord(null);
+            }}
+            record={selectedRecord}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -358,9 +350,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  calendarContainer: {
-    // paddingTop: 10,
-  },
+  calendarContainer: {},
   dateText: {
     fontSize: 18,
     textAlign: "left",
@@ -433,6 +423,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  exerciseInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  exerciseImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButton: {
+    padding: 5,
+    marginRight: 10,
+  },
+  mediaContainer: {
+    marginTop: 10,
+    flexDirection: 'row',
+  },
+  mediaImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 10,
+  },
 });
-
-export default CalendarScreen;

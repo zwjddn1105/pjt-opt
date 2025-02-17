@@ -8,16 +8,6 @@ import { RootStackParamList } from "../navigation/StackNavigator";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL, EXPO_PUBLIC_API_KEY } from "@env";
 
-// type RootStackParamList = {
-//   홈: undefined;
-//   LoginNeedScreen: { returnScreen: string } | undefined;
-//   DMScreen: undefined;
-//   ProfileScreen: { profileData: any };
-//   Main: {
-//     screen?: string;
-//   };
-// };
-
 const REST_API_KEY = EXPO_PUBLIC_API_KEY;
 const REDIRECT_URI = `${EXPO_PUBLIC_BASE_URL}/auth/kakao`;
 const INJECTED_JAVASCRIPT = `

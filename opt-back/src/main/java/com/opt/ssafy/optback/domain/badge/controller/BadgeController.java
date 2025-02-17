@@ -1,7 +1,9 @@
 package com.opt.ssafy.optback.domain.badge.controller;
 
 import com.opt.ssafy.optback.domain.badge.dto.BadgeResponse;
+import com.opt.ssafy.optback.domain.badge.dto.MemberBadgeResponse;
 import com.opt.ssafy.optback.domain.badge.entity.Badge;
+import com.opt.ssafy.optback.domain.badge.entity.MemberBadge;
 import com.opt.ssafy.optback.domain.badge.service.BadgeService;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,4 +31,14 @@ public class BadgeController {
         return ResponseEntity.ok(badgeResponses);
     }
 
+    // 내가 가진 뱃지만 조회
+    @GetMapping("/my")
+    public ResponseEntity<List<MemberBadgeResponse>> getBadgeById() {
+        List<MemberBadge> badges = badgeService.findBadgesByMemberId();
+        List<MemberBadgeResponse> badgeResponses = new ArrayList<>();
+        for (MemberBadge badge : badges) {
+            badgeResponses.add(new MemberBadgeResponse(badge));
+        }
+        return ResponseEntity.ok(badgeResponses);
+    }
 }

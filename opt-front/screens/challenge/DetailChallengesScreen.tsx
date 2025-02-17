@@ -119,15 +119,18 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         if (!refreshToken) throw new Error("Refresh token not found");
 
         // 특정 챌린지 기록 가져오기
-        const individualResponse = await axios.get(
-          `${BASE_URL}/challenges/record/${challengeId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
-          }
-        );
-        setIndividualRecord(individualResponse.data);
+        if (challenge.status !== "OPEN") {
+          const individualResponse = await axios.get(
+            `${BASE_URL}/challenges/record/${challengeId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${refreshToken}`,
+              },
+            }
+          );
+          setIndividualRecord(individualResponse.data);
+        }
+
         if (challenge.type === "TEAM") {
           const contributionsResponse = await axios.get(
             `${BASE_URL}/challenges/${challengeId}/contributions`,
@@ -184,7 +187,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
         </View>
-
         {/* 콘텐츠 */}
         <View style={styles.contentContainer}>
           {/* 호스트 정보 */}
@@ -208,6 +210,9 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>
+            </View>
+            <View>
+              <Text>어떻게나오지</Text>
             </View>
           </View>
           {/* 챌린지 카드 */}
@@ -243,28 +248,38 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               </Text>
             </View>
           </View>
-          <View style={styles.rowContainer}>
-            <Text style={styles.rankText}>챌린지 진행도</Text>
-          </View>
+          {challenge.type === "TEAM" && contributions && (
+            <View style={styles.rowContainer}>
+              <Text style={styles.rankText}>챌린지 진행도</Text>
+            </View>
+          )}
           {challenge.type === "TEAM" && contributions && (
             <ContributionChart contributions={contributions} />
           )}
 
           <View style={styles.rowContainer}>
             {/* 현재 나의 등수 */}
-            <Text style={styles.rankText}>
-              현재 나의 등수: {individualRecord?.rank}/
-              {individualRecord?.currentParticipant}
-            </Text>
+            {challenge.status !== "OPEN" && (
+              <Text style={styles.rankText}>
+                현재 나의 등수: {individualRecord?.rank}/
+                {individualRecord?.currentParticipant}
+              </Text>
+            )}
+            {challenge.status === "OPEN" && (
+              <Text style={styles.rankText}>챌린지가 시작되기 전입니다!</Text>
+            )}
+
             {/* 인증하기 버튼 */}
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={() => {
-                navigation.navigate("AuthChallengeScreen", { challengeId });
-              }}
-            >
-              <Text style={styles.authButtonText}>인증하기</Text>
-            </TouchableOpacity>
+            {challenge.status === "PROGRESS" && (
+              <TouchableOpacity
+                style={styles.authButton}
+                onPress={() => {
+                  navigation.navigate("AuthChallengeScreen", { challengeId });
+                }}
+              >
+                <Text style={styles.authButtonText}>인증하기</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.progressSection}>
             <View style={styles.profileAndTextContainer}>

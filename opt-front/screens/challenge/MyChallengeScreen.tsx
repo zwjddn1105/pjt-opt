@@ -354,6 +354,7 @@ const styles = StyleSheet.create({
   },
   challengeCard: {
     width: cardWidth,
+    height: 220,
     marginRight: 12,
     backgroundColor: "#fff",
     borderRadius: 15,

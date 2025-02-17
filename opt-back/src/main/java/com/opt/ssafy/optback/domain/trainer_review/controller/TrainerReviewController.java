@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.trainer_review.controller;
 
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequest;
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewResponse;
+import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewSummaryResponse;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import com.opt.ssafy.optback.domain.trainer_review.service.TrainerReviewImageService;
 import com.opt.ssafy.optback.domain.trainer_review.service.TrainerReviewService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,7 +55,13 @@ public class TrainerReviewController {
     // 작성자(=로그인 멤버) 리뷰 조회
     @GetMapping
     public ResponseEntity<Page<TrainerReviewResponse>> getReviewsByMyId(Pageable pageable) {
-        Page<TrainerReviewResponse> responseDtos = trainerReviewService.getReviewsByreviewerId(pageable);
+        Page<TrainerReviewResponse> responseDtos = trainerReviewService.getReviewsByReviewerId(pageable);
         return ResponseEntity.ok(responseDtos);
     }
+
+    @GetMapping("/summary")
+    public ResponseEntity<TrainerReviewSummaryResponse> getReviewSummary(@RequestParam Integer trainerId) {
+        return ResponseEntity.ok(trainerReviewService.getReviewSummary(trainerId));
+    }
+
 }

@@ -3,9 +3,11 @@ package com.opt.ssafy.optback.domain.trainer_review.service;
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
+import com.opt.ssafy.optback.domain.trainer_detail.Service.TrainerDetailService;
 import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewRequest;
 import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewResponse;
+import com.opt.ssafy.optback.domain.trainer_review.dto.TrainerReviewSummaryResponse;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotFoundException;
 import com.opt.ssafy.optback.domain.trainer_review.exception.TrainerReviewNotSaveException;
@@ -28,6 +30,7 @@ public class TrainerReviewService {
     private final TrainerReviewImageService trainerReviewImageService;
     private final UserDetailsServiceImpl userDetailsService;
     private final TrainerDetailRepository trainerDetailRepository;
+    private final TrainerDetailService trainerDetailService;
 
     // 리뷰 저장
     @Transactional
@@ -96,7 +99,7 @@ public class TrainerReviewService {
     }
 
     // 멤버 ID(=로그인 멤버)로 리뷰 조회
-    public Page<TrainerReviewResponse> getReviewsByreviewerId(Pageable pageable) {
+    public Page<TrainerReviewResponse> getReviewsByReviewerId(Pageable pageable) {
 
         Member member = userDetailsService.getMemberByContextHolder();
         int reviewerId = member.getId();
@@ -105,6 +108,15 @@ public class TrainerReviewService {
                 .map(TrainerReviewResponse::new)
                 .toList();
         return new PageImpl<>(myReviews, pageable, myReviews.size());
+    }
+
+    public TrainerReviewSummaryResponse getReviewSummary(Integer trainerId) {
+        Integer count = trainerReviewRepository.countReviewsByTrainerId(trainerId);
+        Double averageRate = trainerReviewRepository.findAverageRatingByTrainerId(trainerId);
+        return TrainerReviewSummaryResponse.builder()
+                .count(count)
+                .averageRate(averageRate)
+                .build();
     }
 
 }

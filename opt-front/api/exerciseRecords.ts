@@ -85,21 +85,19 @@ export const createExerciseRecord = async (formData: FormData): Promise<Exercise
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
 
-    const url = `${API_URL}/exercise-records`;
+    // HTTP로 시도
+    const url = 'http://i12a309.p.ssafy.io/exercise-records';
     console.log('Request URL:', url);
-
-    // 모든 플랫폼에서 Content-Type 헤더 제거 (FormData가 자동으로 설정)
-    const headers: any = {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    };
 
     const response = await fetch(url, {
       method: 'POST',
-      headers,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
       body: formData,
     });
 
+    console.log('Response headers:', response.headers);
     const responseText = await response.text();
     console.log('Response status:', response.status);
     console.log('Response text:', responseText);
@@ -108,19 +106,21 @@ export const createExerciseRecord = async (formData: FormData): Promise<Exercise
       throw new Error(`Server error: ${response.status} ${responseText}`);
     }
 
-    if (!responseText) {
-      throw new Error('Empty response from server');
-    }
-
-    try {
-      return JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Error parsing response:', parseError);
-      throw new Error('Invalid JSON response from server');
-    }
-
+    return JSON.parse(responseText);
   } catch (error) {
-    console.error('Error in createExerciseRecord:', error);
+    console.error('Detailed error:', error);
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Network request failed')) {
+        // Android에서의 네트워크 문제 해결을 위한 상세 로깅
+        console.error('Network error details:');
+        console.error('1. Check if Android Manifest has INTERNET permission');
+        console.error('2. Check if app allows cleartext traffic');
+        console.error('3. Check if server is running and accessible');
+        console.error('4. Check if using correct API URL');
+      }
+    }
+    
     throw error;
   }
 };

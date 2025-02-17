@@ -12,7 +12,8 @@ import { Video, ResizeMode } from "expo-av";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from '../contexts/AuthContext';
+import axios from "axios";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 
 type RootStackParamList = {
   홈: undefined;
@@ -36,34 +37,27 @@ const LoginNeedScreen: React.FC = () => {
   const video = useRef<Video>(null);
   const navigation = useNavigation<LoginNeedScreenNavigationProp>();
   const [email, setEmail] = useState("");
-  const { login } = useAuth();
 
   const loginWithEmail = async () => {
     try {
-      const response = await fetch("https://i12a309.p.ssafy.io/auth/sign-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-  
-      if (!response.ok) {
-        throw new Error("로그인 실패");
-      }
-  
-      const data = await response.json();
-      console.log('Login response:', data);
-      const { accessToken, refreshToken, id, nickname, role } = data;
-  
-      // AuthContext 상태 업데이트
-      await login(accessToken, id.toString(), role === "ROLE_USER" ? "USER" : "TRAINER");
-      
-      // AsyncStorage는 login 함수 내부에서 처리되므로 여기서는 refreshToken과 nickname만 추가로 저장
-      await Promise.all([
-        AsyncStorage.setItem("refreshToken", refreshToken),
-        AsyncStorage.setItem("nickname", nickname),
-      ]);
-  
+      const response = await axios.post(
+        `${EXPO_PUBLIC_BASE_URL}/auth/sign-in`,
+        {
+          email,
+        }
+      );
+      console.log(response.data);
+      const refreshToken = response.data.refreshToken;
+      const role = response.data.role;
+      const id = response.data.id;
+      await AsyncStorage.setItem("refreshToken", refreshToken);
+      await AsyncStorage.setItem("role", role);
+      await AsyncStorage.setItem("memberId", String(id));
+      console.log(refreshToken);
+      console.log(role);
+      console.log(id);
       Alert.alert("로그인 성공", "환영합니다!");
+
       if (route.params?.returnScreen) {
         const screen = route.params.returnScreen as keyof RootStackParamList;
         if (screen === "Main") {
@@ -75,7 +69,16 @@ const LoginNeedScreen: React.FC = () => {
         navigation.replace("Main", { screen: "홈" });
       }
     } catch (error) {
-      Alert.alert("로그인 실패", "이메일을 확인해주세요.");
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error:", error.response?.data);
+        Alert.alert(
+          "로그인 실패",
+          error.response?.data?.message || "이메일을 확인해주세요."
+        );
+      } else {
+        console.error("Unexpected error:", error);
+        Alert.alert("로그인 실패", "알 수 없는 오류가 발생했습니다.");
+      }
     }
   };
 
@@ -105,8 +108,6 @@ const LoginNeedScreen: React.FC = () => {
           <Text style={styles.optText}>OPT</Text>
         </View>
 
-        {/* -------------------임시---------------- */}
-        {/* 이메일 입력창 */}
         <TextInput
           style={styles.input}
           placeholder="이메일을 입력하세요"
@@ -115,11 +116,9 @@ const LoginNeedScreen: React.FC = () => {
           onChangeText={setEmail}
           keyboardType="email-address"
         />
-        {/* 로그인 버튼 */}
         <TouchableOpacity style={styles.loginButton} onPress={loginWithEmail}>
           <Text style={styles.loginButtonText}>로그인</Text>
         </TouchableOpacity>
-        {/*---------- 여기까지가 임시 ------------*/}
 
         <TouchableOpacity
           style={styles.button}
@@ -156,11 +155,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 400, // 버튼을 아래로 내리기 위해 추가
+    marginTop: 400,
   },
   optContainer: {
     position: "absolute",
-    top: -220, // 상단에서 50 포인트 떨어진 위치
+    top: -220,
     alignSelf: "center",
   },
   optText: {
@@ -173,30 +172,30 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#FEE500",
-    paddingVertical: 20, // 세로 패딩 증가
-    paddingHorizontal: 20, // 가로 패딩 증가
-    borderRadius: 12, // 모서리 라운드 증가
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    width: "80%", // 버튼 너비 지정
-    justifyContent: "center", // 내용 가운데 정렬
+    width: "80%",
+    justifyContent: "center",
   },
   buttonText: {
-    fontSize: 22, // 폰트 크기 증가
+    fontSize: 22,
     color: "#000",
-    fontWeight: "800", // 폰트 두께 추가
+    fontWeight: "800",
   },
   icon: {
-    marginRight: 24, // 아이콘과 텍스트 사이 간격 증가
-    fontSize: 30, // 아이콘 크기 증가
+    marginRight: 24,
+    fontSize: 30,
   },
   laterLoginContainer: {
-    marginTop: 20, // 카카오 로그인 버튼 아래 여백
+    marginTop: 20,
   },
   laterLoginText: {
-    color: "#888888", // 회색 글자
-    fontSize: 16, // 적당한 폰트 크기
-    textDecorationLine: "underline", // 밑줄 추가 (선택사항)
+    color: "#888888",
+    fontSize: 16,
+    textDecorationLine: "underline",
   },
   input: {
     backgroundColor: "rgba(255, 255, 255, 0.8)",

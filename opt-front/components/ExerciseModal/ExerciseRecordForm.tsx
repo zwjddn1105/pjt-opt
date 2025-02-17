@@ -108,7 +108,7 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
       
       const formData = new FormData();
       
-      // 운동 기록 데이터
+      // 데이터를 단순 문자열로 추가
       const recordData = {
         exerciseId: exercise.id,
         set: parseInt(sets),
@@ -117,34 +117,29 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
         duration: duration ? parseInt(duration) : null
       };
   
-      // FormData에 JSON 문자열이 아닌 Blob으로 데이터 추가
-      const recordBlob = new Blob([JSON.stringify(recordData)], {
-        type: 'application/json'
-      });
-      formData.append('data', recordBlob, 'data.json');
+      formData.append('data', JSON.stringify(recordData));
   
       // 미디어 파일 추가
       if (selectedMedias.length > 0) {
         selectedMedias.forEach((media, index) => {
+          // Android/iOS에서 작동하는 방식으로 파일 추가
           const fileNameMatch = media.uri.match(/[^/]+$/);
           const fileName = fileNameMatch ? fileNameMatch[0] : `image${index}.jpg`;
           
-          formData.append(`medias`, {
-            uri: media.uri,
+          formData.append('medias', {
+            uri: Platform.OS === 'android' ? media.uri : media.uri.replace('file://', ''),
             type: media.type === 'video' ? 'video/mp4' : 'image/jpeg',
             name: fileName,
           } as any);
         });
       }
   
-      // FormData 내용 로깅
-      console.log('FormData contents:');
-      for (const pair of (formData as any).entries()) {
-        console.log(pair[0], pair[1]);
-      }
+      console.log('Sending form data:', {
+        data: recordData,
+        mediaCount: selectedMedias.length
+      });
   
       const response = await createExerciseRecord(formData);
-      console.log('Server response:', response);
       
       if (response) {
         onSave?.();
@@ -157,8 +152,6 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
       if (error instanceof Error) {
         if (error.message.includes('Network request failed')) {
           errorMessage = '서버 연결에 실패했습니다. 네트워크 연결을 확인해주세요.';
-        } else if (error.message.includes('415')) {
-          errorMessage = '데이터 형식이 올바르지 않습니다.';
         }
       }
       

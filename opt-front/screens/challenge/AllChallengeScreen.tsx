@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
-
+import { BottomTabNavigator } from "navigation/BottomTabNavigator";
 type RootStackParamList = {
   AllOngoingChallenge: undefined;
   AllUpComingChallenge: undefined;

@@ -1,7 +1,7 @@
 // navigation/StackNavigator.tsx
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BottomTabNavigator } from "./BottomTabNavigator";
-import KakaoLogin from "../screens/LoginScreen";
+import LoginScreen from "../screens/LoginScreen";
 import DMScreen from "../screens/chat/DMScreen";
 import LoginNeedScreen from "../screens/LoginNeedScreen";
 import FoodScreen from "../screens/FoodScreen";
@@ -27,7 +27,7 @@ import OtherProfileScreen from "screens/profile/OtherProfileScreen";
 import AuthChallengeScreen from "screens/challenge/AuthChallengeScreen";
 export type RootStackParamList = {
   Main: undefined;
-  KakaoLogin: undefined;
+  LoginScreen: undefined;
   DMScreen: undefined;
   LoginNeedScreen: undefined;
   Food: { date: string };
@@ -50,7 +50,7 @@ export type RootStackParamList = {
   Chat: {
     roomId: string;
     otherUserName: string;
-    otherUserType: 'USER' | 'TRAINER' | 'ADMIN';
+    otherUserType: "USER" | "TRAINER" | "ADMIN";
   };
   SettingScreen: undefined;
   OtherProfileScreen: { hostId: number };
@@ -63,7 +63,7 @@ export const StackNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={BottomTabNavigator} />
-      <Stack.Screen name="KakaoLogin" component={KakaoLogin} />
+      <Stack.Screen name="LoginScreen" component={LoginScreen} />
       <Stack.Screen name="DMScreen" component={DMScreen} />
       <Stack.Screen name="LoginNeedScreen" component={LoginNeedScreen} />
       <Stack.Screen name="Food" component={FoodScreen} />

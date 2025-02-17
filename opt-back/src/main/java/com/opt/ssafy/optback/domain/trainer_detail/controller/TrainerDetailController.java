@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.trainer_detail.controller;
 
+import com.opt.ssafy.optback.domain.member.repository.TrainerSpecialtyRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.Service.TrainerDetailService;
 import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerDetailResponse;
 import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerSearchRequest;
@@ -23,12 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class TrainerDetailController {
 
     private final TrainerDetailService trainerService;
+    private final TrainerSpecialtyRepository trainerSpecialtyRepository;
 
     // 트레이너 상세 정보 조회
     @GetMapping("/details/{trainer_id}")
     public ResponseEntity<TrainerDetailResponse> getTrainerByTrainerId(@PathVariable("trainer_id") int trainerId) {
-        TrainerDetail response = trainerService.findById(trainerId);
-        return ResponseEntity.ok(new TrainerDetailResponse(response));
+        TrainerDetailResponse response = trainerService.getTrainerDetail(trainerId);
+        return ResponseEntity.ok(response);
     }
 
     // 트레이너 검색
@@ -36,16 +38,25 @@ public class TrainerDetailController {
     public ResponseEntity<Page<TrainerDetailResponse>> getSearchTrainers(
             @RequestBody TrainerSearchRequest request, Pageable pageable) {
         List<TrainerDetail> trainers = trainerService.searchAndSortTrainers(request);
-        List<TrainerDetailResponse> responses = trainers.stream().map(TrainerDetailResponse::new).toList();
+
+        List<TrainerDetailResponse> responses = trainers.stream()
+                .map(trainer -> new TrainerDetailResponse(trainer,
+                        trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId())))
+                .toList();
+
         return ResponseEntity.ok(convertListToPage(responses, pageable));
     }
 
-    // 트레이너 추천
     @PostMapping("/recommends")
     public ResponseEntity<Page<TrainerDetailResponse>> getRecommendTrainers(
             @RequestBody TrainerSearchRequest request, Pageable pageable) {
         List<TrainerDetail> trainers = trainerService.getRecommendedTrainers(request);
-        List<TrainerDetailResponse> responses = trainers.stream().map(TrainerDetailResponse::new).toList();
+
+        List<TrainerDetailResponse> responses = trainers.stream()
+                .map(trainer -> new TrainerDetailResponse(trainer,
+                        trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId())))
+                .toList();
+
         return ResponseEntity.ok(convertListToPage(responses, pageable));
     }
 

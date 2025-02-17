@@ -1,9 +1,7 @@
 package com.opt.ssafy.optback.domain.follow.api;
 
 import com.opt.ssafy.optback.domain.follow.application.FollowService;
-import com.opt.ssafy.optback.domain.follow.dto.FollowDto;
-import com.opt.ssafy.optback.domain.follow.entity.Follow;
-import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.follow.dto.FollowResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,16 +15,16 @@ public class FollowController {
     private final FollowService followService;
 
     @GetMapping("/following")
-    public ResponseEntity<List<FollowDto>> getFollowing() {
+    public ResponseEntity<List<FollowResponse>> getFollowing() {
         return ResponseEntity.ok(followService.getFollowingList().stream()
-                .map(FollowDto::fromEntity)
+                .map(FollowResponse::fromEntity)
                 .toList());
     }
 
     @GetMapping("/follower")
-    public ResponseEntity<List<FollowDto>> getFollower() {
+    public ResponseEntity<List<FollowResponse>> getFollower() {
         return ResponseEntity.ok(followService.getFollowerList().stream()
-                .map(FollowDto::fromEntity)
+                .map(FollowResponse::fromEntity)
                 .toList());
     }
 

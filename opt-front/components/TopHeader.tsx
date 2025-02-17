@@ -6,12 +6,14 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import ProfileButton from "./ProfileButton";
 import SendButton from "./SendButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 
 type RootStackParamList = {
   홈: undefined;
-  LoginNeedScreen: undefined;
+  LoginNeedScreen: { returnScreen: string } | undefined;
   DMScreen: undefined;
-  TrainerProfile: undefined;
+  ProfileScreen: { profileData: any };
   Main: {
     screen?: string;
   };
@@ -20,19 +22,39 @@ type RootStackParamList = {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const TopHeader = () => {
+  const BASE_URL = EXPO_PUBLIC_BASE_URL;
   const navigation = useNavigation<NavigationProp>();
 
   const handleProfilePress = async () => {
-    const token = await AsyncStorage.getItem("userToken");
-    if (token) {
-      // 프로필 화면으로 이동하는 로직 (아직 미구현)
-    } else {
-      navigation.navigate("TrainerProfile");
+    try {
+      const id = await AsyncStorage.getItem("memberId");
+      console.log(id);
+      if (id) {
+        const numericId = parseInt(id, 10); // 문자열을 숫자로 변환
+        if (isNaN(numericId)) {
+          throw new Error("Invalid id format");
+        }
+        const response = await axios.get(`${BASE_URL}/profile/${numericId}`);
+        if (response.status === 200) {
+          navigation.navigate("ProfileScreen", { profileData: response.data });
+        } else {
+          console.error("프로필 데이터를 가져오는데 실패했습니다.");
+        }
+      } else {
+        navigation.navigate("LoginNeedScreen", {
+          returnScreen: "ProfileScreen",
+        });
+      }
+    } catch (error) {
+      console.error("프로필 요청 중 오류 발생:", error);
+      navigation.navigate("LoginNeedScreen", { returnScreen: "ProfileScreen" });
     }
   };
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("refreshToken");
+      await AsyncStorage.removeItem("id");
       navigation.reset({
         index: 0,
         routes: [{ name: "Main", params: { screen: "홈" } }],
@@ -77,6 +99,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     height: 50,
     backgroundColor: "#fff",
+    marginBottom: 10,
   },
   leftContainer: {
     flexDirection: "row",

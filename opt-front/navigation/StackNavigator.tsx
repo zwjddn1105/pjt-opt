@@ -7,16 +7,22 @@ import FoodScreen from "../screens/FoodScreen";
 import ManagerChatScreen from "../screens/chat/ManagerChatScreen";
 import TrainerChatScreen from "../screens/chat/TrainerChatScreen";
 import UserChatScreen from "../screens/chat/UserChatScreen";
-import TrainerProfileScreen from "../screens/TrainerProfileScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
 import OngoingChallengesScreen from "../screens/challenge/OngoingChallengesScreen";
 import AppliedChallengesScreen from "../screens/challenge/AppliedChallengesScreen";
 import PastChallengesScreen from "../screens/challenge/PastChallengesScreen";
 import ManageChallengeScreen from "../screens/challenge/ManageChallengeScreen";
 import CreateChallengeScreen from "../screens/challenge/CreateChallengeScreen";
 import MyChallengeScreen from "../screens/challenge/MyChallengeScreen";
-import BadgeScreen from '../screens/BadgeScreen';
-import SettingScreen from '../screens/SettingScreen';
-
+import BadgeScreen from "../screens/BadgeScreen";
+import SettingScreen from "../screens/profile/SettingScreen";
+import AllChallengeScreen from "../screens/challenge/AllChallengeScreen";
+import AllOngoingChallengesScreen from "../screens/challenge/AllOngoingChallengesScreen";
+import AllUpComingChallengesScreen from "../screens/challenge/AllUpComingChallengesScreen";
+import AllEndedChallengesScreen from "../screens/challenge/AllEndedChallengesScreen";
+import DetailChallengeScreen from "../screens/challenge/DetailChallengesScreen";
+import OtherProfileScreen from "screens/profile/OtherProfileScreen";
+import AuthChallengeScreen from "screens/challenge/AuthChallengeScreen";
 export type RootStackParamList = {
   Main: undefined;
   KakaoLogin: undefined;
@@ -26,15 +32,22 @@ export type RootStackParamList = {
   ManagerChat: undefined;
   TrainerChat: undefined;
   UserChat: undefined;
-  TrainerProfile: undefined;
+  ProfileScreen: { profileData: any };
   OngoingChallenges: undefined;
   AppliedChallenges: undefined;
   PastChallenges: undefined;
   ManageChallenge: undefined;
   CreateChallenge: undefined;
   MyChallenge: undefined;
+  AllChallenges: undefined;
+  AllOngoingChallenge: undefined;
+  AllUpComingChallenge: undefined;
+  AllEndedChallenge: undefined;
+  DetailChallenge: { challengeId: number };
   Badge: undefined;
-  Setting: undefined;
+  SettingScreen: undefined;
+  OtherProfileScreen: { hostId: number };
+  AuthChallengeScreen: { challengeId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -50,7 +63,8 @@ export const StackNavigator = () => {
       <Stack.Screen name="ManagerChat" component={ManagerChatScreen} />
       <Stack.Screen name="TrainerChat" component={TrainerChatScreen} />
       <Stack.Screen name="UserChat" component={UserChatScreen} />
-      <Stack.Screen name="TrainerProfile" component={TrainerProfileScreen} />
+      <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+      <Stack.Screen name="OtherProfileScreen" component={OtherProfileScreen} />
       <Stack.Screen
         name="OngoingChallenges"
         component={OngoingChallengesScreen}
@@ -59,12 +73,30 @@ export const StackNavigator = () => {
         name="AppliedChallenges"
         component={AppliedChallengesScreen}
       />
+      <Stack.Screen name="AllChallenges" component={AllChallengeScreen} />
       <Stack.Screen name="PastChallenges" component={PastChallengesScreen} />
       <Stack.Screen name="ManageChallenge" component={ManageChallengeScreen} />
       <Stack.Screen name="CreateChallenge" component={CreateChallengeScreen} />
       <Stack.Screen name="MyChallenge" component={MyChallengeScreen} />
+      <Stack.Screen
+        name="AllOngoingChallenge"
+        component={AllOngoingChallengesScreen}
+      />
+      <Stack.Screen
+        name="AllUpComingChallenge"
+        component={AllUpComingChallengesScreen}
+      />
+      <Stack.Screen
+        name="AllEndedChallenge"
+        component={AllEndedChallengesScreen}
+      />
+      <Stack.Screen name="DetailChallenge" component={DetailChallengeScreen} />
+      <Stack.Screen
+        name="AuthChallengeScreen"
+        component={AuthChallengeScreen}
+      />
       <Stack.Screen name="Badge" component={BadgeScreen} />
-      <Stack.Screen name="Setting" component={SettingScreen} />
+      <Stack.Screen name="SettingScreen" component={SettingScreen} />
     </Stack.Navigator>
   );
 };

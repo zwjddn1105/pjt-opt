@@ -1,5 +1,4 @@
-// ManageChallengeScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,23 +7,44 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Modal,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { TopHeader } from "../../components/TopHeader";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 type RootStackParamList = {
   CreateChallenge: undefined;
+  DetailChallenge: { challengeId: number };
 };
 
 type Challenge = {
-  id: string;
+  id: number;
+  type: string;
   title: string;
-  subtitle: string;
-  recruitmentPeriod: string;
-  targetAudience: string;
-  support: string;
+  description: string;
+  reward: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  currentParticipants: number;
+  maxParticipants: number;
+  progress: number;
+  exerciseType: string;
+  exerciseCount: number;
+};
+const BASE_URL = EXPO_PUBLIC_BASE_URL;
+
+const getRefreshToken = async () => {
+  try {
+    return await AsyncStorage.getItem("refreshToken");
+  } catch (error) {
+    console.error("Error retrieving refresh token:", error);
+    return null;
+  }
 };
 
 const ManageChallengesScreen = () => {
@@ -35,25 +55,30 @@ const ManageChallengesScreen = () => {
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(
     null
   );
-  const [challenges, setChallenges] = useState<Challenge[]>([
-    {
-      id: "1",
-      title: "서울시 청년도전 지원사업",
-      subtitle: "X-CHALLENGE SEOUL",
-      recruitmentPeriod: "2024.01.01 ~ 2024.12.31",
-      targetAudience: "만 19세 ~ 39세 청년",
-      support: "활동지원금 최대 300만원",
-    },
-    {
-      id: "2",
-      title: "환경보호 챌린지",
-      subtitle: "SAVE THE EARTH",
-      recruitmentPeriod: "2024.03.01 ~ 2024.06.30",
-      targetAudience: "전 연령",
-      support: "환경보호 키트 제공",
-    },
-    // 추가 더미 데이터...
-  ]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const refreshToken = await getRefreshToken();
+        if (!refreshToken) throw new Error("Refresh token not found");
+
+        const response = await axios.get<Challenge[]>(
+          `${BASE_URL}/challenges/created`,
+          {
+            headers: {
+              Authorization: `Bearer ${refreshToken}`,
+            },
+          }
+        );
+        setChallenges(response.data);
+      } catch (error) {
+        console.error("챌린지 불러오기 실패:", error);
+      }
+    };
+
+    fetchChallenges();
+  }, []);
 
   const renderSectionHeader = (title: string) => (
     <View style={styles.sectionHeader}>
@@ -66,19 +91,35 @@ const ManageChallengesScreen = () => {
     setModalVisible(true);
   };
 
-  const deleteChallenge = () => {
+  const deleteChallenge = async () => {
     if (selectedChallenge) {
-      setChallenges((prevChallenges) =>
-        prevChallenges.filter(
-          (challenge) => challenge.id !== selectedChallenge.id
-        )
-      );
-      setConfirmModalVisible(false);
-      setModalVisible(false);
+      try {
+        const refreshToken = await AsyncStorage.getItem("refreshToken");
+        if (!refreshToken) throw new Error("Refresh token not found");
+        await axios.delete(`${BASE_URL}/challenges/${selectedChallenge.id}`, {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        });
+
+        // 삭제 성공 후 로컬 상태 업데이트
+        setChallenges((prevChallenges) =>
+          prevChallenges.filter(
+            (challenge) => challenge.id !== selectedChallenge.id
+          )
+        );
+
+        setConfirmModalVisible(false);
+        setModalVisible(false);
+        Alert.alert("삭제 완료", "챌린지가 성공적으로 삭제되었습니다.");
+      } catch (error) {
+        console.error("챌린지 삭제 실패:", error);
+        Alert.alert("삭제 실패", "챌린지 삭제 중 오류가 발생했습니다.");
+      }
     }
   };
 
-  const renderChallengeCard = (challenge: Challenge, index: number) => (
+  const renderChallengeCard = (challenge: Challenge) => (
     <TouchableOpacity
       key={challenge.id}
       style={styles.challengeCard}
@@ -86,20 +127,22 @@ const ManageChallengesScreen = () => {
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{challenge.title}</Text>
-        <Text style={styles.cardSubtitle}>{challenge.subtitle}</Text>
+        <Text style={styles.cardSubtitle}>{challenge.type}</Text>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>모집기간</Text>
-          <Text style={styles.infoValue}>{challenge.recruitmentPeriod}</Text>
+          <Text style={styles.infoLabel}>기간</Text>
+          <Text
+            style={styles.infoValue}
+          >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>지원대상</Text>
-          <Text style={styles.infoValue}>{challenge.targetAudience}</Text>
+          <Text style={styles.infoLabel}>상태</Text>
+          <Text style={styles.infoValue}>{challenge.status}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>지원내용</Text>
-          <Text style={styles.infoValue}>{challenge.support}</Text>
+          <Text style={styles.infoLabel}>설명</Text>
+          <Text style={styles.infoValue}>{challenge.description}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -117,20 +160,26 @@ const ManageChallengesScreen = () => {
           <TouchableOpacity
             style={styles.modalButton}
             onPress={() => {
-              // 상세화면 보기 로직
+              if (selectedChallenge) {
+                navigation.navigate("DetailChallenge", {
+                  challengeId: selectedChallenge.id,
+                });
+              }
               setModalVisible(false);
             }}
           >
             <Text style={styles.modalButtonText}>챌린지 상세화면보기</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.deleteButton]}
-            onPress={() => {
-              setConfirmModalVisible(true); // 확인 모달 열기
-            }}
-          >
-            <Text style={styles.modalButtonText}>챌린지 삭제하기</Text>
-          </TouchableOpacity>
+          {selectedChallenge && selectedChallenge.status === "OPEN" && (
+            <TouchableOpacity
+              style={[styles.modalButton, styles.deleteButton]}
+              onPress={() => {
+                setConfirmModalVisible(true); // 확인 모달 열기
+              }}
+            >
+              <Text style={styles.modalButtonText}>챌린지 삭제하기</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setModalVisible(false)}
@@ -171,7 +220,19 @@ const ManageChallengesScreen = () => {
       </View>
     </Modal>
   );
-
+  const renderChallengeSection = (
+    title: string,
+    status: "OPEN" | "PROGRESS" | "END"
+  ) => (
+    <View style={styles.section}>
+      {renderSectionHeader(title)}
+      <View style={styles.cardContainer}>
+        {challenges
+          .filter((challenge) => challenge.status === status)
+          .map(renderChallengeCard)}
+      </View>
+    </View>
+  );
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
@@ -192,14 +253,9 @@ const ManageChallengesScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          {renderSectionHeader("내가 오픈 예정인 챌린지")}
-          <View style={styles.cardContainer}>
-            {challenges.map((challenge, index) =>
-              renderChallengeCard(challenge, index)
-            )}
-          </View>
-        </View>
+        {renderChallengeSection("내가 운영중인 챌린지", "PROGRESS")}
+        {renderChallengeSection("내가 오픈 예정인 챌린지", "OPEN")}
+        {renderChallengeSection("내가 열었던 챌린지", "END")}
       </ScrollView>
 
       {renderMainModal()}
@@ -253,6 +309,7 @@ const styles = StyleSheet.create({
   },
   challengeCard: {
     width: "48%",
+    height: 220,
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 16,

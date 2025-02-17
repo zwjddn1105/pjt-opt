@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Dimensions,
+  Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../../components/TopHeader";
-
+import axios from "axios";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 type RootStackParamList = {
   LoginNeedScreen: { returnScreen: string } | undefined;
   OngoingChallenges: undefined;
@@ -19,20 +22,122 @@ type RootStackParamList = {
   PastChallenges: undefined;
   ManageChallenge: undefined;
   MyChallengeScreen: undefined;
+  AllChallenges: undefined;
+  DetailChallenge: { challengeId: number }; // 수정: 파라미터 타입 지정
 };
 
-const MyChallengeScreen = () => {
+type Challenge = {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  reward: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+};
+type SectionNavigationParams = Pick<
+  RootStackParamList,
+  "OngoingChallenges" | "AppliedChallenges" | "PastChallenges"
+>;
+const BASE_URL = EXPO_PUBLIC_BASE_URL;
+
+const getRefreshToken = async () => {
+  try {
+    return await AsyncStorage.getItem("refreshToken");
+  } catch (error) {}
+};
+
+const fetchOngoingChallenges = async () => {
+  try {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) throw new Error("Refresh token not found");
+    const response = await axios.get<Challenge[]>(
+      `${BASE_URL}/challenges/participating`,
+      {
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("내가 참여 중인 챌린지 불러오기 실패:", error);
+    throw error;
+  }
+};
+
+const fetchAppliedChallenges = async () => {
+  try {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) throw new Error("Refresh token not found");
+    const response = await axios.get<Challenge[]>(
+      `${BASE_URL}/challenges/applied`,
+      {
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("내가 신청한 챌린지 불러오기 실패:", error);
+    throw error;
+  }
+};
+
+const fetchPastChallenges = async () => {
+  try {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) throw new Error("Refresh token not found");
+    const response = await axios.get<Challenge[]>(
+      `${BASE_URL}/challenges/past`,
+      {
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("내가 참여했던 챌린지 불러오기 실패:", error);
+    throw error;
+  }
+};
+
+const MyChallengeScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [isEnabled, setIsEnabled] = useState(true);
+
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const [ongoingChallenges, setOngoingChallenges] = useState<Challenge[]>([]);
+  const [appliedChallenges, setAppliedChallenges] = useState<Challenge[]>([]);
+  const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const toggleSwitch = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      navigation.navigate("AllChallenges");
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
 
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
         const refreshToken = await AsyncStorage.getItem("refreshToken");
+        const role = await AsyncStorage.getItem("role");
         setIsLoggedIn(refreshToken !== null);
+        setUserRole(role);
       } catch (error) {
         console.error("Error checking login status:", error);
         setIsLoggedIn(false);
@@ -50,6 +155,25 @@ const MyChallengeScreen = () => {
     }
   }, [isLoggedIn, navigation]);
 
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const ongoing = await fetchOngoingChallenges();
+        setOngoingChallenges(ongoing);
+
+        const applied = await fetchAppliedChallenges();
+        setAppliedChallenges(applied);
+
+        const past = await fetchPastChallenges();
+        setPastChallenges(past);
+      } catch (error) {
+        console.error("챌린지 데이터 불러오기 실패:", error);
+      }
+    };
+
+    fetchChallenges();
+  }, []);
+
   if (isLoggedIn === null) {
     return (
       <View>
@@ -60,7 +184,7 @@ const MyChallengeScreen = () => {
 
   const renderSectionHeader = (
     title: string,
-    navigateTo: keyof RootStackParamList
+    navigateTo: keyof SectionNavigationParams
   ) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -73,71 +197,122 @@ const MyChallengeScreen = () => {
     </View>
   );
 
+  const renderChallengeCard = (challenge: Challenge) => (
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("DetailChallenge", {
+          challengeId: challenge.id,
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <View style={styles.challengeCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{challenge.title}</Text>
+          <Text style={styles.cardSubtitle}>{challenge.type}</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>기간</Text>
+            <Text
+              style={styles.infoValue}
+            >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>상태</Text>
+            <Text style={styles.infoValue}>{challenge.status}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>보상</Text>
+            <Text style={styles.infoValue}>{challenge.reward}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
       <ScrollView style={styles.container}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity
-            style={styles.manageButton}
-            onPress={() => navigation.navigate("ManageChallenge")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.manageButtonText}>챌린지 관리</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toggleContainer}
-            onPress={toggleSwitch}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.toggleTrack,
-                isEnabled && styles.toggleTrackActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  isEnabled && styles.toggleTextActive,
-                ]}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.headerContainer}>
+            {userRole === "ROLE_TRAINER" && (
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={() => navigation.navigate("ManageChallenge")}
+                activeOpacity={0.8}
               >
-                MY
-              </Text>
-              <View
-                style={[
-                  styles.toggleThumb,
-                  isEnabled && styles.toggleThumbActive,
-                ]}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("내가 진행중인 챌린지", "OngoingChallenges")}
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-          ></ScrollView>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("내가 신청한 챌린지", "AppliedChallenges")}
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-          ></ScrollView>
-        </View>
-        <View style={styles.section}>
-          {renderSectionHeader("내가 참여했던 챌린지", "PastChallenges")}
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-          ></ScrollView>
-        </View>
+                <Text style={styles.manageButtonText}>챌린지 관리</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.toggleContainer}
+              onPress={toggleSwitch}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.toggleTrack]}>
+                <Text style={[styles.toggleText]}>MY</Text>
+                <View style={[styles.toggleThumb]} />
+              </View>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("내가 참여중인 챌린지", "OngoingChallenges")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {ongoingChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < ongoingChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("내가 신청한 챌린지", "AppliedChallenges")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {appliedChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < appliedChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.section}>
+            {renderSectionHeader("내가 참여했던 챌린지", "PastChallenges")}
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              {pastChallenges.map((challenge, index) => (
+                <React.Fragment key={challenge.id}>
+                  {renderChallengeCard(challenge)}
+                  {index % 2 === 0 && index < pastChallenges.length - 1 && (
+                    <View style={styles.cardSpacer} />
+                  )}
+                </React.Fragment>
+              ))}
+            </ScrollView>
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const { width } = Dimensions.get("window");
+const cardWidth = (width - 60) / 2;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -178,7 +353,8 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   challengeCard: {
-    width: 180,
+    width: cardWidth,
+    height: 220,
     marginRight: 12,
     backgroundColor: "#fff",
     borderRadius: 15,
@@ -193,6 +369,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  cardSpacer: {
+    width: 12,
   },
   cardHeader: {
     marginBottom: 20,
@@ -233,16 +412,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 15,
-    backgroundColor: "#767577",
+    backgroundColor: "#0C508B",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 4,
-  },
-  toggleTrackActive: {
-    backgroundColor: "#0C508B",
-  },
-  toggleTextActive: {
-    color: "#fff",
   },
   toggleThumb: {
     width: 24,
@@ -250,7 +423,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#f4f3f4",
     position: "absolute",
-    left: 4,
+    right: 4,
   },
   toggleText: {
     color: "#f4f3f4",
@@ -258,28 +431,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 8,
   },
-  toggleThumbActive: {
-    left: "auto",
-    right: 4,
-    backgroundColor: "#fff",
-  },
-  customToggle: {
-    width: 70,
-    height: 35,
-    borderRadius: 20,
-    backgroundColor: "#767577",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  customToggleActive: {
-    backgroundColor: "#0C508B",
-  },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingRight: 20,
     marginBottom: 10,
+    // paddingRight: 20,
   },
   manageButton: {
     paddingHorizontal: 12,
@@ -292,6 +449,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#fff",
     fontWeight: "500",
+  },
+  switchButton: {
+    width: 75, // 버튼 너비
+    height: 30, // 버튼 높이
+    borderRadius: 15, // 둥근 모서리
+    backgroundColor: "#0C508B", // 비활성화 상태의 배경색
+    flexDirection: "row", // 텍스트와 썸을 가로로 배치
+    alignItems: "center", // 수직 가운데 정렬
+    paddingHorizontal: 4, // 내부 여백
+  },
+
+  switchButtonText: {
+    color: "#fff", // 텍스트 색상
+    fontSize: 13, // 텍스트 크기
+    fontWeight: "bold", // 텍스트 굵기
+    marginLeft: 8, // 텍스트와 썸 사이 간격
+  },
+  switchThumb: {
+    width: 24, // 썸의 너비
+    height: 24, // 썸의 높이
+    borderRadius: 12, // 썸의 둥근 모서리
+    backgroundColor: "#f4f3f4", // 썸의 색상
+    position: "absolute", // 위치를 절대값으로 설정
+  },
+  switchThumbActive: {
+    right: 4, // 활성화 상태에서 오른쪽으로 이동
   },
 });
 

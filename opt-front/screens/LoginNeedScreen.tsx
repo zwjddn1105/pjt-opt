@@ -46,7 +46,6 @@ const LoginNeedScreen: React.FC = () => {
           email,
         }
       );
-      // console.log(EXPO_PUBLIC_BASE_URL);
       // console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
@@ -57,6 +56,7 @@ const LoginNeedScreen: React.FC = () => {
       console.log(refreshToken);
       console.log(role);
       console.log(id);
+      console.log(EXPO_PUBLIC_BASE_URL);
       Alert.alert("로그인 성공", "환영합니다!");
 
       if (route.params?.returnScreen) {

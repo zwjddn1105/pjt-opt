@@ -20,6 +20,7 @@ const INJECTED_JAVASCRIPT = `
 
 const KakaoLogin: React.FC = () => {
   const handleMessage = async (event: any) => {
+    const navigation = useNavigation();
     const data: string = event.nativeEvent.data;
     const codeMatch = data.match(/[?&]code=([^&]+)/);
 
@@ -31,7 +32,6 @@ const KakaoLogin: React.FC = () => {
         const response = await axios.post(
           `${EXPO_PUBLIC_BASE_URL}/auth/kakao-front?code=${authorizeCode}`
         );
-        console.log(EXPO_PUBLIC_BASE_URL);
         const { refreshToken } = await response.data;
         const { role } = await response.data;
         const { email } = await response.data;
@@ -40,11 +40,12 @@ const KakaoLogin: React.FC = () => {
         await AsyncStorage.setItem("role", role);
         await AsyncStorage.setItem("email", email);
         await AsyncStorage.setItem("memberId", String(id));
-        console.log(response.data);
         console.log(refreshToken);
         console.log(role);
         console.log(email);
         console.log(id);
+        console.log(EXPO_PUBLIC_BASE_URL);
+        console.log(response.data);
         Alert.alert("로그인 성공", "환영합니다!");
       } catch (error) {
         console.error("토큰 요청 중 에러 발생:", error);

@@ -19,11 +19,25 @@ public class KakaoMemberInfo {
         return kakaoAccount.getEmail();
     }
 
+    public String getProfileImageUrl() {
+        return kakaoAccount.getProfile().getProfileImageUrl();
+    }
+
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class KakaoAccount {
         private String email;
+
+        @JsonProperty("profile")
+        private Profile profile;
+    }
+
+    @Getter
+    public static class Profile {
+
+        @JsonProperty("profile_image_url")
+        private String profileImageUrl;
     }
 
 }

@@ -90,6 +90,7 @@ public class AuthService {
         System.out.println("🐿️ 받은 액세스 토큰: " + accessToken);
         KakaoMemberInfo kakaoMember = requestKakaoMemberInfo(accessToken);
         System.out.println("🐿️ 카카오 유저 정보: " + kakaoMember);
+        System.out.println(kakaoMember.getProfileImageUrl());
         if (accessToken == null || accessToken.isEmpty()) {
             throw new RuntimeException("카카오 엑세스 토큰을 확인할 수 없습니다");
         }
@@ -112,6 +113,7 @@ public class AuthService {
     private Member registerNewMember(KakaoMemberInfo kakaoMember) {
         Member newMember = Member.builder()
                 .email(kakaoMember.getEmail())
+                .imagePath(kakaoMember.getProfileImageUrl())
                 .role(Role.ROLE_USER)
                 .build();
         return memberRepository.save(newMember);

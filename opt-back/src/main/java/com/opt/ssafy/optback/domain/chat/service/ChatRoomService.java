@@ -8,6 +8,7 @@ import com.opt.ssafy.optback.domain.chat.exception.ChatRoomException;
 import com.opt.ssafy.optback.domain.chat.repository.ChatMessageRepository;
 import com.opt.ssafy.optback.domain.chat.repository.ChatRoomRepository;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -94,8 +95,9 @@ public class ChatRoomService {
 
         List<ChatRoom> chatRooms = chatRoomRepository.findByParticipantsContaining(memberId);
 
-        // 최근 메시지 순으로 정렬\
-        chatRooms.sort((Comparator.comparing(room -> getLastMessageContent(room.getId()), Comparator.reverseOrder())));
+        // 최근 메시지 순으로 정렬
+        chatRooms.sort((Comparator.comparing(room -> getLastMessageContent(room.getId()).getCreatedAt(),
+                Comparator.reverseOrder())));
 
         return chatRooms.stream()
                 .map(chatRoom -> buildChatRoomResponse(chatRoom, memberId))
@@ -104,7 +106,7 @@ public class ChatRoomService {
 
     private ChatRoomResponse buildChatRoomResponse(ChatRoom chatRoom, int userId) {
         String otherMemberNickname = getOtherMemberNickname(chatRoom.getParticipants(), userId);
-        String lastMessage = getLastMessageContent(chatRoom.getId());
+        ChatMessage lastMessage = getLastMessageContent(chatRoom.getId());
 
         return new ChatRoomResponse(chatRoom, otherMemberNickname, lastMessage);
     }
@@ -117,11 +119,10 @@ public class ChatRoomService {
                 .orElse("알 수 없음");
     }
 
-    private String getLastMessageContent(String roomId) {
+    private ChatMessage getLastMessageContent(String roomId) {
         return chatMessageRepository
                 .findTopByRoomIdOrderByCreatedAtDesc(roomId)
-                .map(ChatMessage::getContent)
-                .orElse("대화 없음");
+                .orElse(ChatMessage.builder().content("대화 없음").createdAt(LocalDateTime.MIN).build());
     }
 
 }

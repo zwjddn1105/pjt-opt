@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -140,7 +141,10 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               },
             }
           );
-          setContributions(contributionsResponse.data);
+          console.log(contributionsResponse);
+          if (contributionsResponse.data.length > 0) {
+            setContributions(contributionsResponse.data);
+          }
         }
       } catch (error) {
         console.error("챌린지 기록 불러오기 실패:", error);
@@ -210,9 +214,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>
-            </View>
-            <View>
-              <Text>어떻게나오지</Text>
             </View>
           </View>
           {/* 챌린지 카드 */}

@@ -25,10 +25,13 @@ const KakaoLogin: React.FC = () => {
 
     if (codeMatch && codeMatch[1]) {
       const authorizeCode = codeMatch[1];
+      // console.log(authorizeCode);
+      // return;
       try {
         const response = await axios.post(
           `${EXPO_PUBLIC_BASE_URL}/auth/kakao-front?code=${authorizeCode}`
         );
+        console.log(EXPO_PUBLIC_BASE_URL);
         const { refreshToken } = await response.data;
         const { role } = await response.data;
         const { email } = await response.data;

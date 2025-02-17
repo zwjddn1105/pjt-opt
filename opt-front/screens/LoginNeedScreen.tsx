@@ -46,7 +46,8 @@ const LoginNeedScreen: React.FC = () => {
           email,
         }
       );
-      console.log(response.data);
+      // console.log(EXPO_PUBLIC_BASE_URL);
+      // console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;

@@ -7,6 +7,15 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL, EXPO_PUBLIC_API_KEY } from "@env";
 
+type RootStackParamList = {
+  홈: undefined;
+  LoginNeedScreen: { returnScreen: string } | undefined;
+  Main: {
+    screen?: string;
+  };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const REST_API_KEY = EXPO_PUBLIC_API_KEY;
 const REDIRECT_URI = `${EXPO_PUBLIC_BASE_URL}/auth/kakao`;
 const INJECTED_JAVASCRIPT = `
@@ -20,6 +29,8 @@ const INJECTED_JAVASCRIPT = `
 
 const KakaoLogin: React.FC = () => {
   const handleMessage = async (event: any) => {
+    const navigation = useNavigation<NavigationProp>();
+
     const data: string = event.nativeEvent.data;
     const codeMatch = data.match(/[?&]code=([^&]+)/);
 
@@ -45,7 +56,15 @@ const KakaoLogin: React.FC = () => {
         console.log(role);
         console.log(email);
         console.log(id);
-        Alert.alert("로그인 성공", "환영합니다!");
+        Alert.alert("로그인 성공", "환영합니다!", [
+          {
+            text: "확인",
+            onPress: () => {
+              // 홈 화면으로 이동
+              navigation.navigate("홈"); // "홈" 화면으로 이동
+            },
+          },
+        ]);
       } catch (error) {
         console.error("토큰 요청 중 에러 발생:", error);
       }

@@ -85,12 +85,8 @@ public class AuthService {
 
     // 로그인 & 회원가입
     public SignInResponse kakaoLogin(String accessCode, HttpServletResponse httpServletResponse) {
-        System.out.println("🐿️ 서비스 엑세스 코드 확인: " + accessCode);
         String accessToken = requestKakaoAccessToken(accessCode);
-        System.out.println("🐿️ 받은 액세스 토큰: " + accessToken);
         KakaoMemberInfo kakaoMember = requestKakaoMemberInfo(accessToken);
-        System.out.println("🐿️ 카카오 유저 정보: " + kakaoMember);
-        System.out.println(kakaoMember.getProfileImageUrl());
         if (accessToken == null || accessToken.isEmpty()) {
             throw new RuntimeException("카카오 엑세스 토큰을 확인할 수 없습니다");
         }
@@ -148,6 +144,7 @@ public class AuthService {
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<KakaoMemberInfo> response = restTemplate.exchange(memberInfoUri, HttpMethod.GET, requestEntity,
                 KakaoMemberInfo.class);
+        System.out.println(response.getBody().toString());
         if (response.getBody() == null) {
             throw new RuntimeException("카카오 사용자 정보를 가져올 수 없습니다");
         }

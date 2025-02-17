@@ -28,11 +28,12 @@ export interface User {
 }
 
 export interface ApiChatRoom {
-  id: string;                     // 채팅방 ID
-  roomName: string | null;        // 룸 이름
-  participants: number[];         // 참여자 ID 리스트
-  otherMemberNickname: string;    // 상대방 닉네임
-  lastMessage: string;            // 마지막 메시지
+  id: string;                     
+  roomName: string | null;        
+  participants: number[];         
+  otherMemberNickname: string;    
+  lastMessage: string;            
+  lastMessageTime: string;
 }
 
 export interface ChatRoom {

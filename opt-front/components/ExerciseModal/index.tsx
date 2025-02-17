@@ -188,13 +188,13 @@ const ExerciseModal = ({ visible, onClose, onSave, selectedDate }: ExerciseModal
       }
 
       let errorMessage = '즐겨찾기 업데이트에 실패했습니다.';
-      if (error instanceof Error) {
-        if (error.message.includes('token')) {
-          errorMessage = '로그인이 필요합니다.';
-        } else if (error.message.includes('network')) {
-          errorMessage = '네트워크 연결을 확인해주세요.';
+        if (error instanceof Error) {
+          if (error.message.includes('No refresh token found')) {
+            errorMessage = '로그인이 필요합니다.';
+          } else if (error.message.includes('network')) {
+            errorMessage = '네트워크 연결을 확인해주세요.';
+          }
         }
-      }
 
       Alert.alert('오류', errorMessage, [{ text: '확인' }]);
     }

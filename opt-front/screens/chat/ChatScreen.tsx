@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ChatErrorView } from '../../components/ChatErrorView';
 import { ChatLoadingIndicator } from '../../components/ChatLoadingIndicator';
 import { ApiMessage, Message } from '../../types/chat';
+import { chatApi } from '../../api/chatApi';
 
 type ChatScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Chat'>;
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
@@ -31,7 +32,7 @@ interface ChatScreenProps {
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const { roomId, otherUserName, otherUserType } = route.params;
-  const { accessToken, userId: currentUserId } = useAuth();
+  const { userId: currentUserId } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -46,15 +47,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   }, []);
 
   const connectWebSocket = useCallback(async () => {
-    if (!accessToken) {
-      setError('인증 토큰이 없습니다. 다시 로그인해주세요.');
-      return;
-    }
-
     try {
       setError(null);
       if (!ChatService.isConnected()) {
-        await ChatService.connect(accessToken);
+        await ChatService.connect();
       }
       setIsConnected(true);
 
@@ -67,27 +63,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       setError('채팅 서버 연결에 실패했습니다.');
       setIsConnected(false);
     }
-  }, [accessToken, roomId]);
+  }, [roomId]);
 
   const loadPreviousMessages = useCallback(async () => {
     try {
-      const response = await fetch(
-        `https://i12a309.p.ssafy.io/chat-rooms/message?roomId=${roomId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`서버 응답 오류: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const messageArray = data.content;
+      const response = await chatApi.getChatMessages(roomId);
+      const messageArray = response.content;
 
       if (!Array.isArray(messageArray)) {
         throw new Error('잘못된 응답 형식입니다.');
@@ -114,7 +95,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, roomId]);
+  }, [roomId]);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -141,12 +122,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   }, [roomId, connectWebSocket, loadPreviousMessages]);
 
   const sendMessage = useCallback(async () => {
-    if (!newMessage.trim() || !isConnected || !accessToken) {
+    if (!newMessage.trim() || !isConnected) {
       return;
     }
 
     try {
-      const success = await ChatService.sendMessage(roomId, newMessage, accessToken);
+      const success = await ChatService.sendMessage(roomId, newMessage);
       if (success) {
         setNewMessage('');
       } else {
@@ -155,49 +136,56 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     } catch (error) {
       setError('메시지 전송 중 오류가 발생했습니다.');
     }
-  }, [newMessage, roomId, isConnected, accessToken]);
+  }, [newMessage, roomId, isConnected]);
 
   const renderMessage = ({ item }: { item: Message }) => {
-    const isOwnMessage = item.senderId === currentUserId;
+    // currentUserId와 senderId를 모두 문자열로 변환하여 비교
+    const isOwnMessage = item.senderId === currentUserId?.toString();
     const isSystemMessage = item.messageType === 'SYSTEM';
 
+    console.log('Message comparison:', {
+        messageSenderId: item.senderId,
+        currentUserId: currentUserId,
+        isOwnMessage: isOwnMessage
+    });
+
     return (
-      <View style={[
-        styles.messageContainer,
-        isOwnMessage ? styles.ownMessageContainer : null,
-        isSystemMessage ? styles.systemMessageContainer : null,
-      ]}>
-        {!isOwnMessage && !isSystemMessage && (
-          <Image
-            source={{ uri: otherUserType === 'TRAINER' ? 'trainer-profile-image' : 'user-profile-image' }}
-            style={styles.profileImage}
-          />
-        )}
         <View style={[
-          styles.messageContent,
-          isOwnMessage ? styles.ownMessageContent : null,
-          isSystemMessage ? styles.systemMessageContent : null,
+            styles.messageContainer,
+            isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
+            isSystemMessage ? styles.systemMessageContainer : null,
         ]}>
-          <Text style={[
-            styles.messageText,
-            isOwnMessage ? styles.ownMessageText : null,
-            isSystemMessage ? styles.systemMessageText : null,
-          ]}>
-            {item.content}
-          </Text>
-          <Text style={[
-            styles.timestamp,
-            isOwnMessage ? styles.ownTimestamp : null
-          ]}> 
-            {new Date(item.timestamp).toLocaleTimeString('ko-KR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
+            {!isOwnMessage && !isSystemMessage && (
+                <Image
+                    source={{ uri: otherUserType === 'TRAINER' ? 'trainer-profile-image' : 'user-profile-image' }}
+                    style={styles.profileImage}
+                />
+            )}
+            <View style={[
+                styles.messageContent,
+                isOwnMessage ? styles.ownMessageContent : styles.otherMessageContent,
+                isSystemMessage ? styles.systemMessageContent : null,
+            ]}>
+                <Text style={[
+                    styles.messageText,
+                    isOwnMessage ? styles.ownMessageText : null,
+                    isSystemMessage ? styles.systemMessageText : null,
+                ]}>
+                    {item.content}
+                </Text>
+                <Text style={[
+                    styles.timestamp,
+                    isOwnMessage ? styles.ownTimestamp : null
+                ]}>
+                    {new Date(item.timestamp).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    })}
+                </Text>
+            </View>
         </View>
-      </View>
     );
-  };
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -297,9 +285,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 16,
     alignItems: 'flex-end',
+    width: '100%',  // 추가
+  },
+  otherMessageContainer: {
+    justifyContent: 'flex-start',  // 추가: 다른 사람 메시지는 왼쪽 정렬
   },
   ownMessageContainer: {
-    flexDirection: 'row-reverse',
+    justifyContent: 'flex-end',    // 수정: 내 메시지는 오른쪽 정렬
+  },
+  otherMessageContent: {
+    backgroundColor: '#f0f0f0',
+    marginRight: 'auto',  // 추가: 왼쪽 정렬을 위해
+  },
+  ownMessageContent: {
+    backgroundColor: '#007AFF',
+    marginLeft: 'auto',   // 추가: 오른쪽 정렬을 위해
   },
   systemMessageContainer: {
     justifyContent: 'center',
@@ -315,9 +315,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 16,
     padding: 12,
-  },
-  ownMessageContent: {
-    backgroundColor: '#007AFF',
   },
   ownMessageText: {
     color: '#fff',

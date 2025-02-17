@@ -14,6 +14,9 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
+
+import { useAuth } from "../contexts/AuthContext";
+
 type RootStackParamList = {
   홈: undefined;
   MyChallenge: undefined;
@@ -36,6 +39,7 @@ const LoginNeedScreen: React.FC = () => {
   const video = useRef<Video>(null);
   const navigation = useNavigation<LoginNeedScreenNavigationProp>();
   const [email, setEmail] = useState("");
+  const { login } = useAuth();
 
   const loginWithEmail = async () => {
     try {
@@ -50,6 +54,7 @@ const LoginNeedScreen: React.FC = () => {
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;
+
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
@@ -57,6 +62,14 @@ const LoginNeedScreen: React.FC = () => {
       console.log(role);
       console.log(id);
       console.log(EXPO_PUBLIC_BASE_URL);
+
+      await login(refreshToken, String(id), role === 'TRAINER' ? 'TRAINER' : 'USER');
+      
+      console.log('Login successful:', {
+        refreshToken: refreshToken.substring(0, 10) + '...',
+        role,
+        id
+      });
       Alert.alert("로그인 성공", "환영합니다!");
 
       if (route.params?.returnScreen) {

@@ -1,14 +1,18 @@
-// api/chatApi.ts
 import { ApiChatRoom, ApiMessage, PaginatedResponse, CreateChatRoomResponse } from '../types/chat';
-
-const BASE_URL = 'https://i12a309.p.ssafy.io';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 
 export const chatApi = {
-  getChatRooms: async (accessToken: string): Promise<ApiChatRoom[]> => {
+  getChatRooms: async (): Promise<ApiChatRoom[]> => {
     try {
-      const response = await fetch(`${BASE_URL}/chat-rooms/list`, {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token found');
+      }
+
+      const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/chat-rooms/list`, {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${refreshToken}`
         },
       });
       
@@ -25,11 +29,16 @@ export const chatApi = {
     }
   },
 
-  getChatMessages: async (roomId: string, accessToken: string) => {
+  getChatMessages: async (roomId: string) => {
     try {
-      const response = await fetch(`${BASE_URL}/chat-rooms/message?roomId=${roomId}`, {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token found');
+      }
+
+      const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/chat-rooms/message?roomId=${roomId}`, {
         headers: { 
-          Authorization: `Bearer ${accessToken}` 
+          Authorization: `Bearer ${refreshToken}`
         },
       });
       
@@ -45,28 +54,33 @@ export const chatApi = {
     }
   },
 
-  createChatRoom: async (otherMemberId: number, accessToken: string): Promise<CreateChatRoomResponse> => {
+  createChatRoom: async (otherMemberId: number): Promise<CreateChatRoomResponse> => {
     try {
-      console.log('Creating chat room with otherMemberId:', otherMemberId); // 디버깅용 로그
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token found');
+      }
+
+      console.log('Creating chat room with otherMemberId:', otherMemberId);
       
-      const response = await fetch(`${BASE_URL}/chat-rooms/create?otherMemberId=${otherMemberId}`, {
+      const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/chat-rooms/create?otherMemberId=${otherMemberId}`, {
         method: 'POST',
         headers: { 
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${refreshToken}`,
           'Content-Type': 'application/json'
         }
       });
 
-      console.log('Response status:', response.status); // 디버깅용 로그
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response:', errorText); // 디버깅용 로그
+        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('Success response:', result); // 디버깅용 로그
+      console.log('Success response:', result);
       return result;
     } catch (error) {
       console.error('Failed to create chat room:', error);

@@ -130,27 +130,40 @@ export const deleteExerciseRecord = async (id: number): Promise<void> => {
   }
 };
 
-export const updateExerciseRecord = async (id: number, formData: FormData): Promise<void> => {
+export const updateExerciseRecord = async (id: number, formData: FormData): Promise<ExerciseRecord> => {
   try {
     const refreshToken = await AsyncStorage.getItem('refreshToken');
     if (!refreshToken) throw new Error('No refresh token found');
 
     console.log('Updating exercise record:', id);
+    console.log('FormData contents:');
+    for (let [key, value] of (formData as any).entries()) {
+      console.log(`${key}: ${value}`);
+    }
 
     const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records/${id}`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${refreshToken}`,
-        'Content-Type': 'multipart/form-data'  // 이 부분을 추가하세요
+        'Content-Type': 'multipart/form-data'
       },
       body: formData,
     });
 
+    // 응답 내용 로깅
     const responseText = await response.text();
-    
+    console.log('Server response:', responseText);
+
     if (!response.ok) {
-      console.error('Update error response:', responseText);
       throw new Error(`Failed to update exercise record: ${responseText}`);
+    }
+
+    // 응답이 JSON이 아닐 수 있으므로 조건부로 파싱
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      // JSON이 아닌 경우 성공으로 처리하고 빈 객체 반환
+      return {} as ExerciseRecord;
     }
   } catch (error) {
     console.error('Error in updateExerciseRecord:', error);

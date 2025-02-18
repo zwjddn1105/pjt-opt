@@ -1,54 +1,85 @@
-// api/searchTrainers.ts
+// api/searchTrainer.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { EXPO_PUBLIC_BASE_URL } from '@env';
 
 export interface TrainerResponse {
   trainer_id: number;
   gymId: number;
   intro: string;
-  experienceYears: number;
-  availableHours: string;
+  experienceYears: number | null;
+  availableHours: string | null;
   oneDayAvailable: boolean;
 }
 
-export interface SearchTrainerRequest {
-  myLatitude?: number | null;
-  myLongitude?: number | null;
-  name?: string | null;
-  address?: string | null;
-  interests?: string[] | null;
-  sortBy?: string | null;
+interface PageResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
 }
 
-const API_URL = 'http://70.12.246.176:8080';
+export interface TrainerSearchRequest {
+  myLatitude?: number | null;
+  myLongitude?: number | null;
+  page?: number;
+  size?: number;
+}
 
-export const searchTrainers = async (params: SearchTrainerRequest): Promise<TrainerResponse[]> => {
+export const getRecommendedTrainers = async (
+  params: TrainerSearchRequest = { page: 0, size: 10 }
+): Promise<PageResponse<TrainerResponse>> => {
   try {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) throw new Error('No authentication token found');
-
-    console.log('Requesting to:', `${API_URL}/trainers/search`);
-    console.log('With params:', params);
-
-    const response = await fetch(`${API_URL}/trainers/search`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const refreshToken = await AsyncStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('인증 정보가 없습니다. 다시 로그인해주세요.');
     }
 
-    const data = await response.json();
-    console.log('Response data:', data);
-    return data;
+    const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/trainers/recommends?page=${params.page}&size=${params.size}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${refreshToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        myLatitude: params.myLatitude,
+        myLongitude: params.myLongitude,
+      }),
+    });
+
+    const responseText = await response.text();
+    console.log('Server response:', response.status, responseText);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+      }
+      throw new Error('트레이너 목록을 불러오는데 실패했습니다.');
+    }
+
+    return JSON.parse(responseText);
   } catch (error) {
-    console.error('API Error details:', error);
-    throw error;
+    console.error('API Error details:', error instanceof Error ? error.message : 'Unknown error');
+    throw error instanceof Error ? error : new Error('알 수 없는 오류가 발생했습니다.');
   }
 };

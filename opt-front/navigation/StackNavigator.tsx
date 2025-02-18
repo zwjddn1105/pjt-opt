@@ -25,12 +25,17 @@ import AllEndedChallengesScreen from "../screens/challenge/AllEndedChallengesScr
 import DetailChallengeScreen from "../screens/challenge/DetailChallengesScreen";
 import OtherProfileScreen from "screens/profile/OtherProfileScreen";
 import AuthChallengeScreen from "screens/challenge/AuthChallengeScreen";
+import { MealRecord } from '../api/mealRecords';
 export type RootStackParamList = {
   Main: undefined;
   KakaoLogin: undefined;
   DMScreen: undefined;
   LoginNeedScreen: undefined;
-  Food: { date: string };
+  Food: { 
+    date: string;
+    type: "아침" | "점심" | "저녁";
+    existingRecord?: MealRecord;
+  };
   ManagerChat: undefined;
   TrainerChat: undefined;
   UserChat: undefined;

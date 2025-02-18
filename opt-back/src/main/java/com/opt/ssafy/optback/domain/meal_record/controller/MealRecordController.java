@@ -1,7 +1,5 @@
 package com.opt.ssafy.optback.domain.meal_record.controller;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.opt.ssafy.optback.domain.meal_record.dto.MealRecordRequest;
 import com.opt.ssafy.optback.domain.meal_record.dto.MealRecordResponse;
 import com.opt.ssafy.optback.domain.meal_record.entity.MealRecord;
@@ -32,26 +30,21 @@ public class MealRecordController {
     // 당일 식단(이미지 포함) 등록
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE})
     public ResponseEntity<MealRecordResponse> addMealRecord(
-            @RequestPart("meal") String mealRequestJson,
+            @RequestPart("meal") MealRecordRequest mealRequestDto,
             @RequestPart(value = "image", required = false) MultipartFile image) {
         try {
             System.out.println("🐤 요청 도착");
-            System.out.println("🐤 meal 데이터(JSON): " + mealRequestJson);
-
-            Gson gson = new Gson();
-            MealRecordRequest mealRequestDto = gson.fromJson(mealRequestJson, MealRecordRequest.class);
+            System.out.println("📅 createdDate: " + mealRequestDto.getCreatedDate());
+            System.out.println("🍽️ type: " + mealRequestDto.getType());
 
             if (image != null && !image.isEmpty()) {
-                System.out.println("🖼️ 이미지 파일: " + image.getOriginalFilename());
+                System.out.println("🐤️ 이미지 파일: " + image.getOriginalFilename());
             } else {
-                System.out.println("⚠️ 이미지 없음");
+                System.out.println("❌ 이미지 없음");
             }
 
             MealRecord savedMealRecord = mealRecordService.saveMealRecord(mealRequestDto, image);
             return ResponseEntity.ok(new MealRecordResponse(savedMealRecord));
-        } catch (JsonSyntaxException e) {
-            System.err.println("❌ JSON 변환 오류: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
             System.err.println("❌ 서버 오류 발생: " + e.getMessage());
             e.printStackTrace();

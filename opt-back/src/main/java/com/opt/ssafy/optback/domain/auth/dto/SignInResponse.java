@@ -14,6 +14,7 @@ public class SignInResponse {
     private String refreshToken;
     private String nickname;
     private String email;
+    private Boolean isOnboarded;
 
     public static SignInResponse from(Member member, String accessToken, String refreshToken) {
         return SignInResponse.builder()
@@ -24,6 +25,7 @@ public class SignInResponse {
                 .refreshToken(refreshToken)
                 .nickname(member.getNickname())
                 .email(member.getEmail())
+                .isOnboarded(member.isOnboarded())
                 .build();
     }
 }

@@ -3,6 +3,8 @@ package com.opt.ssafy.optback.domain.profile;
 import com.opt.ssafy.optback.domain.badge.dto.BadgeResponse;
 import com.opt.ssafy.optback.domain.badge.entity.Badge;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
@@ -17,6 +19,8 @@ public class MemberProfileResponse extends ProfileResponse {
                 .imagePath(member.getImagePath())
                 .mainBadge(new BadgeResponse(mainBadge))
                 .nickname(member.getNickname())
+                .interests(member.getMemberInterests().stream().map(MemberInterest::getInterest)
+                        .collect(Collectors.toList()))
                 .build();
     }
 
@@ -27,6 +31,8 @@ public class MemberProfileResponse extends ProfileResponse {
                 .name(member.getName())
                 .nickname(member.getNickname())
                 .imagePath(member.getImagePath())
+                .interests(member.getMemberInterests().stream().map(MemberInterest::getInterest)
+                        .collect(Collectors.toList()))
                 .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.meal_record.controller;
 
+import com.opt.ssafy.optback.domain.meal_record.dto.CreateMealRecord;
 import com.opt.ssafy.optback.domain.meal_record.dto.MealRecordRequest;
 import com.opt.ssafy.optback.domain.meal_record.dto.MealRecordResponse;
 import com.opt.ssafy.optback.domain.meal_record.entity.MealRecord;
@@ -28,22 +29,20 @@ public class MealRecordController {
     private final MealRecordService mealRecordService;
 
     // 당일 식단(이미지 포함) 등록
-    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE})
-    public ResponseEntity<MealRecordResponse> addMealRecord(
-            @RequestPart("meal") MealRecordRequest mealRequestDto,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+    @PostMapping
+    public ResponseEntity<MealRecordResponse> addMealRecord(CreateMealRecord mealRequestDto) {
         try {
             System.out.println("🐤 요청 도착");
             System.out.println("📅 createdDate: " + mealRequestDto.getCreatedDate());
             System.out.println("🍽️ type: " + mealRequestDto.getType());
 
-            if (image != null && !image.isEmpty()) {
-                System.out.println("🐤️ 이미지 파일: " + image.getOriginalFilename());
+            if (mealRequestDto.getImage() != null && !mealRequestDto.getImage().isEmpty()) {
+                System.out.println("🐤️ 이미지 파일: " + mealRequestDto.getImage().getOriginalFilename());
             } else {
                 System.out.println("❌ 이미지 없음");
             }
 
-            MealRecord savedMealRecord = mealRecordService.saveMealRecord(mealRequestDto, image);
+            MealRecord savedMealRecord = mealRecordService.saveMealRecord(mealRequestDto, mealRequestDto.getImage());
             return ResponseEntity.ok(new MealRecordResponse(savedMealRecord));
         } catch (Exception e) {
             System.err.println("❌ 서버 오류 발생: " + e.getMessage());
@@ -51,6 +50,14 @@ public class MealRecordController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+//    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<MealRecordResponse> addMealRecord(
+//            @RequestPart("meal") MealRecordRequest mealRequestDto,
+//            @RequestPart(value = "image") MultipartFile image) {
+//        MealRecord savedMealRecord = mealRecordService.saveMealRecord(mealRequestDto, image);
+//        return ResponseEntity.ok(new MealRecordResponse(savedMealRecord));
+//    }
 
     // 당일 식단 수정
     @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

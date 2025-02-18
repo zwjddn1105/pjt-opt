@@ -24,7 +24,7 @@ public class KeywordExtractionService {
 
     @SuppressWarnings("unchecked")
     public List<String> extractKeywords(String text) {
-        String url = "http://host.docker.internal:5000/extract_keywords";
+        String url = "http://flask:5000/extract_keywords";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

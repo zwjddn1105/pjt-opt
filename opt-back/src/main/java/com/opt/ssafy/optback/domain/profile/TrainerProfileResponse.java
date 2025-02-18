@@ -10,12 +10,14 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class TrainerProfileResponse extends ProfileResponse {
     private String name;
+    private String intro;
 
     public static TrainerProfileResponse from(Member member, Badge mainBadge) {
         return TrainerProfileResponse.builder()
                 .id(member.getId())
                 .role(member.getRole().name())
                 .name(member.getName())
+                .intro(member.getTrainerDetail().getIntro())
                 .mainBadge(mainBadge == null ? null : new BadgeResponse(mainBadge))
                 .nickname(member.getNickname())
                 .imagePath(member.getImagePath())
@@ -27,6 +29,7 @@ public class TrainerProfileResponse extends ProfileResponse {
                 .id(member.getId())
                 .role(member.getRole().name())
                 .name(member.getName())
+                .intro(member.getTrainerDetail().getIntro())
                 .nickname(member.getNickname())
                 .imagePath(member.getImagePath())
                 .build();

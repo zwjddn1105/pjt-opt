@@ -8,7 +8,7 @@ import com.opt.ssafy.optback.domain.certificate.dto.CertificateResponse;
 import com.opt.ssafy.optback.domain.certificate.entity.Certificate;
 import com.opt.ssafy.optback.domain.certificate.infrastructure.CertificateProducer;
 import com.opt.ssafy.optback.domain.certificate.infrastructure.CertificateRepository;
-import com.opt.ssafy.optback.domain.trainer_detail.Service.TrainerDetailService;
+import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import com.opt.ssafy.optback.global.application.S3Service;
 import java.util.List;
@@ -23,7 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class CertificateService {
 
-    private final TrainerDetailService trainerDetailService;
     @Value("${certificate.bucket.name}")
     private String bucketName;
     private final S3Service s3Service;
@@ -31,9 +30,10 @@ public class CertificateService {
     private final UserDetailsServiceImpl userDetailsService;
     private final CertificateRepository certificateRepository;
     private final ObjectMapper objectMapper;
+    private final TrainerDetailRepository trainerDetailRepository;
 
     public List<CertificateResponse> getTrainerCertificate(Integer trainerId) {
-        TrainerDetail trainerDetail = trainerDetailService.findById(trainerId);
+        TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerId).orElseThrow();
         List<Certificate> certificates = trainerDetail.getCertificates();
         return certificates.stream().map(CertificateResponse::from).toList();
     }
@@ -56,7 +56,7 @@ public class CertificateService {
             }
             CertificateDto dto = objectMapper.treeToValue(jsonNode, CertificateDto.class);
             deleteUnmaskedCertificate(dto.getPath());
-            TrainerDetail trainerDetail = trainerDetailService.findById(dto.getId());
+            TrainerDetail trainerDetail = trainerDetailRepository.findById(dto.getId()).orElseThrow();
             Certificate certificate = Certificate.from(dto, trainerDetail);
             certificateRepository.save(certificate);
             log.info("자격증 저장 완료: {}", certificate);

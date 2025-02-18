@@ -1,6 +1,7 @@
 package com.opt.ssafy.optback.domain.meal_record.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
+import com.opt.ssafy.optback.domain.meal_record.dto.CreateMealRecord;
 import com.opt.ssafy.optback.domain.meal_record.dto.MealNutritionDto;
 import com.opt.ssafy.optback.domain.meal_record.dto.MealRecordRequest;
 import com.opt.ssafy.optback.domain.meal_record.entity.MealRecord;
@@ -49,7 +50,7 @@ public class MealRecordService {
 
     // 식단 저장
     @Transactional
-    public MealRecord saveMealRecord(MealRecordRequest mealRecordRequest, MultipartFile images) {
+    public MealRecord saveMealRecord(CreateMealRecord mealRecordRequest, MultipartFile images) {
         if (images == null || images.isEmpty()) {
             throw new MealRecordNotSaveException("식단 이미지가 없습니다");
         }

@@ -1,15 +1,15 @@
 package com.opt.ssafy.optback.domain.meal_record.dto;
 
 import java.time.LocalDate;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class MealRecordRequest {
+@Builder
+public class CreateMealRecord {
 
     private LocalDate createdDate;
     private String type;
+    private MultipartFile image;
 }

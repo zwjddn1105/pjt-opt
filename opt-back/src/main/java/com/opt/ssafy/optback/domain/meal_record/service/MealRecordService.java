@@ -10,7 +10,9 @@ import com.opt.ssafy.optback.domain.meal_record.repository.MealRecordRepository;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.global.application.S3Service;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -164,4 +166,11 @@ public class MealRecordService {
 
         return findRecord;
     }
+
+    public List<LocalDate> findMealRecordsByYearAndMonth(Integer year, Integer month) {
+        Member member = userDetailsService.getMemberByContextHolder();
+        List<LocalDate> dates = mealRecordRepository.findDistinctDatesByYearAndMonth(year, month, member.getId());
+        return dates.stream().sorted().collect(Collectors.toList()); // 날짜 정렬 후 반환
+    }
+
 }

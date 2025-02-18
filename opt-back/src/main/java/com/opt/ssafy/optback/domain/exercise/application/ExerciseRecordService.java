@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -116,6 +117,12 @@ public class ExerciseRecordService {
         if (newMedias != null && !newMedias.isEmpty()) {
             saveExerciseMedias(exerciseRecord.getId(), newMedias);
         }
+    }
+
+    public List<LocalDate> findExerciseRecordsByYearAndMonth(Integer year, Integer month) {
+        Member member = userDetailsService.getMemberByContextHolder();
+        List<LocalDate> dates = exerciseRecordRepository.findDistinctDatesByYearAndMonth(year, month, member);
+        return dates.stream().sorted().collect(Collectors.toList()); // 날짜 정렬 후 반환
     }
 
 }

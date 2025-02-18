@@ -4,6 +4,8 @@ import com.opt.ssafy.optback.domain.exercise.application.ExerciseRecordService;
 import com.opt.ssafy.optback.domain.exercise.dto.CreateExerciseRecordRequest;
 import com.opt.ssafy.optback.domain.exercise.dto.ExerciseRecordResponse;
 import com.opt.ssafy.optback.domain.exercise.dto.UpdateExerciseRecordRequest;
+import com.opt.ssafy.optback.domain.meal_record.dto.MonthlyRecordResponse;
+import com.opt.ssafy.optback.domain.meal_record.service.MealRecordService;
 import com.opt.ssafy.optback.global.dto.SuccessResponse;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExerciseRecordController {
 
     private final ExerciseRecordService exerciseRecordService;
+    private final MealRecordService mealRecordService;
 
     @GetMapping
     public ResponseEntity<List<ExerciseRecordResponse>> findExerciseRecordsByDate(
@@ -33,10 +36,20 @@ public class ExerciseRecordController {
         return ResponseEntity.ok(exerciseRecordService.findExerciseRecordsByDate(date));
     }
 
+    @GetMapping("/monthly")
+    public ResponseEntity<?> findExerciseRecordsByYearAndMonth(@RequestParam Integer year,
+                                                               @RequestParam Integer month) {
+        List<LocalDate> exerciseDates = exerciseRecordService.findExerciseRecordsByYearAndMonth(year, month);
+        List<LocalDate> mealDates = mealRecordService.findMealRecordsByYearAndMonth(year, month);
+        return ResponseEntity.ok(MonthlyRecordResponse.builder()
+                .exerciseDates(exerciseDates)
+                .mealDates(mealDates)
+                .build());
+    }
+
     @PostMapping
     public ResponseEntity<SuccessResponse> createExerciseRecord(CreateExerciseRecordRequest request)
             throws IOException {
-        System.out.println(request.getExerciseId());
         exerciseRecordService.createExerciseRecord(request, request.getMedias());
         return ResponseEntity.ok(SuccessResponse.builder()
                 .message("등록되었습니다").build());

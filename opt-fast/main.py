@@ -1,46 +1,50 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from conf.database import get_db  # ✅ DB 세션 가져오기
 from services.kafka_consumer_service import KafkaConsumerService
-from conf.database import get_db
+from flask_app.app import app as flask_app
+from starlette.middleware.wsgi import WSGIMiddleware
 import asyncio
 import logging
 
-app = FastAPI()
+# ✅ FastAPI 애플리케이션 생성
+fastapi_app = FastAPI()
+
+# ✅ Flask 앱을 FastAPI에 마운트
+fastapi_app.mount("/flask", WSGIMiddleware(flask_app))
 
 # ✅ 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ✅ Kafka Consumer 인스턴스 초기화
+# ✅ Kafka Consumer 인스턴스 초기화 (전역 변수)
 kafka_consumer_service = None
 
-@app.on_event("startup")
+@fastapi_app.on_event("startup")
 async def startup_event():
-    """FastAPI 시작 시 Kafka Consumer & Producer 실행"""
+    """FastAPI 시작 시 Kafka Consumer 실행"""
     global kafka_consumer_service
 
-    # ✅ 비동기적으로 DB 세션 가져오기
-    async for db_session in get_db():
-        db = db_session
-        break  # 첫 번째 AsyncSession만 사용
+    # ✅ `async with` 사용하여 `AsyncSession`을 가져옴
+    async for db in get_db():  
+        kafka_consumer_service = KafkaConsumerService(
+            bootstrap_servers="kafka:9092",
+            group_id="business_license_group",
+            db=db  # ✅ db 인자 추가
+        )
+        break  # ✅ 한 번만 실행되도록 `break` 추가
 
-    # ✅ Kafka Consumer 서비스 초기화
-    kafka_consumer_service = KafkaConsumerService(
-        bootstrap_servers="kafka:9092", 
-        group_id="business_license_group", 
-        db=db  # ✅ 올바른 AsyncSession 전달
-    )
+    await kafka_consumer_service.start()  # Kafka Producer 실행
 
-    await kafka_consumer_service.start()  # ✅ Kafka Producer 시작
-    # loop = asyncio.get_event_loop()
-    # loop.create_task(kafka_consumer_service.start_consumer("business_license_request"))
     # ✅ 여러 개의 토픽을 동시에 실행
     topics = ["business_license_request", "certificate_request"]
     asyncio.create_task(kafka_consumer_service.start_consumer(topics))
 
-@app.on_event("shutdown")
+
+@fastapi_app.on_event("shutdown")
 async def shutdown_event():
-    """FastAPI 종료 시 Kafka Consumer & Producer 정리"""
+    """FastAPI 종료 시 Kafka Consumer 정리"""
+    global kafka_consumer_service
+
     if kafka_consumer_service:
-        if kafka_consumer_service.consumer:
-            await kafka_consumer_service.consumer.stop()
-        await kafka_consumer_service.stop()  # ✅ Kafka Producer 종료
+        await kafka_consumer_service.stop()  # ✅ Kafka 종료

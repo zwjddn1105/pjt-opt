@@ -45,6 +45,7 @@ services:
     container_name: fastapi
     ports:
       - "8000:8000"
+      - "5000:5000"
     depends_on:
       - kafka
     environment:

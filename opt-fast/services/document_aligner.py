@@ -66,10 +66,6 @@ def scan_document(image: np.ndarray):
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(gray, 75, 200)
 
-    # 디버깅용@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    # cv2.imshow("Edged", edged)
-    # cv2.waitKey(0)
-
     # 3. 컨투어 검출: 외곽선을 찾아 내림차순(면적 기준)으로 정렬
     contours, _ = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]

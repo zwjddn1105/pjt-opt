@@ -32,7 +32,7 @@ def run_ocr(image):
 
     # OCR 실행
     result = client.process_document(request=request)
-    print("📝 OCR 결과:")
-    print(result.document.text)
-
+    # print("📝 OCR 결과:")
+    # print(result.document)
+    # print("@@@@@@@@@@@@@@@@@@@@@@@@@@##")
     return result.document

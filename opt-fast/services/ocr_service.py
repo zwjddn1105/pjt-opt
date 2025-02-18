@@ -12,32 +12,23 @@ from io import BytesIO
 
 async def process_ocr(file: BytesIO):
     file.seek(0)  # 파일 포인터를 처음으로 이동
-    file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
-    """ OCR 실행 전에 이미지 보정 후, OCR API 호출 """
-    # 이미지 변환: 바이트 데이터를 OpenCV 이미지로 변환
-    # image = cv2.imdecode(np.frombuffer(file, np.uint8), cv2.IMREAD_COLOR)
+    file_bytes = np.frombuffer(file.read(), dtype=np.uint8)  # frombuffer 사용
     image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-    
-    # ✅ 디버깅을 위해 이미지를 저장 (컨테이너 내부)
-    # save_path = "/app/debug_image.jpg"
-    # cv2.imwrite(save_path, image)
-    # print(f"✅ Image saved at {save_path}")
 
     if image is None:
         return {"error": "올바른 이미지 파일이 아닙니다."}
 
     # 이미지 보정 수행
-    processed_image = scan_document(image)  # 여기서 image를 넘겨야 함
+    # processed_image = scan_document(image)  # 여기서 image를 넘겨야 함
 
-    if processed_image is None:
-        return {"error": "문서 영역을 찾을 수 없습니다."}
+    # if processed_image is None:
+    #     return {"error": "문서 영역을 찾을 수 없습니다."}
 
-    text = run_ocr(processed_image)
-    print('qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq')
-    extracted = extract_colon_key_values(text) # :이 들어간 데이터만 뽑은 후 dictionary형태로 변환
-    print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    document = run_ocr(image)
+    
+    print(document.text)
+    extracted = extract_colon_key_values(document.text) # :이 들어간 데이터만 뽑은 후 dictionary형태로 변환
     result =  match_ocr_keys(extracted)
-    print('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
 
     print('@@@@@@@@@@@@@ OCR 결과 @@@@@@@@@@@@@')
     print(result)

@@ -193,29 +193,29 @@ class KafkaConsumerService:
                 return
 
             file_bytes.seek(0)  # 파일 포인터를 처음으로 이동
-            file_bytes2 = np.asarray(bytearray(file_bytes.read()), dtype=np.uint8)
-            """ OCR 실행 전에 이미지 보정 후, OCR API 호출 """
-            # 이미지 변환: 바이트 데이터를 OpenCV 이미지로 변환
-            # image = cv2.imdecode(np.frombuffer(file, np.uint8), cv2.IMREAD_COLOR)
-            image = cv2.imdecode(file_bytes2, cv2.IMREAD_COLOR)
+            file_bytes = np.frombuffer(file_bytes.read(), dtype=np.uint8)  # frombuffer 사용
+            image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
             # ✅ scan_document() 호출 (파일 경로 대신 OpenCV 이미지 배열 전달)
-            scanned_image = scan_document(image)
-            if scanned_image is None:
-                logger.error("❌ 문서 영역을 찾을 수 없습니다.")
-                final_result_with_id2 = {}
-                final_result_with_id2["status"] = "error"
-                final_result_with_id2["message"] = "문서를 인식할 수 없습니다. 문서가 전체가 보이도록 다시 촬영해주세요"
-                await self.send_kafka_message("certificate_response", final_result_with_id2)
-                return
+            # scanned_image = scan_document(image)
+            # if scanned_image is None:
+            #     logger.error("❌ 문서 영역을 찾을 수 없습니다.")
+            #     final_result_with_id2 = {}
+            #     final_result_with_id2["status"] = "error"
+            #     final_result_with_id2["message"] = "문서를 인식할 수 없습니다. 문서가 전체가 보이도록 다시 촬영해주세요"
+            #     await self.send_kafka_message("certificate_response", final_result_with_id2)
+            #     return
 
             # ✅ OCR 수행
-            scanned_image_rgb = cv2.cvtColor(scanned_image, cv2.COLOR_BGR2RGB)
+            scanned_image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            logger.info('()()()()()()()()()()')
             ocr_result_document = self.run_ocr(scanned_image_rgb)
+            logger.info(ocr_result_document.text)
             # logger.info(f"@@@@   {ocr_result_document}")
             ocr_result = ocr_result_document.text
-
-            masked_image = self.mask_first_certificate_number(scanned_image_rgb, ocr_result_document)
+            logger.info("+++++++++++++++++")
+            logger.info(ocr_result)
+            
             
             # logger.info(f"🔍 OCR 처리 완료 - 결과: {ocr_result}")
 
@@ -230,6 +230,7 @@ class KafkaConsumerService:
                 await self.send_kafka_message("certificate_response", final_result_with_id3)
                 return result
 
+            masked_image = self.mask_first_certificate_number(scanned_image_rgb, ocr_result_document)
             # ✅ 자격증 정보 검증
             final_result = self.process_certification_result(result, masked_image)
             logger.info(f"✅ 최종 검증 결과: {final_result}")
@@ -330,58 +331,69 @@ class KafkaConsumerService:
     def extract_certification_details(self, text: str):
         # OCR 후처리를 위한 기준 키워드
         title_keywords = ["생활스포츠지도사", "스포츠지도사", "생활 스포츠"]
-        category_keywords = ["자격종목", "종목", "분야"]
-        level_keywords = ["자격등급", "등급"]
-        number_keywords = ["제", "호", "자격번호", "등록번호"]
-        name_keywords = ["성 명", "이름", "명"]
         
-        # 자격증 종류 확인
-        if not any(keyword in text for keyword in title_keywords):
+        # 자격증 종류 확인 (정확한 단어 매칭을 위해 정규식 사용)
+        if not any(re.search(rf'\b{keyword}\b', text) for keyword in title_keywords):
+            logger.info("❌ 생활스포츠지도사 자격증이 아닙니다.")
             return {"status": "error", "message": "생활스포츠지도사 자격증만 가능합니다."}
-        
+
         lines = text.split('\n')
         cert_number = None
         name = None
         level = None
         category = None
-        
+
         for line in lines:
             line = line.strip()
             if not line:
                 continue
+
+            logger.info(f"🔍 검사 중인 줄: '{line}'")
             
-            print(f"🔍 검사 중인 줄: '{line}'")
-            
-            # 자격증 번호 추출 (공백 및 형식 유연 처리)
-            number_match = re.search(r'제\s*(\d{4,6})\s*호', line)
-            print(f"   🔹 number_match 결과: {number_match}")
-            if number_match:
-                cert_number = number_match.group(1)
-                print(f"   ✅ 자격증 번호 추출됨: {cert_number}")
-            
-            # 이름 추출
-            name_match = re.search(r'성\s*명[:\s]*([가-힣]+)', line)
-            print(f"   🔹 name_match 결과: {name_match}")
-            if name_match:
-                name = name_match.group(1)
-                print(f"   ✅ 이름 추출됨: {name}")
-            
-            # 자격등급 추출
-            level_match = re.search(r'(\d+급)', line)
-            if level_match:
-                level = level_match.group(1)
-                print(f"   ✅ 자격등급 추출됨: {level}")
-            
-            # 자격종목 추출
-            category_match = re.search(r'자격종목[:\s]*([가-힣]+)', line)
-            if category_match:
-                category = category_match.group(1)
-                print(f"   ✅ 자격종목 추출됨: {category}")
+            # 자격증 번호 추출 (첫 번째 값만 저장)
+            if cert_number is None:
+                number_match = re.search(r'제\s*([\d\-]+)\s*호', line)
+                if number_match:
+                    cert_number = number_match.group(1)
+                    logger.info(f"✅ 자격증 번호 추출됨: {cert_number}")
+
+            # 이름 추출 (첫 번째 값만 저장) - 다양한 공백 패턴 허용
+            if name is None:
+                name_match = re.search(r'성\s*명\s*[:\s]*([가-힣]{2,4})', line)
+                if name_match:
+                    name = name_match.group(1)
+                    logger.info(f"✅ 이름 추출됨: {name}")
+
+            # 자격등급 추출 (첫 번째 값만 저장)
+            if level is None:
+                level_match = re.search(r'자격등급[:\s]*(\d+급)', line)
+                if level_match:
+                    level = level_match.group(1)
+                    logger.info(f"✅ 자격등급 추출됨: {level}")
+
+            # 자격종목 추출 (첫 번째 값만 저장)
+            if category is None:
+                category_match = re.search(r'자격종목[:\s]*([가-힣]+)', line)
+                if category_match:
+                    category = category_match.group(1)
+                    logger.info(f"✅ 자격종목 추출됨: {category}")
+
+        # 필수 조건 확인 및 누락된 필드 표시
+        missing_fields = []
+        if not cert_number:
+            missing_fields.append("자격증 번호")
+        if not name:
+            missing_fields.append("이름")
+        if not level:
+            missing_fields.append("자격등급")
+        if not category:
+            missing_fields.append("자격종목")
+
+        if missing_fields:
+            logger.info(f"❌ 누락된 정보: {', '.join(missing_fields)}")
+            return {"status": "error", "message": f"다음 정보가 누락되었습니다: {', '.join(missing_fields)}. 사진을 다시 찍어주세요."}
         
-        # 필수 조건 확인
-        if None in [cert_number, name, level, category]:
-            return {"status": "error", "message": "사진을 다시 찍어주세요. 일부 정보가 누락되었습니다."}
-        
+        logger.info("🎉 모든 정보가 정상적으로 추출되었습니다.")
         return {
             "status": "success", 
             "cert_number": cert_number, 
@@ -389,6 +401,8 @@ class KafkaConsumerService:
             "level": level, 
             "category": category
         }
+
+
 
     def fetch_certification_info(self, qf_no: str, srch_usr_nm: str):
         url = "https://sqms.kspo.or.kr/license/docTrueCheckActJs.kspo"
@@ -477,7 +491,7 @@ class KafkaConsumerService:
 
     def mask_first_certificate_number(self, image, ocr_document):
         """OCR 결과를 기반으로 '제 ~~호' 부분을 검은색 마스킹 처리"""
-    
+        logger.info('mask_first_certificate_number 시작')
         # ✅ 첫 번째 "제 ~~호" 찾으면 마스킹 후 즉시 반환
         for page in ocr_document.pages:
             for block in page.blocks:

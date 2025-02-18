@@ -55,7 +55,7 @@ export const getRecommendedTrainers = async (
       throw new Error('인증 정보가 없습니다. 다시 로그인해주세요.');
     }
 
-    const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/trainers/recommends?page=${params.page}&size=${params.size}`, {
+    const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/trainers/recommends?page=${params.page}&size=${params.size}&sort=desending()`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${refreshToken}`,

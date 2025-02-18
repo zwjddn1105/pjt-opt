@@ -458,6 +458,13 @@ export const CalendarScreen = () => {
               textDayFontSize: 14,
               textMonthFontSize: 16,
               textDayHeaderFontSize: 14,
+              "stylesheet.calendar.header": {
+                week: {
+                  flexDirection: "row",
+                  justifyContent: "flex-start", // 요일을 왼쪽 정렬
+                  paddingLeft: 0,
+                },
+              },
               'stylesheet.calendar.main': {
                 week: {
                   marginVertical: 4,

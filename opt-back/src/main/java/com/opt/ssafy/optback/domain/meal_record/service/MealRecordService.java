@@ -107,15 +107,15 @@ public class MealRecordService {
 
     // 식단 수정
     @Transactional
-    public MealRecord updateMealRecord(MealRecordRequest savedRequest, MealRecordRequest updateRequest,
+    public MealRecord updateMealRecord(MealRecordRequest savedRequest,
                                        MultipartFile updateImage) {
         // 기존 데이터 및 변경할 데이터 오늘 날짜 확인
         checkToday(savedRequest.getCreatedDate());
-        checkToday(updateRequest.getCreatedDate());
 
         MealRecord findRecord = findMealRecordByMemberTypeAndDate(savedRequest);
-
-        findRecord.setNewRecord(updateRequest.getType());
+        if (findRecord == null) {
+            throw new MealRecordNotSaveException("기존 데이터를 찾을 수 없습니다.");
+        }
 
         // 이미지가 변경된 경우
         if (updateImage != null) {

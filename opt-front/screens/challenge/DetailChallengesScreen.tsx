@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,7 +28,7 @@ import { ProgressBar } from "react-native-paper";
 type RootStackParamList = {
   DetailChallenge: { challengeId: number };
   AuthChallengeScreen: { challengeId: number };
-  OtherProfileScreen: { hostId: number };
+  ProfileScreen: { profileData: any };
 };
 
 type DetailChallengeProps = {
@@ -85,28 +86,32 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
   const [individualRecord, setIndividualRecord] =
     useState<IndividualRecord | null>(null);
   const [contributions, setContributions] = useState(null);
+  const [isParticipating, setIsParticipating] = useState(false);
+
+  const fetchChallengeDetails = async () => {
+    try {
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) throw new Error("Refresh token not found");
+      const response = await axios.get<Challenge>(
+        `${BASE_URL}/challenges/${challengeId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        }
+      );
+      setChallenge(response.data);
+      // 사용자의 참여 여부를 확인합니다. 이 부분은 API 응답에 따라 수정이 필요할 수 있습니다.
+      setIsParticipating(response.data.currentParticipants > 0);
+      setLoading(false);
+    } catch (error) {
+      console.error("챌린지 상세 정보 불러오기 실패:", error);
+      setError("챌린지 정보를 불러오는데 실패했습니다.");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchChallengeDetails = async () => {
-      try {
-        const refreshToken = await getRefreshToken();
-        if (!refreshToken) throw new Error("Refresh token not found");
-        const response = await axios.get<Challenge>(
-          `${BASE_URL}/challenges/${challengeId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
-          }
-        );
-        setChallenge(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("챌린지 상세 정보 불러오기 실패:", error);
-        setError("챌린지 정보를 불러오는데 실패했습니다.");
-        setLoading(false);
-      }
-    };
     fetchChallengeDetails();
   }, [challengeId]);
 
@@ -140,7 +145,9 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               },
             }
           );
-          setContributions(contributionsResponse.data);
+          if (contributionsResponse.data.length > 0) {
+            setContributions(contributionsResponse.data);
+          }
         }
       } catch (error) {
         console.error("챌린지 기록 불러오기 실패:", error);
@@ -149,7 +156,40 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
 
     fetchChallengeRecords();
   }, [challengeId, challenge]);
+  const handleChallengeAction = async () => {
+    try {
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) throw new Error("Refresh token not found");
 
+      const endpoint = isParticipating
+        ? `/challenges/quit?id=${challengeId}`
+        : "/challenges/join";
+
+      const response = await axios({
+        method: isParticipating ? "DELETE" : "POST",
+        url: `${BASE_URL}${endpoint}`,
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+        data: isParticipating ? null : { challengeId: challengeId },
+      });
+
+      if (response.status === 200) {
+        setIsParticipating(!isParticipating);
+        Alert.alert(
+          isParticipating ? "챌린지 탈퇴 성공" : "챌린지 참여 성공",
+          isParticipating
+            ? "챌린지에서 탈퇴했습니다."
+            : "챌린지에 참여했습니다."
+        );
+        // 챌린지 정보를 다시 불러옵니다.
+        fetchChallengeDetails();
+      }
+    } catch (error) {
+      console.error("API 호출 중 오류 발생:", error);
+      Alert.alert("오류", "작업 중 문제가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -173,7 +213,20 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       </View>
     );
   }
-
+  const handleProfilePress = async () => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/profile/${challenge.hostId}`
+      );
+      if (response.status === 200) {
+        navigation.navigate("ProfileScreen", { profileData: response.data });
+      } else {
+        console.error("프로필 데이터를 가져오는데 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("프로필 요청 중 오류 발생:", error);
+    }
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
@@ -191,13 +244,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         <View style={styles.contentContainer}>
           {/* 호스트 정보 */}
           <View style={styles.hostInfoContainer}>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("OtherProfileScreen", {
-                  hostId: challenge.hostId,
-                })
-              }
-            >
+            <TouchableOpacity onPress={handleProfilePress}>
               <FontAwesome
                 name="user-circle-o"
                 size={40}
@@ -205,15 +252,25 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
                 style={styles.profileIcon}
               />
             </TouchableOpacity>
-            <View>
-              <Text style={styles.hostNameText}>{challenge.hostRealName}</Text>
+            <View style={styles.hostInfoTextContainer}>
+              <Text style={styles.hostNameText}>
+                개최자: {challenge.hostRealName}
+              </Text>
+
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>
             </View>
-            <View>
-              <Text>어떻게나오지</Text>
-            </View>
+            {challenge.status === "OPEN" && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleChallengeAction}
+              >
+                <Text style={styles.actionButtonText}>
+                  {isParticipating ? "챌린지 탈퇴하기" : "챌린지 참여하기"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           {/* 챌린지 카드 */}
           <View style={styles.rowContainer}>
@@ -359,7 +416,21 @@ const styles = StyleSheet.create({
   hostInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  hostInfoTextContainer: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  actionButton: {
+    backgroundColor: "#0C508B",
+    padding: 10,
+    borderRadius: 10,
+  },
+  actionButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
   hostNameText: {
     fontSize: 18,

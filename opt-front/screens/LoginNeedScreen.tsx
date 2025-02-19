@@ -61,14 +61,17 @@ const LoginNeedScreen: React.FC = () => {
       console.log(refreshToken);
       console.log(role);
       console.log(id);
-      console.log(EXPO_PUBLIC_BASE_URL);
 
-      await login(refreshToken, String(id), role === 'TRAINER' ? 'TRAINER' : 'USER');
-      
-      console.log('Login successful:', {
-        refreshToken: refreshToken.substring(0, 10) + '...',
+      await login(
+        refreshToken,
+        String(id),
+        role === "TRAINER" ? "TRAINER" : "USER"
+      );
+
+      console.log("Login successful:", {
+        refreshToken: refreshToken.substring(0, 10) + "...",
         role,
-        id
+        id,
       });
       Alert.alert("로그인 성공", "환영합니다!");
 

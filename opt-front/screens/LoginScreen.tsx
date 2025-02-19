@@ -4,8 +4,11 @@ import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/StackNavigator";
 import axios from "axios";
 import { EXPO_PUBLIC_BASE_URL, EXPO_PUBLIC_API_KEY } from "@env";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const REST_API_KEY = EXPO_PUBLIC_API_KEY;
 const REDIRECT_URI = `${EXPO_PUBLIC_BASE_URL}/auth/kakao`;
@@ -18,7 +21,9 @@ const INJECTED_JAVASCRIPT = `
   true;
 `;
 
-const KakaoLogin: React.FC = () => {
+const LoginScreen: React.FC = () => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const handleMessage = async (event: any) => {
     const data: string = event.nativeEvent.data;
     const codeMatch = data.match(/[?&]code=([^&]+)/);
@@ -29,20 +34,27 @@ const KakaoLogin: React.FC = () => {
         const response = await axios.post(
           `${EXPO_PUBLIC_BASE_URL}/auth/kakao-front?code=${authorizeCode}`
         );
-        const { refreshToken } = await response.data;
-        const { role } = await response.data;
-        const { email } = await response.data;
-        const { id } = await response.data;
+        const { refreshToken, role, email, id, imagePath, gymId } =
+          await response.data;
+
+        await AsyncStorage.setItem("gymId", gymId);
         await AsyncStorage.setItem("refreshToken", refreshToken);
         await AsyncStorage.setItem("role", role);
         await AsyncStorage.setItem("email", email);
+        await AsyncStorage.setItem("imagePath", imagePath);
         await AsyncStorage.setItem("memberId", String(id));
+
         console.log(response.data);
-        console.log(refreshToken);
-        console.log(role);
-        console.log(email);
-        console.log(id);
-        Alert.alert("로그인 성공", "환영합니다!");
+
+        Alert.alert("로그인 성공", "환영합니다!", [
+          {
+            text: "확인",
+            onPress: () => {
+              // 홈 화면으로 네비게이트
+              navigation.navigate("Main");
+            },
+          },
+        ]);
       } catch (error) {
         console.error("토큰 요청 중 에러 발생:", error);
       }
@@ -66,7 +78,7 @@ const KakaoLogin: React.FC = () => {
   );
 };
 
-export default KakaoLogin;
+export default LoginScreen;
 
 const styles = StyleSheet.create({
   container: {

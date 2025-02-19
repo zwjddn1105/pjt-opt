@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.trainer_detail.entity;
 
+import com.opt.ssafy.optback.domain.certificate.entity.Certificate;
 import com.opt.ssafy.optback.domain.gym.entity.Gym;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.trainer_review.entity.TrainerReview;

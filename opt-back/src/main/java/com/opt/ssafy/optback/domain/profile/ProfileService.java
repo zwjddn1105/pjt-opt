@@ -13,6 +13,9 @@ import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -32,8 +35,17 @@ public class ProfileService {
     public ProfileResponse getProfile(Integer memberId) {
         Member targetMember = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
-        Member currentMember = userDetailsService.getMemberByContextHolder();
-        boolean isFollow = followRepository.existsByMemberAndTarget(currentMember, targetMember);
+
+        Member currentMember = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails) {
+                currentMember = userDetailsService.getMemberByContextHolder();
+            }
+        }
+
+        boolean isFollow = currentMember != null && followRepository.existsByMemberAndTarget(currentMember, targetMember);
 
         // mainBadgeId가 설정되어 있고 memberBadges가 존재하면, 해당 배지를 찾음.
         BadgeResponse mainBadgeResponse = null;

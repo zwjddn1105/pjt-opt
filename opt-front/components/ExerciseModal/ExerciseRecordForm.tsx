@@ -107,22 +107,27 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
       setIsSubmitting(true);
       
       const formData = new FormData();
+
+      console.log('exerciseId type:', typeof exercise.id, exercise.id);
+      console.log('set type:', typeof sets, sets);
+      console.log('rep type:', typeof reps, reps);
+      console.log('weight type:', typeof weight, weight);
+      console.log('duration type:', typeof duration, duration);
       
-      // 데이터를 단순 문자열로 추가
-      const recordData = {
-        exerciseId: exercise.id,
-        set: parseInt(sets),
-        rep: parseInt(reps),
-        weight: parseInt(weight),
-        duration: duration ? parseInt(duration) : null
-      };
-  
-      formData.append('data', JSON.stringify(recordData));
+      // JSON 대신 각 필드를 개별적으로 추가
+      formData.append('exerciseId', String(exercise.id));
+      formData.append('set', String(parseInt(sets)));
+      formData.append('rep', String(parseInt(reps)));
+      formData.append('weight', String(parseInt(weight)));
+      
+      // duration은 있을 경우에만 추가
+      if (duration) {
+        formData.append('duration', String(parseInt(duration)));
+      }
   
       // 미디어 파일 추가
       if (selectedMedias.length > 0) {
         selectedMedias.forEach((media, index) => {
-          // Android/iOS에서 작동하는 방식으로 파일 추가
           const fileNameMatch = media.uri.match(/[^/]+$/);
           const fileName = fileNameMatch ? fileNameMatch[0] : `image${index}.jpg`;
           
@@ -134,10 +139,14 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
         });
       }
   
-      console.log('Sending form data:', {
-        data: recordData,
-        mediaCount: selectedMedias.length
+      console.log('Sending exercise record data:', {
+        exerciseId: exercise.id,
+        set: sets,
+        rep: reps,
+        weight: weight,
+        duration: duration || null
       });
+      console.log('Media files count:', selectedMedias.length);
   
       const response = await createExerciseRecord(formData);
       
@@ -152,6 +161,8 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
       if (error instanceof Error) {
         if (error.message.includes('Network request failed')) {
           errorMessage = '서버 연결에 실패했습니다. 네트워크 연결을 확인해주세요.';
+        } else if (error.message.includes('400')) {
+          errorMessage = '잘못된 요청입니다. 입력값을 확인해주세요.';
         }
       }
       
@@ -247,20 +258,6 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
                 blurOnSubmit={false}
               />
               <Text style={styles.inputUnit}>횟수</Text>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                ref={durationRef}
-                style={styles.input}
-                placeholder="운동 시간을 입력하세요"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={duration}
-                onChangeText={(value) => handleNumberInput(value, setDuration)}
-                returnKeyType="done"
-              />
-              <Text style={styles.inputUnit}>분</Text>
             </View>
 
             <View style={styles.mediaSection}>

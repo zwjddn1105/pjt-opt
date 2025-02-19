@@ -26,6 +26,8 @@ import * as ImagePicker from "expo-image-picker";
 import ReviewModal from "screens/profile/ReviewModal";
 import ReviewComponent from "./ReviewComponent";
 
+type SortType = "id,desc" | "rate,desc" | "rate,asc";
+
 type RootStackParamList = {
   LoginNeedScreen: { returnScreen: string } | undefined;
   ProfileScreen: { profileData: any };
@@ -37,14 +39,12 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ProfileScreenRouteProp = RouteProp<RootStackParamList, "ProfileScreen">;
 
 interface Review {
-  id: string;
-  user: {
-    name: string;
-    date: string;
-    image?: string;
-  };
-  rating: number;
-  content: string;
+  id: number;
+  trainerId: number;
+  comment: string;
+  createdAt: string;
+  rate: number;
+  imageUrls: string[];
 }
 
 interface Badge {
@@ -141,6 +141,42 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   const [certificateData, setCertificateData] = useState<Certificate[] | null>(
     null
   );
+  const [sortType, setSortType] = useState<SortType>("id,desc"); // 기본 정렬: 최신순
+  const [reviews, setReviews] = useState<Review[]>([]); // 리뷰 데이터를 저장할 상태
+  const [isSortedReviewModalVisible, setIsSortedReviewModalVisible] =
+    useState(false); // 정렬된 리뷰 모달 표시 여부 상태
+  const fetchReviews = async (sort: SortType) => {
+    try {
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+      const response = await axios.get(
+        `${BASE_URL}/trainer-reviews/${profileData.id}`,
+        {
+          params: {
+            page: 0, // 첫 페이지부터 가져옴
+            size: 20, // 페이지 크기
+            sort: sort, // 선택된 정렬 방식
+          },
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        }
+      );
+      setReviews(response.data.content); // 리뷰 데이터 설정
+    } catch (error) {
+      console.error("리뷰 데이터를 가져오는 중 오류 발생:", error);
+      Alert.alert("오류", "리뷰를 불러오는 데 실패했습니다.");
+    }
+  };
+  const handleSortTypeChange = (sort: SortType) => {
+    setSortType(sort); // 정렬 방식 상태 업데이트
+    fetchReviews(sort); // 선택된 정렬 방식으로 리뷰 데이터 가져오기
+    setIsSortedReviewModalVisible(true); // 리뷰 모달 표시
+  };
+
+  // useEffect를 사용하여 컴포넌트 마운트 시 초기 리뷰 데이터 로드
+  useEffect(() => {
+    fetchReviews(sortType); // 초기 정렬 방식으로 리뷰 데이터 가져오기
+  }, [profileData.id]);
   const [profile, setProfile] = useState<Profile>({
     nickname: "",
     image: "",
@@ -227,19 +263,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       },
       rating: parseFloat(average.averageRate.toFixed(1)),
       interests: profileData.interests || [],
-      reviews: [
-        {
-          id: "1",
-          user: {
-            name: "윤동광 김선순",
-            date: "2023.03.12",
-            image: "user_image_url",
-          },
-          rating: 4,
-          content:
-            "너무 맞는 선생님이에요. 컨디션 글러스를 잃은 이후 10년째 이 선생님과 운동중입니다. 다들 추천해요!",
-        },
-      ],
+      reviews: [],
       mainBadge: profileData.mainBadge,
       isFollow: profileData.isFollow,
     });
@@ -920,18 +944,44 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
                 </View>
               </View>
               <TouchableOpacity
-                style={styles.editButton}
+                style={styles.reviewButton}
                 onPress={() => setIsReviewModalVisible(true)}
               >
-                <Text style={styles.editButtonText}>리뷰쓰기</Text>
+                <Text style={styles.reviewButtonText}>리뷰쓰기</Text>
               </TouchableOpacity>
             </View>
 
-            <ReviewComponent trainerId={profileData.id} />
+            {/* 정렬 방식 선택 버튼 */}
+            <View style={styles.sortButtonsContainer}>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => handleSortTypeChange("id,desc")}
+              >
+                <Text style={styles.sortButtonText}>최신순</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => handleSortTypeChange("rate,desc")}
+              >
+                <Text style={styles.sortButtonText}>별점 높은 순</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => handleSortTypeChange("rate,asc")}
+              >
+                <Text style={styles.sortButtonText}>별점 낮은 순</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 리뷰 모달 */}
+            <ReviewComponent
+              isVisible={isSortedReviewModalVisible}
+              onClose={() => setIsSortedReviewModalVisible(false)}
+              reviews={reviews} // 리뷰 데이터 전달
+            />
           </View>
 
           {/* Pricing Section */}
-
           <View style={styles.pricingContainer}>
             <TouchableOpacity style={styles.pricingButton}>
               <View style={styles.priceItem}>
@@ -964,7 +1014,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           </TouchableOpacity>
         </View>
       </View>
-      {/* InterestModal */}
+      {/* Modal */}
       <InterestModal
         visible={interestModalVisible}
         onClose={closeInterestModal}
@@ -1104,6 +1154,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingNumber: {
+    marginTop: 5,
     marginLeft: 10,
     fontSize: 16,
     fontWeight: "bold",
@@ -1112,6 +1163,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginLeft: 5,
+    marginTop: 5,
   },
   reviewItem: {
     marginBottom: 16,
@@ -1393,6 +1445,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     fontStyle: "italic",
+  },
+  sortButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 10,
+  },
+  sortButton: {
+    backgroundColor: "#0FB5AE",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    width: 85,
+    alignItems: "center",
+  },
+  sortButtonText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  reviewButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#0C508B",
+    borderRadius: 5,
+    marginTop: -25,
+  },
+  reviewButtonText: {
+    color: "white",
+    fontSize: 12,
   },
 });
 

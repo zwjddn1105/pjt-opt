@@ -230,7 +230,7 @@ class KafkaConsumerService:
                 await self.send_kafka_message("certificate_response", final_result_with_id3)
                 return result
 
-            masked_image = self.mask_first_certificate_number(scanned_image_rgb, ocr_result_document)
+            masked_image = self.mask_first_certificate_number(scanned_image, ocr_result_document)
             # ✅ 자격증 정보 검증
             final_result = self.process_certification_result(result, masked_image)
             logger.info(f"✅ 최종 검증 결과: {final_result}")

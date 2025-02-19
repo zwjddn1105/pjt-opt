@@ -25,33 +25,25 @@ const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const handleMessage = async (event: any) => {
-    const navigation = useNavigation<NavigationProp>();
-
     const data: string = event.nativeEvent.data;
-
     const codeMatch = data.match(/[?&]code=([^&]+)/);
 
     if (codeMatch && codeMatch[1]) {
       const authorizeCode = codeMatch[1];
-
       try {
         const response = await axios.post(
           `${EXPO_PUBLIC_BASE_URL}/auth/kakao-front?code=${authorizeCode}`
         );
-        const { refreshToken } = await response.data;
-        const { role } = await response.data;
-        const { email } = await response.data;
-        const { id } = await response.data;
+        const { refreshToken, role, email, id, imagePath, gymId } =
+          await response.data;
+
+        await AsyncStorage.setItem("gymId", gymId);
         await AsyncStorage.setItem("refreshToken", refreshToken);
         await AsyncStorage.setItem("role", role);
         await AsyncStorage.setItem("email", email);
+        await AsyncStorage.setItem("imagePath", imagePath);
         await AsyncStorage.setItem("memberId", String(id));
-        console.log(refreshToken);
-        console.log(role);
-        console.log(email);
-        console.log(id);
 
-        console.log(EXPO_PUBLIC_BASE_URL);
         console.log(response.data);
 
         Alert.alert("로그인 성공", "환영합니다!", [
@@ -59,7 +51,7 @@ const LoginScreen: React.FC = () => {
             text: "확인",
             onPress: () => {
               // 홈 화면으로 네비게이트
-              navigation.navigate("Main"); // 'Main'은 StackNavigator에서 정의된 BottomTabNavigator입니다.
+              navigation.navigate("Main");
             },
           },
         ]);

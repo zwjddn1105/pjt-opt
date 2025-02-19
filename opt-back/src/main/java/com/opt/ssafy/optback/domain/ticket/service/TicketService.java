@@ -2,6 +2,7 @@ package com.opt.ssafy.optback.domain.ticket.service;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import com.opt.ssafy.optback.domain.session.dto.SessionResponse;
 import com.opt.ssafy.optback.domain.ticket.dto.TicketRequest;
@@ -28,7 +29,9 @@ public class TicketService {
     @Transactional
     public Ticket saveTicket(TicketRequest request) {
         Member member = userDetailsService.getMemberByContextHolder();
-        Member student = memberRepository.getReferenceById(request.getStudentId());
+        Member student = memberRepository.findByEmail(request.getStudentEmail()).orElseThrow(
+                MemberNotFoundException::new);
+
         Ticket newTicket = Ticket.builder()
                 .trainer(member)
                 .student(student)

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TicketRequest {
 
-    private int studentId;
+    private String studentEmail;
     private int price;
     private int totalSessions;
 

@@ -24,6 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import InterestModal from "components/InterestModal";
 import * as ImagePicker from "expo-image-picker";
+import MapScreen from "./MapScreen"; 
 
 type RootStackParamList = {
   LoginNeedScreen: { returnScreen: string } | undefined;
@@ -116,7 +117,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
   const BASE_URL = EXPO_PUBLIC_BASE_URL;
   const profileData = route.params.profileData;
-  console.log(profileData);
+  // console.log(profileData);
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [following, setFollowing] = useState<Follower[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -270,6 +271,23 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const saveGymId = async () => {
+      if (profileData.gymId) {
+        try {
+          await AsyncStorage.setItem("gymId", profileData.gymId.toString()); // 문자열로 변환 후 저장
+          console.log("✅ GymId 저장 완료:", profileData.gymId);
+        } catch (error) {
+          console.error("❌ GymId 저장 실패:", error);
+        }
+      } else {
+        console.warn("⚠️ profileData.gymId 값이 존재하지 않음");
+      }
+    };
+  
+    saveGymId();
+  }, [profileData.gymId]);
 
   useEffect(() => {
     const fetchAverageRating = async () => {
@@ -809,10 +827,11 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           {/* Location Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>위치</Text>
-            <Image
+            {/* <Image
               source={{ uri: "/api/placeholder/400/200" }}
               style={styles.mapImage}
-            />
+            /> */}
+            <MapScreen />
           </View>
 
           {/* Reviews Section */}

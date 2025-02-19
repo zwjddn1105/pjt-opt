@@ -54,10 +54,15 @@ const LoginNeedScreen: React.FC = () => {
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;
+      const response2 = await axios.get(
+        `${EXPO_PUBLIC_BASE_URL}/profile/${id}`,
+      );
+      const gymId = response2.data.gymId;
 
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
+      await AsyncStorage.setItem("gymId", gymId.toString());
       console.log(refreshToken);
       console.log(role);
       console.log(id);

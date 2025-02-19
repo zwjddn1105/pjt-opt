@@ -55,7 +55,8 @@ public class AiReportService {
                 .build();
     }
 
-    @Scheduled(cron = "0 0 3 * * MON")
+    //    @Scheduled(cron = "0 0 3 * * MON")
+    @Scheduled(cron = "0 40 11 * * WED")
     public void generateWeeklyReport() {
         WeeklyDateRange dateRange = getReponrtDateRange();
         List<Member> members = memberRepository.findAll();

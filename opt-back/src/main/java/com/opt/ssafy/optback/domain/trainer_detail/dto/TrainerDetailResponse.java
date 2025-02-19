@@ -9,6 +9,7 @@ import lombok.Getter;
 public class TrainerDetailResponse {
 
     private int trainerId;
+    private String trainerNickname;
     private boolean isOneDayAvailable;
     private String intro;
     private int experienceYears;
@@ -24,6 +25,7 @@ public class TrainerDetailResponse {
     public TrainerDetailResponse(TrainerDetail trainerDetail, List<String> keywords, double averageRating,
                                  int reviewCount, List<MenuResponse> menus) {
         this.trainerId = trainerDetail.getTrainerId();
+        this.trainerNickname = trainerDetail.getMember().getNickname();
         this.isOneDayAvailable = trainerDetail.getIsOneDayAvailable();
         this.intro = trainerDetail.getIntro();
         this.experienceYears = trainerDetail.getExperienceYears();

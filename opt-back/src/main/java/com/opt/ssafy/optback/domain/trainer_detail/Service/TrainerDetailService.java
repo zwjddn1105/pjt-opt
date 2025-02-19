@@ -6,6 +6,8 @@ import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import com.opt.ssafy.optback.domain.member.repository.TrainerSpecialtyRepository;
+import com.opt.ssafy.optback.domain.menu.dto.MenuResponse;
+import com.opt.ssafy.optback.domain.menu.repository.MenuRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.Repository.TrainerDetailRepository;
 import com.opt.ssafy.optback.domain.trainer_detail.Specification.TrainerSpecification;
 import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerDetailResponse;
@@ -32,18 +34,17 @@ public class TrainerDetailService {
     private final UserDetailsServiceImpl userDetailsService;
     private final TrainerReviewRepository trainerReviewRepository;
     private final TrainerSpecialtyRepository trainerSpecialtyRepository;
+    private final MenuRepository menuRepository;
 
     public TrainerDetailResponse getTrainerDetail(int trainerId) {
         TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerId)
                 .orElseThrow(() -> new TrainerNotFoundException("해당 트레이너 정보를 찾을 수 없습니다: " + trainerId));
 
-        List<String> keywords = trainerSpecialtyRepository.findKeywordsByTrainerId(trainerId);
-
-        return new TrainerDetailResponse(trainerDetail, keywords);
+        return getResponse(trainerDetail);
     }
 
     // 트레이너 검색 + 정렬
-    public List<TrainerDetail> searchAndSortTrainers(TrainerSearchRequest request) {
+    public List<TrainerDetailResponse> searchAndSortTrainers(TrainerSearchRequest request) {
         Integer memberId = checkLogged();
 
         // 검색
@@ -56,7 +57,8 @@ public class TrainerDetailService {
         double myLongitude = (request.getMyLongitude() != null) ? request.getMyLongitude().doubleValue() : 0.0;
 
         sortTrainers(filteredTrainers, sortBy, myLatitude, myLongitude, memberId);
-        return filteredTrainers;
+
+        return getResponses(filteredTrainers);
     }
 
     private Integer checkLogged() {
@@ -164,7 +166,7 @@ public class TrainerDetailService {
     }
 
     // 추천
-    public List<TrainerDetail> getRecommendedTrainers(TrainerSearchRequest request) {
+    public List<TrainerDetailResponse> getRecommendedTrainers(TrainerSearchRequest request) {
         Integer memberId = checkLogged();
         List<TrainerDetail> trainers = trainerDetailRepository.findAll();
         if (trainers == null || trainers.isEmpty()) {
@@ -175,6 +177,40 @@ public class TrainerDetailService {
         double myLongitude = (request.getMyLongitude() != null) ? request.getMyLongitude().doubleValue() : 0.0;
 
         trainers.sort((t1, t2) -> compareByRecommendation(t1, t2, myLatitude, myLongitude, memberId));
-        return trainers;
+
+        return getResponses(trainers);
+    }
+
+    public List<TrainerDetailResponse> getResponses(List<TrainerDetail> trainers) {
+        double averageRating = trainerReviewRepository.findAverageRatingByTrainerId(trainers.get(0).getTrainerId());
+        Integer reviewCount = trainerReviewRepository.countReviewsByTrainerId(trainers.get(0).getTrainerId());
+
+        List<TrainerDetailResponse> responses = trainers.stream()
+                .map(trainer -> new TrainerDetailResponse(trainer,
+                        trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId()),
+                        averageRating,
+                        reviewCount,
+                        menuRepository.findByTrainerId(trainer.getTrainerId()).stream()
+                                .map(MenuResponse::new)
+                                .toList()
+                ))
+                .toList();
+
+        return responses;
+    }
+
+    public TrainerDetailResponse getResponse(TrainerDetail trainer) {
+        double averageRating = trainerReviewRepository.findAverageRatingByTrainerId(trainer.getTrainerId());
+        Integer reviewCount = trainerReviewRepository.countReviewsByTrainerId(trainer.getTrainerId());
+        
+        return new TrainerDetailResponse(
+                trainer,
+                trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId()),
+                averageRating,
+                reviewCount,
+                menuRepository.findByTrainerId(trainer.getTrainerId()).stream()
+                        .map(MenuResponse::new)
+                        .toList()
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.opt.ssafy.optback.domain.profile;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.opt.ssafy.optback.domain.badge.dto.BadgeResponse;
 import com.opt.ssafy.optback.domain.member.entity.Interest;
 import java.util.List;
@@ -15,5 +16,7 @@ public class ProfileResponse {
     private String nickname;
     private BadgeResponse mainBadge;
     private List<Interest> interests;
+
+    @JsonProperty("isFollow")
     private boolean isFollow;
 }

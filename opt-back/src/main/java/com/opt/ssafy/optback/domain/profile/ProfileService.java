@@ -45,7 +45,6 @@ public class ProfileService {
                     .orElse(null);
         }
 
-        // MemberInterest -> Interest 변환 (MemberInterest에 getInterest()가 있다고 가정)
         List<Interest> interests = targetMember.getMemberInterests().stream()
                 .map(MemberInterest::getInterest)
                 .collect(Collectors.toList());

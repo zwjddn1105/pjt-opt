@@ -43,10 +43,11 @@ public class MemberService {
     public void updateIntro(UpdateIntroRequest request) {
         Member member = userDetailsService.getMemberByContextHolder();
         TrainerDetail trainerDetail = member.getTrainerDetail();
+
         if(request.getText()==null){
-            trainerSpecialtyRepository.deleteByTrainerId(member.getId());
             throw new IllegalStateException("text가 NULL입니다.");
         }
+        trainerSpecialtyRepository.deleteByTrainerId(member.getId());
         trainerDetail.updateIntro(request.getText());
 
         saveTrainerSpecialties();

@@ -4,7 +4,6 @@ import com.opt.ssafy.optback.domain.member.repository.TrainerSpecialtyRepository
 import com.opt.ssafy.optback.domain.trainer_detail.Service.TrainerDetailService;
 import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerDetailResponse;
 import com.opt.ssafy.optback.domain.trainer_detail.dto.TrainerSearchRequest;
-import com.opt.ssafy.optback.domain.trainer_detail.entity.TrainerDetail;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -37,12 +36,7 @@ public class TrainerDetailController {
     @PostMapping("/search")
     public ResponseEntity<Page<TrainerDetailResponse>> getSearchTrainers(
             @RequestBody TrainerSearchRequest request, Pageable pageable) {
-        List<TrainerDetail> trainers = trainerService.searchAndSortTrainers(request);
-
-        List<TrainerDetailResponse> responses = trainers.stream()
-                .map(trainer -> new TrainerDetailResponse(trainer,
-                        trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId())))
-                .toList();
+        List<TrainerDetailResponse> responses = trainerService.searchAndSortTrainers(request);
 
         return ResponseEntity.ok(convertListToPage(responses, pageable));
     }
@@ -50,12 +44,7 @@ public class TrainerDetailController {
     @PostMapping("/recommends")
     public ResponseEntity<Page<TrainerDetailResponse>> getRecommendTrainers(
             @RequestBody TrainerSearchRequest request, Pageable pageable) {
-        List<TrainerDetail> trainers = trainerService.getRecommendedTrainers(request);
-
-        List<TrainerDetailResponse> responses = trainers.stream()
-                .map(trainer -> new TrainerDetailResponse(trainer,
-                        trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId())))
-                .toList();
+        List<TrainerDetailResponse> responses = trainerService.getRecommendedTrainers(request);
 
         return ResponseEntity.ok(convertListToPage(responses, pageable));
     }

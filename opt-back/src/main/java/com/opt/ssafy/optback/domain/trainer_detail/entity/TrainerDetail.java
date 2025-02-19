@@ -54,6 +54,9 @@ public class TrainerDetail {
     @OneToMany(mappedBy = "trainerDetail", fetch = FetchType.LAZY)
     private List<TrainerReview> reviews;
 
+    @OneToMany(mappedBy = "trainerDetail", fetch = FetchType.LAZY)
+    private List<Certificate> certificates;
+
     public void updateIntro(String intro) {
         this.intro = intro;
     }

@@ -1,16 +1,12 @@
 package com.opt.ssafy.optback.domain.trainer_review.dto;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class TrainerReviewRequest {
-
-    private int trainerId;
+    private Integer trainerId;
     private String comment;
-    private int rate;
-
+    private Integer rate;
 }

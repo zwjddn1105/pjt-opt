@@ -26,8 +26,10 @@ public class TrainerReviewResponse {
         this.createdAt = trainerReview.getCreatedAt();
         this.rate = trainerReview.getRate();
         List<String> imageUrlList = new ArrayList<>();
-        for (TrainerReviewImage image : trainerReview.getImages()) {
-            imageUrlList.add(image.getPath());
+        if (trainerReview.getImages() != null) {
+            for (TrainerReviewImage image : trainerReview.getImages()) {
+                imageUrlList.add(image.getPath());
+            }
         }
         this.imageUrls = imageUrlList;
     }

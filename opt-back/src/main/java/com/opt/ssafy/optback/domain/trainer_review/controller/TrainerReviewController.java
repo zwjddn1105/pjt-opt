@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +28,7 @@ public class TrainerReviewController {
 
     // 리뷰(텍스트+이미지) 추가
     @PostMapping
-    public ResponseEntity<TrainerReviewResponse> addTrainerReview(TrainerReviewRequest reviewRequestDto) {
+    public ResponseEntity<TrainerReviewResponse> addTrainerReview(@RequestBody TrainerReviewRequest reviewRequestDto) {
         // 리뷰 텍스트 저장
         TrainerReview savedTrainerReview = trainerReviewService.saveReviewText(reviewRequestDto);
         return ResponseEntity.ok(new TrainerReviewResponse(savedTrainerReview));

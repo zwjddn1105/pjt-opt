@@ -17,12 +17,13 @@ import PlusButton from "../components/PlusButton";
 import ExerciseModal from "../components/ExerciseModal/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
-import { fetchExercises } from "../api/exercises";
 import { fetchExerciseRecords, deleteExerciseRecord, type ExerciseRecord, type Media } from "../api/exerciseRecords";
 import EditExerciseModal from "../components/EditExerciseModal";
 import { MealRecords } from '../components/MealRecords';
 import { MealRecord } from '../api/mealRecords';
 import { EXPO_PUBLIC_BASE_URL } from "@env";
+import { fetchAIReport } from '../api/aiReports';
+import { AIReportModal } from '../components/AIReportModal';
 
 interface MarkedDates {
   [date: string]: {
@@ -62,6 +63,9 @@ export const CalendarScreen = () => {
   const [foodRecords, setFoodRecords] = useState<FoodRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [aiReportVisible, setAiReportVisible] = useState(false);
+  const [aiReportContent, setAiReportContent] = useState<string | null>(null);
+  const [isAiReportLoading, setIsAiReportLoading] = useState(false);
   const [monthlyRecords, setMonthlyRecords] = useState<{
     exerciseDates: string[];
     mealDates: string[];
@@ -123,9 +127,7 @@ export const CalendarScreen = () => {
         {isLastDayOfWeek && isPassedWeek(date) && (
           <TouchableOpacity
             style={styles.aiReportButton}
-            onPress={() => {
-              Alert.alert("AI 보고서", `${date.dateString} 주의 분석 보고서를 생성합니다.`);
-            }}
+            onPress={() => handleAIReport(date)}
           >
             <Ionicons name="analytics" size={16} color="#007AFF" />
           </TouchableOpacity>
@@ -199,6 +201,33 @@ export const CalendarScreen = () => {
       loadFoodRecords();
     }, [selectedDate])
   );
+
+  const handleAIReport = async (date: DateData) => {
+    try {
+      setIsAiReportLoading(true);
+      setAiReportVisible(true);
+      
+      const targetDate = new Date(date.dateString);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth() + 1;
+      
+      // 해당 날짜가 몇 번째 주인지 계산
+      const firstDayOfMonth = new Date(year, month - 1, 1);
+      const weekNumber = Math.ceil((targetDate.getDate() + firstDayOfMonth.getDay()) / 7);
+      
+      const report = await fetchAIReport(year, month, weekNumber);
+      setAiReportContent(report);
+    } catch (error) {
+      console.error('Failed to fetch AI report:', error);
+      Alert.alert(
+        "오류",
+        "AI 리포트를 불러오는데 실패했습니다.",
+        [{ text: "확인" }]
+      );
+    } finally {
+      setIsAiReportLoading(false);
+    }
+  };
 
   const handleFoodButtonPress = (mealType: "아침" | "점심" | "저녁", record?: MealRecord) => {
     navigation.navigate('Food', {
@@ -458,12 +487,13 @@ export const CalendarScreen = () => {
               textDayFontSize: 14,
               textMonthFontSize: 16,
               textDayHeaderFontSize: 14,
-              "stylesheet.calendar.header": {
+              'stylesheet.calendar.header': {
                 week: {
-                  flexDirection: "row",
-                  justifyContent: "flex-start", // 요일을 왼쪽 정렬
-                  paddingLeft: 0,
-                },
+                  marginTop: 5,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between', // 변경
+                  paddingRight: 60,
+                }
               },
               'stylesheet.calendar.main': {
                 week: {
@@ -544,6 +574,16 @@ export const CalendarScreen = () => {
             record={selectedRecord}
           />
         )}
+
+        <AIReportModal
+          visible={aiReportVisible}
+          onClose={() => {
+            setAiReportVisible(false);
+            setAiReportContent(null);
+          }}
+          reportContent={aiReportContent}
+          isLoading={isAiReportLoading}
+        />
       </ScrollView>
     </SafeAreaView>
   );

@@ -260,20 +260,6 @@ export const ExerciseRecordForm: React.FC<ExerciseRecordFormProps> = ({
               <Text style={styles.inputUnit}>횟수</Text>
             </View>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                ref={durationRef}
-                style={styles.input}
-                placeholder="운동 시간을 입력하세요"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={duration}
-                onChangeText={(value) => handleNumberInput(value, setDuration)}
-                returnKeyType="done"
-              />
-              <Text style={styles.inputUnit}>분</Text>
-            </View>
-
             <View style={styles.mediaSection}>
               <View style={styles.mediaSectionHeader}>
                 <Text style={styles.mediaSectionTitle}>미디어 추가</Text>

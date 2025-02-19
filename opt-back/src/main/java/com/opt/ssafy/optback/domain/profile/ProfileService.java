@@ -1,11 +1,17 @@
 package com.opt.ssafy.optback.domain.profile;
 
 import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
+import com.opt.ssafy.optback.domain.badge.dto.BadgeResponse;
 import com.opt.ssafy.optback.domain.badge.entity.Badge;
 import com.opt.ssafy.optback.domain.badge.repository.BadgeRepository;
+import com.opt.ssafy.optback.domain.follow.repository.FollowRepository;
+import com.opt.ssafy.optback.domain.member.entity.Interest;
 import com.opt.ssafy.optback.domain.member.entity.Member;
+import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
 import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +22,7 @@ public class ProfileService {
     private final MemberRepository memberRepository;
     private final UserDetailsServiceImpl userDetailsService;
     private final BadgeRepository badgeRepository;
+    private final FollowRepository followRepository;
 
     public ProfileResponse getMyProfile() {
         Member member = userDetailsService.getMemberByContextHolder();
@@ -23,8 +30,35 @@ public class ProfileService {
     }
 
     public ProfileResponse getProfile(Integer memberId) {
-        Member member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
-        return getProfileResponse(member);
+        Member targetMember = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        Member currentMember = userDetailsService.getMemberByContextHolder();
+        boolean isFollow = followRepository.existsByMemberAndTarget(currentMember, targetMember);
+
+        // mainBadgeId가 설정되어 있고 memberBadges가 존재하면, 해당 배지를 찾음.
+        BadgeResponse mainBadgeResponse = null;
+        if (targetMember.getMainBadgeId() != null && targetMember.getMemberBadges() != null) {
+            mainBadgeResponse = targetMember.getMemberBadges().stream()
+                    .filter(mb -> mb.getBadge().getId() == targetMember.getMainBadgeId())
+                    .findFirst()
+                    .map(mb -> new BadgeResponse(mb.getBadge()))
+                    .orElse(null);
+        }
+
+        // MemberInterest -> Interest 변환 (MemberInterest에 getInterest()가 있다고 가정)
+        List<Interest> interests = targetMember.getMemberInterests().stream()
+                .map(MemberInterest::getInterest)
+                .collect(Collectors.toList());
+
+        return ProfileResponse.builder()
+                .id(targetMember.getId())
+                .nickname(targetMember.getNickname())
+                .imagePath(targetMember.getImagePath())
+                .role(targetMember.getRole().toString())
+                .mainBadge(mainBadgeResponse)
+                .interests(interests)
+                .isFollow(isFollow)
+                .build();
     }
 
     public ProfileResponse getProfileResponse(Member member) {

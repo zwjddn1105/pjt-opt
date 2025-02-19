@@ -20,4 +20,6 @@ public interface FollowRepository extends JpaRepository<Follow, Integer> {
 
     // ✅ 특정 팔로우 관계 삭제
     void deleteByMemberAndTarget(Member member, Member target);
+
+    boolean existsByMemberAndTarget(Member member, Member target);
 }

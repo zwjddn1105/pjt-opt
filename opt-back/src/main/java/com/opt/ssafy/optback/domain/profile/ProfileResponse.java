@@ -15,4 +15,5 @@ public class ProfileResponse {
     private String nickname;
     private BadgeResponse mainBadge;
     private List<Interest> interests;
+    private boolean isFollow;
 }

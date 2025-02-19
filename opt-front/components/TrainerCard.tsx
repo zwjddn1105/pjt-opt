@@ -1,7 +1,18 @@
 // components/TrainerCard.tsx
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity   } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import axios from 'axios';
+import { EXPO_PUBLIC_BASE_URL } from "@env";
+
+type RootStackParamList = {
+  TrainerProfile: { trainerId: number };
+  // ... 기존 라우트들
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface Menu {
   id: number;
@@ -29,7 +40,9 @@ interface TrainerCardProps {
 }
 
 const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
-  // Find the lowest priced menu
+  const navigation = useNavigation<NavigationProp>();
+  const BASE_URL = EXPO_PUBLIC_BASE_URL;
+
   const lowestPriceMenu = trainer.menus.length > 0 
     ? trainer.menus.reduce((prev, curr) => 
         prev.price < curr.price ? prev : curr
@@ -38,8 +51,27 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
 
   const roundedRating = Math.round(trainer.averageRating * 10) / 10;
 
+  const handlePress = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/profile/${trainer.trainer_id}`);
+      if (response.status === 200) {
+        navigation.navigate("ProfileScreen", { profileData: response.data });
+      } else {
+        console.error("프로필 데이터를 가져오는데 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("프로필 요청 중 오류 발생:", error);
+      // 트레이너 프로필의 경우 로그인이 필요 없을 수 있으므로, 
+      // 단순히 에러 로깅만 하거나 별도의 에러 처리를 하실 수 있습니다
+    }
+  };
+
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <Image 
         source={{ uri: trainer.trainerProfileImage }}
         style={styles.image}
@@ -77,7 +109,7 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

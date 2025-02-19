@@ -14,10 +14,10 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
-    @GetMapping("/my")
-    public ResponseEntity<ProfileResponse> getMyProfile() {
-        return ResponseEntity.ok(profileService.getMyProfile());
-    }
+//    @GetMapping("/my")
+//    public ResponseEntity<ProfileResponse> getMyProfile() {
+//        return ResponseEntity.ok(profileService.getMyProfile());
+//    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProfileResponse> getProfile(@PathVariable Integer id) {

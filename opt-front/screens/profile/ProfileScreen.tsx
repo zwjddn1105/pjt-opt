@@ -124,7 +124,8 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
   const BASE_URL = EXPO_PUBLIC_BASE_URL;
   const profileData = route.params.profileData;
-  // console.log(profileData);
+  console.log(profileData.id, "프로필주인");
+  console.log(memberId, "로그인한애");
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [following, setFollowing] = useState<Follower[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -584,23 +585,20 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       const refreshToken = await AsyncStorage.getItem("refreshToken");
 
       const endpoint = profileData.isFollow
-        ? `${BASE_URL}/follows?targetId=${profileData.id}`
+        ? `${BASE_URL}/follows/${profileData.id}`
         : `${BASE_URL}/follows?targetId=${profileData.id}`;
       const method = profileData.isFollow ? "delete" : "post";
       console.log("aaaaaaaaa");
-      console.log(profileData);
-      console.log(profileData.id);
-      console.log(typeof profileData.id);
-      const data = profileData.isFollow ? {} : { targetId: profileData.id };
+      // const data = profileData.isFollow ? {} : { targetId: profileData.id };
 
       await axios({
         method: method,
         url: endpoint,
-        data: data,
+        // data: data,
         headers: { Authorization: `Bearer ${refreshToken}` },
       });
-
-      // 프로필 상태 업데이트
+      console.log("bbbbbbbbb");
+      alert("완료");
       setProfile((prev) => ({
         ...prev,
         isFollow: !prev.isFollow,
@@ -737,12 +735,14 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
             <View style={styles.nicknameContainer}>
               <Text style={styles.profileName}>{profile.nickname}</Text>
               <View style={{ flex: 1 }} />
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => setNewNickname(profile.nickname)}
-              >
-                <Text style={styles.editButtonText}>수정</Text>
-              </TouchableOpacity>
+              {profileData.id === memberId && (
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => setNewNickname(profile.nickname)}
+                >
+                  <Text style={styles.editButtonText}>수정</Text>
+                </TouchableOpacity>
+              )}
             </View>
             {newNickname !== "" && (
               <View style={styles.editNicknameContainer}>
@@ -845,14 +845,16 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
             </View>
 
             {/* 관심사 태그 */}
-            <View style={styles.interestsTitleContainer}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={openInterestModal}
-              >
-                <Text style={styles.editButtonText}>관심사수정</Text>
-              </TouchableOpacity>
-            </View>
+            {profileData.id === memberId && (
+              <View style={styles.interestsTitleContainer}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={openInterestModal}
+                >
+                  <Text style={styles.editButtonText}>관심사수정</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.interestsContainer}>
               {profile.interests && profile.interests.length > 0 ? (
@@ -872,143 +874,156 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           </View>
 
           {/* 자격/학력 섹션 */}
-          <View style={styles.section}>
-            <View style={styles.nicknameContainer}>
-              <Text style={styles.sectionTitle}>자기소개(전문분야)</Text>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => setIsEditing(true)}
-              >
-                <Text style={styles.editButtonText}>수정</Text>
-              </TouchableOpacity>
-            </View>
-
-            {isEditing ? (
-              <View style={styles.editNicknameContainer}>
-                <TextInput
-                  style={styles.nicknameInput}
-                  value={newCertification}
-                  onChangeText={setNewCertification}
-                  placeholder="자기소개를 입력하면 AI가 전문분야를 반환합니다."
-                />
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleEditCertification} // 저장 버튼 클릭 시 실행
-                >
-                  <Text style={styles.saveButtonText}>저장</Text>
-                </TouchableOpacity>
+          {profileData.role === "ROLE_TRAINER" && (
+            <View style={styles.section}>
+              <View style={styles.nicknameContainer}>
+                <Text style={styles.sectionTitle}>자기소개(전문분야)</Text>
+                {profileData.id === memberId && (
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => setIsEditing(true)}
+                  >
+                    <Text style={styles.editButtonText}>수정</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : (
-              <Text style={styles.certificationText}>
-                {profile.certification}
-              </Text>
-            )}
-          </View>
+
+              {isEditing ? (
+                <View style={styles.editNicknameContainer}>
+                  <TextInput
+                    style={styles.nicknameInput}
+                    value={newCertification}
+                    onChangeText={setNewCertification}
+                    placeholder="자기소개를 입력하면 AI가 전문분야를 반환합니다."
+                  />
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleEditCertification} // 저장 버튼 클릭 시 실행
+                  >
+                    <Text style={styles.saveButtonText}>저장</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={styles.certificationText}>
+                  {profile.certification}
+                </Text>
+              )}
+            </View>
+          )}
 
           {/* 자격증세션션 */}
-          <View style={styles.section}>
-            <View style={styles.nicknameContainer}>
-              <Text style={styles.sectionTitle}>증명된자격증</Text>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={handleCertificateUpload}
-              >
-                <Text style={styles.editButtonText}>등록하기</Text>
-              </TouchableOpacity>
-            </View>
+          {profileData.role === "ROLE_TRAINER" && (
+            <View style={styles.section}>
+              <View style={styles.nicknameContainer}>
+                <Text style={styles.sectionTitle}>증명된자격증</Text>
+                {profileData.id === memberId && (
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={handleCertificateUpload}
+                  >
+                    <Text style={styles.editButtonText}>등록하기</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
-            {certificateData && certificateData.length > 0 ? (
-              certificateData.map((certificate, index) => (
-                <View key={index} style={styles.licenseItem}>
-                  <Image
-                    source={{ uri: certificate.imagePath }}
-                    style={styles.licenseImage}
-                  />
-                  <View style={styles.licenseInfo}>
-                    <Text style={styles.licenseText}>{certificate.name}</Text>
-                    {certificate.isVerified && (
-                      <MaterialIcons
-                        name="verified"
-                        size={24}
-                        color="#4169E1"
-                      />
-                    )}
+              {certificateData && certificateData.length > 0 ? (
+                certificateData.map((certificate, index) => (
+                  <View key={index} style={styles.licenseItem}>
+                    <Image
+                      source={{ uri: certificate.imagePath }}
+                      style={styles.licenseImage}
+                    />
+                    <View style={styles.licenseInfo}>
+                      <Text style={styles.licenseText}>{certificate.name}</Text>
+                      {certificate.isVerified && (
+                        <MaterialIcons
+                          name="verified"
+                          size={24}
+                          color="#4169E1"
+                        />
+                      )}
+                    </View>
                   </View>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.noLicenseText}>
-                등록된 자격증이 없습니다.
-              </Text>
-            )}
-          </View>
+                ))
+              ) : (
+                <Text style={styles.noLicenseText}>
+                  등록된 자격증이 없습니다.
+                </Text>
+              )}
+            </View>
+          )}
 
           {/* Location Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>위치</Text>
-            {/* <Image
-              source={{ uri: "/api/placeholder/400/200" }}
-              style={styles.mapImage}
-            /> */}
-            <MapScreen />
-          </View>
+          {profileData.role === "ROLE_TRAINER" && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>위치</Text>
+              <MapScreen />
+            </View>
+          )}
 
           {/* Reviews Section */}
-          <View style={styles.section}>
-            <View style={styles.nicknameContainer}>
-              <View style={styles.reviewHeader}>
-                <Text style={styles.sectionTitle}>후기</Text>
-                <View style={styles.ratingContainer}>
-                  <Text style={styles.ratingNumber}>{profile.rating}</Text>
-                  <View style={styles.starsContainer}>
-                    {generateStars(profile.rating)}
+          {profileData.role === "ROLE_TRAINER" && (
+            <View style={styles.section}>
+              <View style={styles.nicknameContainer}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.sectionTitle}>후기</Text>
+                  <View style={styles.ratingContainer}>
+                    <Text style={styles.ratingNumber}>{profile.rating}</Text>
+                    <View style={styles.starsContainer}>
+                      {generateStars(profile.rating)}
+                    </View>
                   </View>
                 </View>
+                {profileData.id !== memberId && (
+                  <TouchableOpacity
+                    style={styles.reviewButton}
+                    onPress={() => setIsReviewModalVisible(true)}
+                  >
+                    <Text style={styles.reviewButtonText}>리뷰쓰기</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <TouchableOpacity
-                style={styles.reviewButton}
-                onPress={() => setIsReviewModalVisible(true)}
-              >
-                <Text style={styles.reviewButtonText}>리뷰쓰기</Text>
-              </TouchableOpacity>
+
+              {/* 정렬 방식 선택 버튼 */}
+              {profileData.role === "ROLE_TRAINER" && (
+                <View style={styles.sortButtonsContainer}>
+                  <TouchableOpacity
+                    style={styles.sortButton}
+                    onPress={() => handleSortTypeChange("id,desc")}
+                  >
+                    <Text style={styles.sortButtonText}>최신순</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.sortButton}
+                    onPress={() => handleSortTypeChange("rate,desc")}
+                  >
+                    <Text style={styles.sortButtonText}>별점 높은 순</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.sortButton}
+                    onPress={() => handleSortTypeChange("rate,asc")}
+                  >
+                    <Text style={styles.sortButtonText}>별점 낮은 순</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* 리뷰 모달 */}
+              <ReviewComponent
+                isVisible={isSortedReviewModalVisible}
+                onClose={() => setIsSortedReviewModalVisible(false)}
+                reviews={reviews} // 리뷰 데이터 전달
+              />
             </View>
-
-            {/* 정렬 방식 선택 버튼 */}
-            <View style={styles.sortButtonsContainer}>
-              <TouchableOpacity
-                style={styles.sortButton}
-                onPress={() => handleSortTypeChange("id,desc")}
-              >
-                <Text style={styles.sortButtonText}>최신순</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.sortButton}
-                onPress={() => handleSortTypeChange("rate,desc")}
-              >
-                <Text style={styles.sortButtonText}>별점 높은 순</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.sortButton}
-                onPress={() => handleSortTypeChange("rate,asc")}
-              >
-                <Text style={styles.sortButtonText}>별점 낮은 순</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 리뷰 모달 */}
-            <ReviewComponent
-              isVisible={isSortedReviewModalVisible}
-              onClose={() => setIsSortedReviewModalVisible(false)}
-              reviews={reviews} // 리뷰 데이터 전달
-            />
-          </View>
-
-          <TouchableOpacity
-            style={styles.pricingButton}
-            onPress={openPriceModal}
-          >
-            <Text style={styles.buttonText}>가격표 정보 보기</Text>
-          </TouchableOpacity>
+          )}
+          {profileData.role === "ROLE_TRAINER" && (
+            <TouchableOpacity
+              style={styles.pricingButton}
+              onPress={openPriceModal}
+            >
+              <Text style={styles.buttonText}>가격표 정보 보기</Text>
+            </TouchableOpacity>
+          )}
 
           {/* PriceModal 추가 */}
           <PriceModal
@@ -1019,15 +1034,16 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
           <View style={styles.bottomPadding} />
         </ScrollView>
-
-        <View style={styles.fixedBottomButtons}>
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={handleChatButtonPress}
-          >
-            <Text style={styles.buttonText}>채팅상담</Text>
-          </TouchableOpacity>
-        </View>
+        {profileData.role === "ROLE_TRAINER" && profileData.id !== memberId && (
+          <View style={styles.fixedBottomButtons}>
+            <TouchableOpacity
+              style={styles.chatButton}
+              onPress={handleChatButtonPress}
+            >
+              <Text style={styles.buttonText}>채팅상담</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       {/* Modal */}
       <InterestModal

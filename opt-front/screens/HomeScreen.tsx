@@ -17,9 +17,10 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
-import ResetStorageButton from "components/reset";
 import { searchTrainers, getRecommendedTrainers, TrainerResponse } from "../api/searchTrainer";
 import { LocationObject, requestForegroundPermissionsAsync, getForegroundPermissionsAsync, getLastKnownPositionAsync } from 'expo-location';
+import { EXPO_PUBLIC_BASE_URL } from "@env";
+import axios from "axios";
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = WINDOW_WIDTH;
@@ -32,6 +33,7 @@ type RootStackParamList = {
   Profile: undefined;
   LoginNeedScreen: undefined;
   ProfileScreen: { profileData: any };
+  OnboardingScreen: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -209,6 +211,49 @@ const HomeScreen: React.FC = () => {
   const [todaySchedules, setTodaySchedules] = useState<Schedule[]>([]);
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [monthlyRecords, setMonthlyRecords] = useState<{
+    exerciseDates: string[];
+    mealDates: string[];
+  }>({
+    exerciseDates: [],
+    mealDates: []
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadMonthlyRecords = async () => {
+        try {
+          const refreshToken = await AsyncStorage.getItem('refreshToken');
+          if (!refreshToken) throw new Error('No refresh token found');
+      
+          const today = new Date();
+          const year = today.getFullYear();
+          const month = today.getMonth() + 1;
+      
+          const url = `${EXPO_PUBLIC_BASE_URL}/exercise-records/monthly?year=${year}&month=${month}`;
+      
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${refreshToken}`,
+              'Content-Type': 'application/json'
+            },
+          });
+      
+          if (!response.ok) {
+            throw new Error('Failed to fetch monthly records');
+          }
+      
+          const data = await response.json();
+          setMonthlyRecords(data);
+        } catch (error) {
+          console.error('Failed to load monthly records:', error);
+        }
+      };
+  
+      loadMonthlyRecords();
+      calculateWorkoutStats();
+    }, [])
+  );
 
   const fetchLocation = async () => {
     try {
@@ -249,12 +294,40 @@ const HomeScreen: React.FC = () => {
         });
         setNearbyTrainers(nearbyResponse.content);
       }
-
+  
       // Fetch popular trainers
       const popularResponse = await getRecommendedTrainers({
         size: 7
       });
       setPopularTrainers(popularResponse.content);
+  
+      // 월별 운동 기록 가져오기 (달력 컴포넌트와 비슷한 방식)
+      try {
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token found');
+    
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+    
+        const url = `${EXPO_PUBLIC_BASE_URL}/exercise-records/monthly?year=${year}&month=${month}`;
+    
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${refreshToken}`,
+            'Content-Type': 'application/json'
+          },
+        });
+    
+        if (!response.ok) {
+          throw new Error('Failed to fetch monthly records');
+        }
+    
+        const data = await response.json();
+        setMonthlyRecords(data);
+      } catch (error) {
+        console.error('Failed to load monthly records:', error);
+      }
     } catch (error) {
       console.error('Error fetching trainers:', error);
       Alert.alert('트레이너 정보를 불러올 수 없습니다');
@@ -311,32 +384,47 @@ const HomeScreen: React.FC = () => {
 
   const calculateWorkoutStats = async () => {
     try {
-      const records = await AsyncStorage.getItem("exerciseRecords");
-      if (!records) return;
-
-      const exerciseRecords = JSON.parse(records);
-      const workoutDates = [
-        ...new Set(exerciseRecords.map((record: any) => record.date)),
-      ].sort();
-
+      const today = new Date();
+      const exerciseDates = monthlyRecords.exerciseDates || [];
+  
       // 연속 운동일수 계산
       let currentStreak = 0;
-      const today = new Date().toISOString().split("T")[0];
-      const yesterday = new Date(Date.now() - 86400000)
-        .toISOString()
-        .split("T")[0];
-
-      const startCheckingDate = workoutDates.includes(today)
-        ? today
-        : yesterday;
-
-      for (let i = new Date(startCheckingDate); ; i.setDate(i.getDate() - 1)) {
-        const dateString = i.toISOString().split("T")[0];
-        if (!workoutDates.includes(dateString)) break;
-        currentStreak++;
+      
+      // 날짜를 내림차순으로 정렬하고 Date 객체로 변환
+      const sortedDates = exerciseDates
+        .map(dateStr => new Date(dateStr))
+        .sort((a, b) => b.getTime() - a.getTime());
+  
+      // 마지막 운동 날짜부터 시작
+      if (sortedDates.length > 0) {
+        let currentDate = sortedDates[0];
+        
+        // 오늘 또는 어제도 운동했는지 확인
+        const todayStr = today.toISOString().split('T')[0];
+        const yesterdayStr = new Date(today.getTime() - 86400000).toISOString().split('T')[0];
+        
+        if (exerciseDates.includes(todayStr) || exerciseDates.includes(yesterdayStr)) {
+          currentStreak = 1;
+        }
+  
+        // 마지막 운동 날짜부터 연속 운동일 계산
+        for (let i = 1; i < sortedDates.length; i++) {
+          const prevDate = sortedDates[i-1];
+          const currentCheckedDate = sortedDates[i];
+          
+          // 날짜 차이 계산 (86400000 = 하루의 밀리초)
+          const dateDiff = (prevDate.getTime() - currentCheckedDate.getTime()) / 86400000;
+          
+          // 연속된 날짜인 경우 streak 증가
+          if (dateDiff === 1) {
+            currentStreak++;
+          } else {
+            break;
+          }
+        }
       }
-
-      // 주간 운동 현황
+  
+      // 주간 운동 현황 계산
       const weeklyDates = [];
       for (let i = 6; i >= 0; i--) {
         const date = new Date(Date.now() - i * 86400000)
@@ -344,15 +432,21 @@ const HomeScreen: React.FC = () => {
           .split("T")[0];
         weeklyDates.push(date);
       }
-
+  
       setStreak(currentStreak);
       setWeeklyWorkouts(
-        weeklyDates.filter((date) => workoutDates.includes(date))
+        weeklyDates.filter((date) => exerciseDates.includes(date))
       );
     } catch (error) {
       console.error("Failed to calculate workout stats:", error);
     }
   };
+
+  useEffect(() => {
+    if (monthlyRecords?.exerciseDates) {
+      calculateWorkoutStats();
+    }
+  }, [monthlyRecords]);
 
   const loadTodaySchedules = async () => {
     try {
@@ -390,7 +484,6 @@ const HomeScreen: React.FC = () => {
 
   const renderChallengeSection = () => (
     <View style={styles.section}>
-      <ResetStorageButton />
       <Text style={styles.sectionTitle}>진행중인 챌린지</Text>
       <View style={styles.carouselContainer}>
         <FlatList

@@ -34,15 +34,16 @@ const LoginScreen: React.FC = () => {
         const response = await axios.post(
           `${EXPO_PUBLIC_BASE_URL}/auth/kakao-front?code=${authorizeCode}`
         );
-        const { refreshToken, role, email, id, imagePath, gymId } =
+        const { refreshToken, nickname, role, email, id, imagePath, isOnboarded } =
           await response.data;
 
         await AsyncStorage.setItem("refreshToken", refreshToken);
+        await AsyncStorage.setItem("nickname", nickname);
         await AsyncStorage.setItem("role", role);
         await AsyncStorage.setItem("email", email);
         await AsyncStorage.setItem("imagePath", imagePath);
         await AsyncStorage.setItem("memberId", String(id));
-        await AsyncStorage.setItem("gymId", gymId);
+        await AsyncStorage.setItem("isOnboarded", String(isOnboarded));
 
         console.log(response.data);
 
@@ -50,8 +51,11 @@ const LoginScreen: React.FC = () => {
           {
             text: "확인",
             onPress: () => {
-              // 홈 화면으로 네비게이트
-              navigation.navigate("Main");
+              if (!isOnboarded) {
+                navigation.navigate("OnBoardingInterest");
+              } else {
+                navigation.navigate("Main");
+              }
             },
           },
         ]);

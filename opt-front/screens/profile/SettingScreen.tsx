@@ -37,6 +37,14 @@ const SettingScreen = () => {
   const handleDeleteAccount = async () => {
     try {
       const refreshToken = await AsyncStorage.getItem("refreshToken");
+        if (!refreshToken) {
+          Alert.alert("오류", "로그인 정보가 없습니다.");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Main" }],
+          });
+          return;
+        }
       const email = await AsyncStorage.getItem("email");
       const response = await axios.delete(
         `${BASE_URL}/auth/withdraw?email=${email}`,

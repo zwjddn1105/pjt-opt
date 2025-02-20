@@ -26,6 +26,8 @@ import DetailChallengeScreen from "../screens/challenge/DetailChallengesScreen";
 import OtherProfileScreen from "screens/profile/OtherProfileScreen";
 import AuthChallengeScreen from "screens/challenge/AuthChallengeScreen";
 import { MealRecord } from '../api/mealRecords';
+import OnboardingInterestsScreen from "screens/OnboardingInterestsScreen";
+
 export type RootStackParamList = {
   Main: undefined;
   LoginScreen: undefined;
@@ -60,6 +62,7 @@ export type RootStackParamList = {
   SettingScreen: undefined;
   OtherProfileScreen: { hostId: number };
   AuthChallengeScreen: { challengeId: number };
+  OnBoardingInterest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -110,6 +113,7 @@ export const StackNavigator = () => {
       <Stack.Screen name="Badge" component={BadgeScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="SettingScreen" component={SettingScreen} />
+      <Stack.Screen name="OnBoardingInterest" component={OnboardingInterestsScreen} />
     </Stack.Navigator>
   );
 };

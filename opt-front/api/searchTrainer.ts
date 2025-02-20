@@ -117,7 +117,7 @@ export const getRecommendedTrainers = async (
         }),
       }
     );
-    console.log(response)
+
     return handleApiResponse(response);
   } catch (error) {
     console.error('API Error details:', error instanceof Error ? error.message : 'Unknown error');
@@ -146,8 +146,6 @@ export const searchTrainers = async (
       size: params.size ?? 10
     };
 
-    console.log('Complete Request Body:', JSON.stringify(requestBody, null, 2));
-
     const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/trainers/search`, {
       method: 'POST',
       headers: {
@@ -158,8 +156,6 @@ export const searchTrainers = async (
     });
 
     const responseText = await response.text();
-    console.log('Response Status:', response.status);
-    console.log('Response Body:', responseText);
 
     if (!response.ok) {
       if (response.status === 401) {

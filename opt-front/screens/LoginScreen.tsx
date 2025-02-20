@@ -34,7 +34,7 @@ const LoginScreen: React.FC = () => {
         const response = await axios.post(
           `${EXPO_PUBLIC_BASE_URL}/auth/kakao-front?code=${authorizeCode}`
         );
-        const { refreshToken, role, email, id, imagePath } =
+        const { refreshToken, role, email, id, imagePath, gymId } =
           await response.data;
 
         await AsyncStorage.setItem("refreshToken", refreshToken);
@@ -42,6 +42,7 @@ const LoginScreen: React.FC = () => {
         await AsyncStorage.setItem("email", email);
         await AsyncStorage.setItem("imagePath", imagePath);
         await AsyncStorage.setItem("memberId", String(id));
+        await AsyncStorage.setItem("gymId", gymId);
 
         console.log(response.data);
 

@@ -9,6 +9,10 @@ from services.semahtic_search import extract_colon_key_values
 from services.semahtic_search import match_ocr_keys
 from services.semahtic_search import *
 from io import BytesIO
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def process_ocr(file: BytesIO):
     file.seek(0)  # 파일 포인터를 처음으로 이동
@@ -18,17 +22,27 @@ async def process_ocr(file: BytesIO):
     if image is None:
         return {"error": "올바른 이미지 파일이 아닙니다."}
 
+    logger.info('processed image : ')
     # 이미지 보정 수행
     processed_image = scan_document(image)  # 여기서 image를 넘겨야 함
-
-    if processed_image is None:
+    logger.info('image의 모양 : ')
+    logger.info(image.shape[0])
+    logger.info(image.shape[1])
+    logger.info('processed image의 모양 : ')
+    logger.info(processed_image.shape[0])
+    logger.info(processed_image.shape[1])
+    if processed_image is None or processed_image.shape[0] < 200 or processed_image.shape[1] < 200:
         processed_image = image
+    
 
     document = run_ocr(processed_image)
-    
+    logger.info('document 결과 : ')
+    logger.info(document)
     print(document.text)
     extracted = extract_colon_key_values(document.text) # :이 들어간 데이터만 뽑은 후 dictionary형태로 변환
+    logger.info('extracted 완료')
     result =  match_ocr_keys(extracted)
+    logger.info('match_ocr_keys 완료')
 
     print('@@@@@@@@@@@@@ OCR 결과 @@@@@@@@@@@@@')
     print(result)

@@ -209,7 +209,7 @@ class KafkaConsumerService:
             # ✅ OCR 수행
             # scanned_image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             logger.info('()()()()()()()()()()')
-            ocr_result_document = self.run_ocr(image)
+            ocr_result_document = self.run_ocr(scanned_image)
             logger.info(ocr_result_document.text)
             # logger.info(f"@@@@   {ocr_result_document}")
             ocr_result = ocr_result_document.text

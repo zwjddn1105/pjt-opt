@@ -28,7 +28,7 @@ import { ProgressBar } from "react-native-paper";
 type RootStackParamList = {
   DetailChallenge: { challengeId: number };
   AuthChallengeScreen: { challengeId: number };
-  OtherProfileScreen: { hostId: number };
+  ProfileScreen: { profileData: any };
 };
 
 type DetailChallengeProps = {
@@ -173,6 +173,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         },
         data: isParticipating ? null : { challengeId: challengeId },
       });
+
       if (response.status === 200) {
         setIsParticipating(!isParticipating);
         Alert.alert(
@@ -212,7 +213,20 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       </View>
     );
   }
-
+  const handleProfilePress = async () => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/profile/${challenge.hostId}`
+      );
+      if (response.status === 200) {
+        navigation.navigate("ProfileScreen", { profileData: response.data });
+      } else {
+        console.error("프로필 데이터를 가져오는데 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("프로필 요청 중 오류 발생:", error);
+    }
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopHeader />
@@ -230,13 +244,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         <View style={styles.contentContainer}>
           {/* 호스트 정보 */}
           <View style={styles.hostInfoContainer}>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("OtherProfileScreen", {
-                  hostId: challenge.hostId,
-                })
-              }
-            >
+            <TouchableOpacity onPress={handleProfilePress}>
               <FontAwesome
                 name="user-circle-o"
                 size={40}
@@ -248,6 +256,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               <Text style={styles.hostNameText}>
                 개최자: {challenge.hostRealName}
               </Text>
+
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>
@@ -408,7 +417,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   hostInfoTextContainer: {
     flex: 1,

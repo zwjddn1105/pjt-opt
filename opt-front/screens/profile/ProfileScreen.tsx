@@ -8,7 +8,6 @@ import {
   Platform,
   StatusBar,
   Modal,
-  FlatList,
   TextInput,
   SafeAreaView,
   Alert,
@@ -24,6 +23,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import InterestModal from "components/InterestModal";
 import * as ImagePicker from "expo-image-picker";
+import ReviewModal from "screens/profile/ReviewModal";
+import ReviewComponent from "./ReviewComponent";
+
+type SortType = "id,desc" | "rate,desc" | "rate,asc";
 import MapScreen from "./MapScreen"; 
 
 type RootStackParamList = {
@@ -37,14 +40,12 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ProfileScreenRouteProp = RouteProp<RootStackParamList, "ProfileScreen">;
 
 interface Review {
-  id: string;
-  user: {
-    name: string;
-    date: string;
-    image?: string;
-  };
-  rating: number;
-  content: string;
+  id: number;
+  trainerId: number;
+  comment: string;
+  createdAt: string;
+  rate: number;
+  imageUrls: string[];
 }
 
 interface Badge {
@@ -74,9 +75,10 @@ interface Profile {
     };
   };
   rating: number;
-  interests?: Interest[]; // Optional로 변경
+  interests?: Interest[];
   reviews: Review[];
   mainBadge: Badge;
+  isFollow: boolean;
 }
 
 interface Follower {
@@ -87,7 +89,11 @@ interface Follower {
   imagePath: string;
   role: string;
 }
-
+interface Certificate {
+  name: string;
+  isVerified: boolean;
+  imagePath: string;
+}
 const generateStars = (rating: number) => {
   const stars = [];
   for (let i = 0; i < 5; i++) {
@@ -133,7 +139,45 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   }>({ count: 0, averageRate: 0 });
   const [newNickname, setNewNickname] = useState("");
   const [cityDistrict, setCityDistrict] = useState("위치 정보 없음");
-  const [certificateData, setCertificateData] = useState(null);
+  const [certificateData, setCertificateData] = useState<Certificate[] | null>(
+    null
+  );
+  const [sortType, setSortType] = useState<SortType>("id,desc"); // 기본 정렬: 최신순
+  const [reviews, setReviews] = useState<Review[]>([]); // 리뷰 데이터를 저장할 상태
+  const [isSortedReviewModalVisible, setIsSortedReviewModalVisible] =
+    useState(false); // 정렬된 리뷰 모달 표시 여부 상태
+  const fetchReviews = async (sort: SortType) => {
+    try {
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+      const response = await axios.get(
+        `${BASE_URL}/trainer-reviews/${profileData.id}`,
+        {
+          params: {
+            page: 0, // 첫 페이지부터 가져옴
+            size: 20, // 페이지 크기
+            sort: sort, // 선택된 정렬 방식
+          },
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        }
+      );
+      setReviews(response.data.content); // 리뷰 데이터 설정
+    } catch (error) {
+      console.error("리뷰 데이터를 가져오는 중 오류 발생:", error);
+      Alert.alert("오류", "리뷰를 불러오는 데 실패했습니다.");
+    }
+  };
+  const handleSortTypeChange = (sort: SortType) => {
+    setSortType(sort); // 정렬 방식 상태 업데이트
+    fetchReviews(sort); // 선택된 정렬 방식으로 리뷰 데이터 가져오기
+    setIsSortedReviewModalVisible(true); // 리뷰 모달 표시
+  };
+
+  // useEffect를 사용하여 컴포넌트 마운트 시 초기 리뷰 데이터 로드
+  useEffect(() => {
+    fetchReviews(sortType); // 초기 정렬 방식으로 리뷰 데이터 가져오기
+  }, [profileData.id]);
   const [profile, setProfile] = useState<Profile>({
     nickname: "",
     image: "",
@@ -152,6 +196,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
     interests: [],
     reviews: [],
     mainBadge: { id: 0, name: "", description: "", imagePath: "" },
+    isFollow: false,
   });
 
   // InterestModal에 전달할 전체 관심사 목록
@@ -219,20 +264,9 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       },
       rating: parseFloat(average.averageRate.toFixed(1)),
       interests: profileData.interests || [],
-      reviews: [
-        {
-          id: "1",
-          user: {
-            name: "윤동광 김선순",
-            date: "2023.03.12",
-            image: "user_image_url",
-          },
-          rating: 4,
-          content:
-            "너무 맞는 선생님이에요. 컨디션 글러스를 잃은 이후 10년째 이 선생님과 운동중입니다. 다들 추천해요!",
-        },
-      ],
+      reviews: [],
       mainBadge: profileData.mainBadge,
+      isFollow: profileData.isFollow,
     });
   }, [profileData, followers, following, average]);
 
@@ -546,9 +580,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
       if (response.status === 200) {
         alert("관심사가 성공적으로 업데이트되었습니다!");
-
-        // API 응답으로 업데이트된 관심사 목록을 받아서 처리하는 로직이 필요할 수 있습니다.
-        // 여기서는 allInterests에서 선택된 ID에 해당하는 관심사를 필터링하여 프로필 정보를 업데이트합니다.
         const updatedInterests = allInterests.filter((interest) =>
           selectedIds.includes(interest.id)
         );
@@ -565,6 +596,66 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       alert("관심사 업데이트 중 문제가 발생했습니다.");
     } finally {
       closeInterestModal();
+    }
+  };
+
+  const toggleFollow = async () => {
+    try {
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+      const endpoint = profileData.isFollow
+        ? `${BASE_URL}/follows?targetId=${profileData.id}`
+        : `${BASE_URL}/follows?targetId=${profileData.id}`;
+      const method = profileData.isFollow ? "delete" : "post";
+      console.log("aaaaaaaaa");
+      console.log(profileData);
+      console.log(profileData.id);
+      console.log(typeof profileData.id);
+      const data = profileData.isFollow ? {} : { targetId: profileData.id };
+
+      await axios({
+        method: method,
+        url: endpoint,
+        data: data,
+        headers: { Authorization: `Bearer ${refreshToken}` },
+      });
+
+      // 프로필 상태 업데이트
+      setProfile((prev) => ({
+        ...prev,
+        isFollow: !prev.isFollow,
+        followers: prev.isFollow ? prev.followers - 1 : prev.followers + 1,
+      }));
+    } catch (error) {
+      console.error("팔로우/언팔로우 중 오류 발생:", error);
+      Alert.alert("오류", "팔로우/언팔로우 중 문제가 발생했습니다.");
+    }
+  };
+
+  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
+  const handleReviewSubmit = async (rating: number, comment: string) => {
+    try {
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+      const response = await axios.post(
+        `${BASE_URL}/trainer-reviews`,
+        {
+          trainerId: profileData.id,
+          comment: comment,
+          rate: rating,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        }
+      );
+      if (response.status === 200) {
+        Alert.alert("성공", "리뷰가 성공적으로 등록되었습니다.");
+        setIsReviewModalVisible(false);
+      }
+    } catch (error) {
+      console.error("리뷰 등록 오류:", error);
+      Alert.alert("오류", "리뷰 등록 중 문제가 발생했습니다.");
     }
   };
 
@@ -599,8 +690,15 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
                 <MaterialIcons name="military-tech" size={24} color="black" />
               </TouchableOpacity>
               {profileData.id !== memberId && (
-                <TouchableOpacity style={styles.headerIcon}>
-                  <Ionicons name="heart-outline" size={24} color="black" />
+                <TouchableOpacity
+                  style={styles.headerIcon}
+                  onPress={toggleFollow}
+                >
+                  <Ionicons
+                    name={profile.isFollow ? "heart" : "heart-outline"}
+                    size={24}
+                    color={profile.isFollow ? "red" : "black"}
+                  />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -816,12 +914,30 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
               </TouchableOpacity>
             </View>
 
-            {/* {profile.licenses.map((license, index) => (
-              <View key={index} style={styles.licenseItem}>
-                <MaterialIcons name="verified" size={24} color="#4169E1" />
-                <Text style={styles.licenseText}>{license}</Text>
-              </View>
-            ))} */}
+            {certificateData && certificateData.length > 0 ? (
+              certificateData.map((certificate, index) => (
+                <View key={index} style={styles.licenseItem}>
+                  <Image
+                    source={{ uri: certificate.imagePath }}
+                    style={styles.licenseImage}
+                  />
+                  <View style={styles.licenseInfo}>
+                    <Text style={styles.licenseText}>{certificate.name}</Text>
+                    {certificate.isVerified && (
+                      <MaterialIcons
+                        name="verified"
+                        size={24}
+                        color="#4169E1"
+                      />
+                    )}
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noLicenseText}>
+                등록된 자격증이 없습니다.
+              </Text>
+            )}
           </View>
 
           {/* Location Section */}
@@ -836,34 +952,52 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
           {/* Reviews Section */}
           <View style={styles.section}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.sectionTitle}>후기</Text>
-              <View style={styles.ratingContainer}>
-                <Text style={styles.ratingNumber}>{profile.rating}</Text>
-                <View style={styles.starsContainer}>
-                  {generateStars(profile.rating)}
+            <View style={styles.nicknameContainer}>
+              <View style={styles.reviewHeader}>
+                <Text style={styles.sectionTitle}>후기</Text>
+                <View style={styles.ratingContainer}>
+                  <Text style={styles.ratingNumber}>{profile.rating}</Text>
+                  <View style={styles.starsContainer}>
+                    {generateStars(profile.rating)}
+                  </View>
                 </View>
               </View>
+              <TouchableOpacity
+                style={styles.reviewButton}
+                onPress={() => setIsReviewModalVisible(true)}
+              >
+                <Text style={styles.reviewButtonText}>리뷰쓰기</Text>
+              </TouchableOpacity>
             </View>
 
-            {profile.reviews.map((review) => (
-              <View key={review.id} style={styles.reviewItem}>
-                <View style={styles.reviewHeader}>
-                  <Image
-                    source={{ uri: "/api/placeholder/40/40" }}
-                    style={styles.reviewerImage}
-                  />
-                  <View style={styles.reviewerInfo}>
-                    <Text style={styles.reviewerName}>{review.user.name}</Text>
-                    <Text style={styles.reviewDate}>{review.user.date}</Text>
-                  </View>
-                  <View style={styles.reviewRating}>
-                    {generateStars(review.rating)}
-                  </View>
-                </View>
-                <Text style={styles.reviewContent}>{review.content}</Text>
-              </View>
-            ))}
+            {/* 정렬 방식 선택 버튼 */}
+            <View style={styles.sortButtonsContainer}>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => handleSortTypeChange("id,desc")}
+              >
+                <Text style={styles.sortButtonText}>최신순</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => handleSortTypeChange("rate,desc")}
+              >
+                <Text style={styles.sortButtonText}>별점 높은 순</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => handleSortTypeChange("rate,asc")}
+              >
+                <Text style={styles.sortButtonText}>별점 낮은 순</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 리뷰 모달 */}
+            <ReviewComponent
+              isVisible={isSortedReviewModalVisible}
+              onClose={() => setIsSortedReviewModalVisible(false)}
+              reviews={reviews} // 리뷰 데이터 전달
+            />
           </View>
 
           {/* Pricing Section */}
@@ -899,7 +1033,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           </TouchableOpacity>
         </View>
       </View>
-      {/* InterestModal */}
+      {/* Modal */}
       <InterestModal
         visible={interestModalVisible}
         onClose={closeInterestModal}
@@ -907,6 +1041,11 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         selectedInterests={selectedInterests}
         onSelectInterest={toggleInterestSelection}
         onSubmit={submitInterest}
+      />
+      <ReviewModal
+        isVisible={isReviewModalVisible}
+        onClose={() => setIsReviewModalVisible(false)}
+        onSubmit={handleReviewSubmit}
       />
     </SafeAreaView>
   );
@@ -1009,14 +1148,9 @@ const styles = StyleSheet.create({
     color: "#666",
     lineHeight: 20,
   },
-  licenseItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
   licenseText: {
-    marginLeft: 8,
-    fontSize: 14,
+    fontSize: 16,
+    marginRight: 8,
   },
   mapImage: {
     width: "100%",
@@ -1039,6 +1173,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingNumber: {
+    marginTop: 5,
     marginLeft: 10,
     fontSize: 16,
     fontWeight: "bold",
@@ -1047,6 +1182,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginLeft: 5,
+    marginTop: 5,
   },
   reviewItem: {
     marginBottom: 16,
@@ -1307,6 +1443,56 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     width: "100%",
+  },
+  licenseItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  licenseImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  licenseInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  noLicenseText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  sortButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 10,
+  },
+  sortButton: {
+    backgroundColor: "#0FB5AE",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    width: 85,
+    alignItems: "center",
+  },
+  sortButtonText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  reviewButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#0C508B",
+    borderRadius: 5,
+    marginTop: -25,
+  },
+  reviewButtonText: {
+    color: "white",
+    fontSize: 12,
   },
 });
 

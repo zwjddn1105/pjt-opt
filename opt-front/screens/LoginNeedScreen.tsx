@@ -50,14 +50,19 @@ const LoginNeedScreen: React.FC = () => {
           email,
         }
       );
-      // console.log(response.data);
+      console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;
+      const response2 = await axios.get(
+        `${EXPO_PUBLIC_BASE_URL}/profile/${id}`,
+      );
+      const gymId = response2.data.gymId;
 
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
+      await AsyncStorage.setItem("gymId", gymId.toString());
       console.log(refreshToken);
       console.log(role);
       console.log(id);
@@ -68,11 +73,6 @@ const LoginNeedScreen: React.FC = () => {
         role === "TRAINER" ? "TRAINER" : "USER"
       );
 
-      console.log("Login successful:", {
-        refreshToken: refreshToken.substring(0, 10) + "...",
-        role,
-        id,
-      });
       Alert.alert("로그인 성공", "환영합니다!");
 
       if (route.params?.returnScreen) {

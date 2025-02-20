@@ -55,6 +55,10 @@ export const TopHeader = () => {
     try {
       await AsyncStorage.removeItem("refreshToken");
       await AsyncStorage.removeItem("id");
+      await AsyncStorage.removeItem("gymId");
+      await AsyncStorage.removeItem("city");
+      await AsyncStorage.removeItem("district");
+
       navigation.reset({
         index: 0,
         routes: [{ name: "Main", params: { screen: "홈" } }],

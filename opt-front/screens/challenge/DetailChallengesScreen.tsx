@@ -173,6 +173,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         },
         data: isParticipating ? null : { challengeId: challengeId },
       });
+
       if (response.status === 200) {
         setIsParticipating(!isParticipating);
         Alert.alert(
@@ -255,6 +256,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
               <Text style={styles.hostNameText}>
                 개최자: {challenge.hostRealName}
               </Text>
+
               <Text style={styles.hostSubtitleText}>
                 {challenge.hostNickname}
               </Text>
@@ -415,7 +417,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   hostInfoTextContainer: {
     flex: 1,

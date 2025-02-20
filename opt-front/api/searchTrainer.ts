@@ -12,8 +12,9 @@ export interface TrainerResponse {
     price: number;
     totalSessions: number;
   }[];
-  trainer_id: number;
+  trainerId: number;
   intro: string;
+  trainerNickname: string;
   experienceYears: number;
   availableHours: string;
   trainerProfileImage: string;
@@ -116,7 +117,7 @@ export const getRecommendedTrainers = async (
         }),
       }
     );
-
+    console.log(response)
     return handleApiResponse(response);
   } catch (error) {
     console.error('API Error details:', error instanceof Error ? error.message : 'Unknown error');

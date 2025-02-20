@@ -53,12 +53,7 @@ export const TopHeader = () => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("refreshToken");
-      await AsyncStorage.removeItem("id");
-      await AsyncStorage.removeItem("gymId");
-      await AsyncStorage.removeItem("city");
-      await AsyncStorage.removeItem("district");
-
+      AsyncStorage.clear();
       navigation.reset({
         index: 0,
         routes: [{ name: "Main", params: { screen: "홈" } }],
@@ -80,7 +75,9 @@ export const TopHeader = () => {
             resizeMode="contain"
           />
         </TouchableOpacity>
-
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Text style={styles.logoutButtonText}>로그아웃</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.topButtons}>
         <ProfileButton onPress={handleProfilePress} />

@@ -8,6 +8,7 @@ import {
   FlatList,
   Dimensions,
   StyleSheet,
+  ImageBackground,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -145,8 +146,7 @@ const AllChallengeScreen: React.FC = () => {
             setHasMoreEnded
           ),
         ]);
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     fetchInitialChallenges();
@@ -176,28 +176,15 @@ const AllChallengeScreen: React.FC = () => {
       }
       activeOpacity={0.8}
     >
-      <View style={styles.challengeCard}>
-        <View style={styles.cardHeader}>
+      <ImageBackground
+        source={{ uri: challenge.imagePath }}
+        style={styles.challengeCard}
+        imageStyle={{ borderRadius: 15 }}
+      >
+        <View style={styles.overlay}>
           <Text style={styles.cardTitle}>{challenge.title}</Text>
-          <Text style={styles.cardSubtitle}>{challenge.type}</Text>
         </View>
-        <View style={styles.cardContent}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>기간</Text>
-            <Text
-              style={styles.infoValue}
-            >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>상태</Text>
-            <Text style={styles.infoValue}>{challenge.status}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>보상</Text>
-            <Text style={styles.infoValue}>{challenge.reward}</Text>
-          </View>
-        </View>
-      </View>
+      </ImageBackground>
     </TouchableOpacity>
   );
 
@@ -361,9 +348,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 4,
+    color: "#FFFFFF", // 흰색 텍스트
+    textAlign: "center",
+    padding: 10,
   },
   cardSubtitle: {
     fontSize: 14,
@@ -458,6 +447,12 @@ const styles = StyleSheet.create({
   },
   switchThumbActive: {
     right: 4, // 활성화 상태에서 오른쪽으로 이동
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)", // 반투명한 오버레이
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

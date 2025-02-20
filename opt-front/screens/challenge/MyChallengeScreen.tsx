@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  ImageBackground,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -35,6 +36,7 @@ type Challenge = {
   startDate: string;
   endDate: string;
   status: string;
+  imagePath: string;
 };
 type SectionNavigationParams = Pick<
   RootStackParamList,
@@ -162,8 +164,7 @@ const MyChallengeScreen: React.FC = () => {
 
         const past = await fetchPastChallenges();
         setPastChallenges(past);
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     fetchChallenges();
@@ -201,28 +202,15 @@ const MyChallengeScreen: React.FC = () => {
       }
       activeOpacity={0.8}
     >
-      <View style={styles.challengeCard}>
-        <View style={styles.cardHeader}>
+      <ImageBackground
+        source={{ uri: challenge.imagePath }}
+        style={styles.challengeCard}
+        imageStyle={{ borderRadius: 15 }}
+      >
+        <View style={styles.overlay}>
           <Text style={styles.cardTitle}>{challenge.title}</Text>
-          <Text style={styles.cardSubtitle}>{challenge.type}</Text>
         </View>
-        <View style={styles.cardContent}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>기간</Text>
-            <Text
-              style={styles.infoValue}
-            >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>상태</Text>
-            <Text style={styles.infoValue}>{challenge.status}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>보상</Text>
-            <Text style={styles.infoValue}>{challenge.reward}</Text>
-          </View>
-        </View>
-      </View>
+      </ImageBackground>
     </TouchableOpacity>
   );
 
@@ -364,17 +352,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: "hidden",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)", // 반투명한 오버레이
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF", // 흰색 텍스트
+    textAlign: "center",
+    padding: 10,
   },
   cardSpacer: {
     width: 12,
   },
   cardHeader: {
     marginBottom: 20,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,

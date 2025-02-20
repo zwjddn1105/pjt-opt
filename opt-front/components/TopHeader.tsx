@@ -55,8 +55,7 @@ export const TopHeader = () => {
         index: 0,
         routes: [{ name: "Main", params: { screen: "홈" } }],
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   return (

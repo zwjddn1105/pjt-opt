@@ -149,8 +149,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         } else {
           setCityDistrict("위치 정보 없음");
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     loadCityDistrict();
@@ -189,8 +188,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         }
       );
       setReviews(response.data.content); // 리뷰 데이터 설정
-    } catch (error) {
-    }
+    } catch (error) {}
   };
   const handleSortTypeChange = (sort: SortType) => {
     setSortType(sort); // 정렬 방식 상태 업데이트
@@ -257,8 +255,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           );
           setCertificateData(response.data);
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     fetchCertificate();
@@ -286,8 +283,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       if (profileData.gymId) {
         try {
           await AsyncStorage.setItem("gymId", profileData.gymId.toString()); // 문자열로 변환 후 저장
-        } catch (error) {
-        }
+        } catch (error) {}
       } else {
       }
     };
@@ -308,8 +304,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           }
         );
         setAverage(response.data);
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     fetchAverageRating();
@@ -335,12 +330,16 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
   useEffect(() => {
     const loadFollowers = async () => {
-      const followersData = await fetchFollowList("/follows/follower");
+      const followersData = await fetchFollowList(
+        `/follows/follower?memberId=${profileData.id}`
+      );
       setFollowers(followersData);
     };
 
     const loadFollowing = async () => {
-      const followingData = await fetchFollowList("/follows/following");
+      const followingData = await fetchFollowList(
+        `/follows/following?memberId=${profileData.id}`
+      );
       setFollowing(followingData);
     };
 
@@ -387,7 +386,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -503,7 +502,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
       if (response.status === 200) {
         alert("학력사항이 성공적으로 업데이트되었습니다!");
-        // 업데이트된 내용을 화면에 반영하려면 상태를 업데이트하세요.
       } else {
         alert("업데이트 중 오류가 발생했습니다.");
       }
@@ -571,15 +569,13 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         ? `${BASE_URL}/follows/${profileData.id}`
         : `${BASE_URL}/follows?targetId=${profileData.id}`;
       const method = profileData.isFollow ? "delete" : "post";
-      // const data = profileData.isFollow ? {} : { targetId: profileData.id };
 
       await axios({
         method: method,
         url: endpoint,
-        // data: data,
         headers: { Authorization: `Bearer ${refreshToken}` },
       });
-      alert("완료");
+
       setProfile((prev) => ({
         ...prev,
         isFollow: !prev.isFollow,
@@ -624,8 +620,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       const roomId = String(chatRoomResponse.id);
 
       // 채팅방 구독
-      await ChatService.subscribeToRoom(roomId, (message) => {
-      });
+      await ChatService.subscribeToRoom(roomId, (message) => {});
 
       // 채팅방으로 이동
       navigation.navigate("Chat", {
@@ -633,10 +628,9 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         otherUserName: profileData.nickname,
         otherUserType: "TRAINER",
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   };
-
+  console.log(profileData);
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -737,20 +731,24 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
                 </TouchableOpacity>
               </View>
             )}
+            {profileData.role === "ROLE_TRAINER" && (
+              <View style={styles.locationContainer}>
+                <Ionicons name="location-outline" size={18} color="#666" />
+                <Text style={styles.locationText}>{cityDistrict}</Text>
+              </View>
+            )}
 
-            <View style={styles.locationContainer}>
-              <Ionicons name="location-outline" size={18} color="#666" />
-              <Text style={styles.locationText}>{cityDistrict}</Text>
-            </View>
             {/* 평점정보 */}
-            <View style={styles.ratingContainer}>
-              <View style={styles.ratingInner}>
-                <Text style={styles.ratingNumber}>{profile.rating}</Text>
-                <View style={styles.starsContainer}>
-                  {generateStars(profile.rating)}
+            {profileData.role === "ROLE_TRAINER" && (
+              <View style={styles.ratingContainer}>
+                <View style={styles.ratingInner}>
+                  <Text style={styles.ratingNumber}>{profile.rating}</Text>
+                  <View style={styles.starsContainer}>
+                    {generateStars(profile.rating)}
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
 
             {/* 팔로워/팔로잉 */}
             <View style={styles.followContainer}>

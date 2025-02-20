@@ -41,6 +41,7 @@ const LoginScreen: React.FC = () => {
           id,
           imagePath,
           isOnboarded,
+          nickname,
         } = await response.data;
 
         await AsyncStorage.setItem("refreshToken", refreshToken);
@@ -49,7 +50,8 @@ const LoginScreen: React.FC = () => {
         await AsyncStorage.setItem("imagePath", imagePath);
         await AsyncStorage.setItem("memberId", String(id));
         await AsyncStorage.setItem("isOnboarded", String(isOnboarded));
-
+        await AsyncStorage.setItem("nickname", nickname);
+        console.log(response.data);
         Alert.alert("로그인 성공", "환영합니다!", [
           {
             text: "확인",
@@ -62,8 +64,7 @@ const LoginScreen: React.FC = () => {
             },
           },
         ]);
-      } catch (error) {
-      }
+      } catch (error) {}
     }
   };
 

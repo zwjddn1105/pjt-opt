@@ -53,14 +53,14 @@ const LoginNeedScreen: React.FC = () => {
       const role = response.data.role;
       const id = response.data.id;
       const response2 = await axios.get(
-        `${EXPO_PUBLIC_BASE_URL}/profile/${id}`,
+        `${EXPO_PUBLIC_BASE_URL}/profile/${id}`
       );
       const gymId = response2.data.gymId;
 
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
-      
+
       await login(
         refreshToken,
         String(id),
@@ -181,18 +181,18 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#FEE500",
-    paddingVertical: 20,
+    paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 12,
     flexDirection: "row",
-    alignItems: "center",
+    // alignItems: "center",
     width: "80%",
     justifyContent: "center",
   },
   buttonText: {
-    fontSize: 22,
+    fontSize: 20,
     color: "#000",
-    fontWeight: "800",
+    fontWeight: "700",
   },
   icon: {
     marginRight: 24,

@@ -34,7 +34,6 @@ export const AddTicketModal: React.FC<AddTicketModalProps> = ({
       return false;
     }
     
-    // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(studentEmail)) {
       Alert.alert('입력 오류', '유효한 이메일 주소를 입력해주세요.');
@@ -50,15 +49,14 @@ export const AddTicketModal: React.FC<AddTicketModalProps> = ({
 
   const handleSubmit = async () => {
     if (!validateInputs()) return;
-
+  
     setIsLoading(true);
     try {
       const refreshToken = await AsyncStorage.getItem('refreshToken');
       if (!refreshToken) {
         throw new Error('로그인이 필요합니다.');
       }
-
-      console.log('Sending request to:', `${BASE_URL}/tickets`);
+  
       const response = await fetch(`${BASE_URL}/tickets`, {
         method: 'POST',
         headers: {
@@ -66,27 +64,37 @@ export const AddTicketModal: React.FC<AddTicketModalProps> = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          studentEmail: studentEmail,
+          studentEmail: studentEmail.trim(),  // 공백 제거
           price: parseInt(price),
           totalSessions: parseInt(totalSessions),
         }),
       });
-
-      console.log('Response status:', response.status);
-      const responseData = await response.text();
-      console.log('Response data:', responseData);
-
+  
+      const responseText = await response.text();
+      console.log('Response from ticket creation:', responseText);  // 응답 로깅
+  
       if (!response.ok) {
         let errorMessage = '이용권 생성에 실패했습니다.';
         try {
-          const errorData = JSON.parse(responseData);
+          // 응답이 JSON 형식인 경우
+          const errorData = JSON.parse(responseText);
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
-          errorMessage = responseData || errorMessage;
+          // 응답이 일반 텍스트인 경우
+          errorMessage = responseText || errorMessage;
         }
         throw new Error(errorMessage);
       }
-
+  
+      let ticketData;
+      try {
+        ticketData = JSON.parse(responseText);
+        console.log('Created ticket data:', ticketData);  // 파싱된 데이터 로깅
+      } catch (e) {
+        console.error('Failed to parse ticket response:', e);
+        throw new Error('서버 응답을 처리하는데 실패했습니다.');
+      }
+  
       Alert.alert('성공', '이용권이 성공적으로 생성되었습니다.');
       onSuccess();
       handleClose();

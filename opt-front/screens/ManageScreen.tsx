@@ -9,6 +9,8 @@ import {
   Animated,
   FlatList,
   Dimensions,
+  Alert,
+  DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +19,8 @@ import PlusButton from '../components/PlusButton';
 import { AddScheduleModal } from '../components/AddScheduleModal';
 import { AddTicketModal } from '../components/AddTicketModal';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { chatApi } from 'api/chatApi';
+import ChatService from 'services/ChatService';
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
@@ -32,8 +36,8 @@ interface Session {
   id: number;
   ticketId: number;
   number: number;
-  startAt: string;
-  endAt: string;
+  startAt: string | null;
+  endAt: string | null;
   trainerSigned: boolean;
   memberSigned: boolean;
 }
@@ -49,6 +53,7 @@ interface Ticket {
   usedSessions: number;
   status: string;
   sessions: Session[];
+  studentId: number;
 }
 
 interface PageableResponse {
@@ -79,7 +84,7 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
   const [completedTickets, setCompletedTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    const getUserRole = async () => {
+    const initializeData = async () => {
       try {
         const role = await AsyncStorage.getItem('role');
         setUserRole(role || '');
@@ -87,46 +92,148 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
         console.error('Failed to get user role:', error);
       }
     };
-    getUserRole();
-    loadSchedules();
-    loadTickets();
-  }, []);
-
-  const loadTickets = async () => {
-    try {
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('로그인이 필요합니다.');
-      }
-
-      const headers = {
-        'Authorization': `Bearer ${refreshToken}`,
-        'Content-Type': 'application/json',
-      };
-
-      // 진행중인 티켓 로드
-      const activeEndpoint = userRole === 'ROLE_TRAINER' 
-        ? '/tickets/trainer-not-used'
-        : '/tickets/student-not-used';
-      const activeResponse = await fetch(`${BASE_URL}${activeEndpoint}`, {
-        headers,
-      });
-      const activeData: PageableResponse = await activeResponse.json();
-      setActiveTickets(activeData.content);
-
-      // 완료된 티켓 로드
-      const completedEndpoint = userRole === 'ROLE_TRAINER'
-        ? '/tickets/trainer-used'
-        : '/tickets/student-used';
-      const completedResponse = await fetch(`${BASE_URL}${completedEndpoint}`, {
-        headers,
-      });
-      const completedData: PageableResponse = await completedResponse.json();
-      setCompletedTickets(completedData.content);
-    } catch (error) {
-      console.error('Failed to load tickets:', error);
+    
+    initializeData();
+  }, []); // 최초 마운트시 role 가져오기
+  
+  useEffect(() => {
+    if (userRole) {  // userRole이 설정된 후에만 티켓 로드
+      loadTickets();
+      loadSchedules();
     }
-  };
+  }, [userRole]);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('refreshTickets', () => {
+        loadTickets();
+    });
+
+    // 컴포넌트가 언마운트될 때 리스너 제거
+    return () => {
+        subscription.remove();
+    };
+}, []);
+
+const loadTickets = async () => {
+  try {
+    const refreshToken = await AsyncStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${refreshToken}`,
+      'Content-Type': 'application/json',
+    };
+
+    // 진행중인 티켓 로드
+    const activeEndpoint = userRole === 'ROLE_TRAINER' 
+      ? '/tickets/trainer-not-used'
+      : '/tickets/student-not-used';
+    const activeResponse = await fetch(`${BASE_URL}${activeEndpoint}`, {
+      headers,
+    });
+
+    if (!activeResponse.ok) {
+      const errorText = await activeResponse.text();
+      throw new Error(errorText || '진행중인 티켓 로드에 실패했습니다.');
+    }
+
+    const activeData: PageableResponse = await activeResponse.json();
+    
+    // 세션 초기화를 포함한 티켓 데이터 처리
+    const ticketsWithSessions: Ticket[] = activeData.content.map(ticket => {
+      const existingSessions = ticket.sessions || [];
+      
+      // 각 세션 번호에 대해 기존 세션이 있으면 사용하고, 없으면 새로 생성
+      const allSessions: Session[] = Array.from(
+        { length: ticket.totalSessions },
+        (_, index): Session => {
+          const sessionNumber = index + 1;
+          const existingSession = existingSessions.find(s => s.number === sessionNumber);
+          
+          if (existingSession) {
+            return existingSession;
+          }
+
+          // 새 세션 생성
+          return {
+            id: -1 * sessionNumber, // 임시 음수 ID
+            ticketId: ticket.id,
+            number: sessionNumber,
+            startAt: null,
+            endAt: null,
+            trainerSigned: false,
+            memberSigned: false
+          };
+        }
+      );
+
+      // 티켓 객체 반환
+      return {
+        ...ticket,
+        sessions: allSessions
+      };
+    });
+
+    setActiveTickets(ticketsWithSessions);
+
+    // 완료된 티켓 로드
+    const completedEndpoint = userRole === 'ROLE_TRAINER'
+      ? '/tickets/trainer-used'
+      : '/tickets/student-used';
+    const completedResponse = await fetch(`${BASE_URL}${completedEndpoint}`, {
+      headers,
+    });
+
+    if (!completedResponse.ok) {
+      const errorText = await completedResponse.text();
+      throw new Error(errorText || '완료된 티켓 로드에 실패했습니다.');
+    }
+
+    const completedData: PageableResponse = await completedResponse.json();
+    
+    // 완료된 티켓도 동일한 방식으로 처리
+    const completedTicketsWithSessions: Ticket[] = completedData.content.map(ticket => {
+      const existingSessions = ticket.sessions || [];
+      
+      const allSessions: Session[] = Array.from(
+        { length: ticket.totalSessions },
+        (_, index): Session => {
+          const sessionNumber = index + 1;
+          const existingSession = existingSessions.find(s => s.number === sessionNumber);
+          
+          if (existingSession) {
+            return existingSession;
+          }
+
+          return {
+            id: -1 * sessionNumber,
+            ticketId: ticket.id,
+            number: sessionNumber,
+            startAt: null,
+            endAt: null,
+            trainerSigned: false,
+            memberSigned: false
+          };
+        }
+      );
+
+      return {
+        ...ticket,
+        sessions: allSessions
+      };
+    });
+
+    setCompletedTickets(completedTicketsWithSessions);
+  } catch (error) {
+    console.error('Failed to load tickets:', error);
+    Alert.alert(
+      '오류',
+      error instanceof Error ? error.message : '티켓 로드 중 오류가 발생했습니다.'
+    );
+  }
+};
 
   const loadSchedules = async () => {
     try {
@@ -259,7 +366,7 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
     setExpandedCard(isExpanding ? id : null);
   
     Animated.timing(animationHeight, {
-      toValue: isExpanding ? 200 : 0, // 높이값 증가
+      toValue: isExpanding ? 300 : 0, // 높이값을 더 크게 조정
       duration: 300,
       useNativeDriver: false,
     }).start();
@@ -285,6 +392,89 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Failed to delete schedule:', error);
     }
+  };
+
+  // ManageScreen.tsx의 세션 클릭 핸들러 수정
+  const handleSessionClick = async (session: Session | undefined, ticket: Ticket) => {
+    if (userRole !== 'ROLE_TRAINER' || !session) {
+      return;
+    }
+  
+    Alert.alert(
+      '세션 완료',
+      '해당 세션을 완료하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '확인',
+          onPress: async () => {
+            try {
+              const refreshToken = await AsyncStorage.getItem('refreshToken');
+              if (!refreshToken) {
+                throw new Error('로그인이 필요합니다.');
+              }
+  
+              // 세션 생성 또는 정보 업데이트 로직
+              const createSessionResponse = await fetch(`${BASE_URL}/sessions`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${refreshToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  ticketId: ticket.id,
+                  number: session.number,
+                  startAt: new Date().toISOString(),
+                  endAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+                }),
+              });
+  
+              if (!createSessionResponse.ok) {
+                throw new Error('세션 생성에 실패했습니다.');
+              }
+  
+              const sessionData = await createSessionResponse.json();
+              
+              // 트레이너 체크 로직 유지
+              const checkResponse = await fetch(`${BASE_URL}/sessions/trainercheck`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${refreshToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  sessionId: sessionData.id
+                }),
+              });
+  
+              if (!checkResponse.ok) {
+                throw new Error('세션 확인 처리 중 오류가 발생했습니다.');
+              }
+  
+              // 나머지 로직 동일
+              const createRoomResponse = await chatApi.createChatRoom(ticket.studentId);
+              const chatRoomId = createRoomResponse.id;
+  
+              if (!ChatService.isConnected()) {
+                await ChatService.connect();
+              }
+  
+              const message = `${ticket.trainerName} 트레이너가 ${session.number}회차 세션|${sessionData.id}| 완료를 요청했습니다. 확인해 주세요.`;
+              await ChatService.sendMessage(chatRoomId, message);
+  
+              loadTickets();
+  
+            } catch (error) {
+              console.error('Error:', error);
+              Alert.alert(
+                '오류',
+                error instanceof Error ? error.message : '처리 중 오류가 발생했습니다.'
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   // 진행중인 티켓 섹션
@@ -335,10 +525,6 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                     <Text style={styles.value}>{ticket.usedSessions}/{ticket.totalSessions}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.label}>시작일</Text>
-                    <Text style={styles.value}>{formatDate(ticket.startDate)}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
                     <Text style={styles.label}>트레이너</Text>
                     <Text style={styles.value}>{ticket.trainerName || '-'}</Text>
                   </View>
@@ -350,6 +536,7 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
             </View>
 
+            {/* renderActiveTickets 함수 내부의 cardFooter 부분 */}
             <View style={styles.cardFooter}>
               <TouchableOpacity
                 style={styles.historyButton}
@@ -366,53 +553,79 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
               </TouchableOpacity>
 
               {expandedCard === ticket.id && (
-                <Animated.View style={[
-                  styles.historyContainer,
-                  {
-                    maxHeight: animationHeight,
-                    overflow: 'hidden',
-                  }
-                ]}>
-                  <ScrollView 
-                    style={styles.historyScroll}
-                    nestedScrollEnabled={true}
-                    scrollEventThrottle={16}
-                    bounces={false}
-                  >
-                    {ticket.sessions.map((session) => (
-                      <View key={session.id} style={styles.historyItem}>
-                        <Text style={styles.sessionNumber}>{session.number}회</Text>
+              <View style={styles.historyContainer}>
+                <ScrollView 
+                  style={styles.historyScroll}
+                  nestedScrollEnabled={true}
+                >
+                  {Array.from({ length: ticket.totalSessions }, (_, index) => {
+                    const sessionNumber = index + 1;
+                    const session = ticket.sessions.find(s => s.number === sessionNumber);
+
+                    // 디버그 로그 추가
+                    console.log('Session Debug:', {
+                      sessionNumber,
+                      ticketSessions: ticket.sessions,
+                      foundSession: session,
+                      isComplete: session?.trainerSigned && session?.memberSigned
+                    });
+
+                    const isComplete = session?.trainerSigned && session?.memberSigned;
+
+                    return (
+                      <TouchableOpacity
+                        key={sessionNumber}
+                        style={[
+                          styles.historyItem,
+                          userRole === 'ROLE_TRAINER' && !isComplete && styles.clickableSession
+                        ]}
+                        onPress={() => {
+                          if (!session) {
+                            console.error('Session data:', {
+                              number: sessionNumber,
+                              allSessions: ticket.sessions,
+                              ticket: ticket
+                            });
+                            Alert.alert('오류', '세션 정보를 찾을 수 없습니다.');
+                            return;
+                          }
+                          handleSessionClick(session, ticket);
+                        }}
+                        disabled={userRole !== 'ROLE_TRAINER' || isComplete}
+                      >
+                        <Text style={styles.sessionNumber}>{sessionNumber}회</Text>
                         <View style={styles.sessionStatus}>
-                          {session.trainerSigned && session.memberSigned ? (
+                          {isComplete ? (
                             <>
                               <Text style={styles.completedText}>완료</Text>
                               <Text style={styles.sessionDate}>
-                                {formatSessionDateTime(session.startAt)}
+                                {formatSessionDateTime(session?.startAt)}
                               </Text>
                             </>
                           ) : (
-                            <Text style={styles.pendingText}>진행중</Text>
+                            <Text style={styles.pendingText}>대기중</Text>
                           )}
                         </View>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-              )}
-            </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
           </View>
-        )}
-        keyExtractor={item => item.id.toString()}
-        ListEmptyComponent={() => (
-          <View style={styles.card}>
-            <Text style={[styles.ptName, { textAlign: 'center', marginTop: 100 }]}>
-              진행중인 이용권이 없습니다
-            </Text>
-          </View>
-        )}
-      />
-    </View>
-  );
+        </View>
+      )}
+      keyExtractor={item => item.id.toString()}
+      ListEmptyComponent={() => (
+        <View style={[styles.emptyContainer, { backgroundColor: '#808080' }]}>
+          <Text style={styles.emptyText}>
+            진행중인인 이용권이 없습니다
+          </Text>
+        </View>
+      )}
+    />
+  </View>
+);
 
   // 종료된 티켓 섹션
   const renderCompletedTickets = () => (
@@ -451,10 +664,6 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                     <Text style={styles.value}>{ticket.usedSessions}/{ticket.totalSessions}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.label}>시작일</Text>
-                    <Text style={styles.value}>{formatDate(ticket.startDate)}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
                     <Text style={styles.label}>트레이너</Text>
                     <Text style={styles.value}>{ticket.trainerName || '-'}</Text>
                   </View>
@@ -495,23 +704,37 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                     scrollEventThrottle={16}
                     bounces={false}
                   >
-                    {ticket.sessions.map((session) => (
-                      <View key={session.id} style={styles.historyItem}>
-                        <Text style={styles.sessionNumber}>{session.number}회</Text>
-                        <View style={styles.sessionStatus}>
-                          {session.trainerSigned && session.memberSigned ? (
-                            <>
-                              <Text style={styles.completedText}>완료</Text>
-                              <Text style={styles.sessionDate}>
-                                {formatSessionDateTime(session.startAt)}
-                              </Text>
-                            </>
-                          ) : (
-                            <Text style={styles.pendingText}>진행중</Text>
-                          )}
-                        </View>
-                      </View>
-                    ))}
+                    {Array.from({ length: ticket.totalSessions }, (_, index) => {
+                      const sessionNumber = index + 1;
+                      const session = ticket.sessions.find(s => s.number === sessionNumber);
+                      const isComplete = session?.trainerSigned && session?.memberSigned;
+
+                      return (
+                        <TouchableOpacity
+                          key={sessionNumber}
+                          style={[
+                            styles.historyItem,
+                            userRole === 'ROLE_TRAINER' && !isComplete && styles.clickableSession
+                          ]}
+                          onPress={() => handleSessionClick(session, ticket)}
+                          disabled={userRole !== 'ROLE_TRAINER' || isComplete}
+                        >
+                          <Text style={styles.sessionNumber}>{sessionNumber}회</Text>
+                          <View style={styles.sessionStatus}>
+                            {isComplete ? (
+                              <>
+                                <Text style={styles.completedText}>완료</Text>
+                                <Text style={styles.sessionDate}>
+                                  {formatSessionDateTime(session?.startAt)}
+                                </Text>
+                              </>
+                            ) : (
+                              <Text style={styles.pendingText}>대기중</Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </ScrollView>
                 </Animated.View>
               )}
@@ -739,6 +962,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 10
   },
   addTicketButton: {
     flexDirection: 'row',
@@ -773,7 +997,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     padding: 10,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 15,
   },
   statusContainer: {
     alignSelf: 'flex-start',
@@ -825,13 +1049,13 @@ const styles = StyleSheet.create({
   },
   cardFooter: {
     width: '100%',
-    position: 'absolute',  // 추가
-    bottom: 0,            // 추가
-    left: 0,              // 추가
+    position: 'relative',  // absolute에서 relative로 변경
+    marginTop: 'auto',    // 카드 하단에 붙도록
   },
   historyButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     padding: 12,
+    width: '100%',
   },
   historyButtonContent: {
     flexDirection: 'row',
@@ -846,16 +1070,12 @@ const styles = StyleSheet.create({
   },
   historyContainer: {
     backgroundColor: '#fff',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: '100%', // 카드 아래에 위치하도록
-    zIndex: 1,
+    width: '100%',
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
   },
   historyScroll: {
-    maxHeight: 150,
+    maxHeight: 300,
   },
   historyItem: {
     flexDirection: 'row',
@@ -892,12 +1112,15 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 20, // 양쪽 여백 추가
   },
   emptyText: {
     color: '#fff', // 텍스트 색상을 흰색으로
     fontSize: 16,
     fontWeight: '500',
+  },
+  clickableSession: {
+    backgroundColor: '#f8f9fa',
+    opacity: 0.9,
   },
 });
 

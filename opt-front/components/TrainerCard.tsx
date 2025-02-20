@@ -1,7 +1,17 @@
 // components/TrainerCard.tsx
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert   } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import axios from 'axios';
+import { EXPO_PUBLIC_BASE_URL } from "@env";
+
+type RootStackParamList = {
+  ProfileScreen: { profileData: any };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface Menu {
   id: number;
@@ -17,7 +27,7 @@ interface TrainerCardProps {
     averageRating: number;
     reviewCount: number;
     menus: Menu[];
-    trainer_id: number;
+    trainerId: number;
     intro: string;
     experienceYears: number;
     availableHours: string;
@@ -25,11 +35,14 @@ interface TrainerCardProps {
     gymName: string;
     gymAddress: string;
     oneDayAvailable: boolean;
+    trainerNickname: string;
   };
 }
 
 const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
-  // Find the lowest priced menu
+  const navigation = useNavigation<NavigationProp>();
+  const BASE_URL = EXPO_PUBLIC_BASE_URL;
+
   const lowestPriceMenu = trainer.menus.length > 0 
     ? trainer.menus.reduce((prev, curr) => 
         prev.price < curr.price ? prev : curr
@@ -38,8 +51,61 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
 
   const roundedRating = Math.round(trainer.averageRating * 10) / 10;
 
+  const handlePress = async () => {
+    try {
+      if (!trainer.trainerId) {
+        console.error("트레이너 ID가 유효하지 않습니다.");
+        return;
+      }
+
+      const response = await axios.get(`${BASE_URL}/profile/${trainer.trainerId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        validateStatus: function (status) {
+          return status < 500; // 500 미만의 상태 코드는 에러로 처리하지 않음
+        }
+      });
+
+      if (response.status === 200) {
+        navigation.navigate("ProfileScreen", { profileData: response.data });
+      } else if (response.status === 400) {
+        console.error("잘못된 요청입니다:", response.data);
+        // TODO: 사용자에게 에러 메시지 표시
+        Alert.alert(
+          "오류",
+          "프로필을 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
+        );
+      } else if (response.status === 401) {
+        console.error("인증이 필요합니다.");
+        // TODO: 로그인 화면으로 이동하거나 사용자에게 로그인 필요성 알림
+        Alert.alert(
+          "로그인 필요",
+          "프로필을 보기 위해 로그인이 필요합니다."
+        );
+      } else {
+        console.error("프로필 데이터를 가져오는데 실패했습니다.", response.status, response.data);
+        Alert.alert(
+          "오류",
+          "프로필을 불러오는 중 문제가 발생했습니다."
+        );
+      }
+    } catch (error) {
+      console.error("프로필 요청 중 오류 발생:", error);
+      Alert.alert(
+        "오류",
+        "네트워크 오류가 발생했습니다. 다시 시도해주세요."
+      );
+    }
+  };
+
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <Image 
         source={{ uri: trainer.trainerProfileImage }}
         style={styles.image}
@@ -48,7 +114,7 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
       
       <View style={styles.contentContainer}>
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>{trainer.intro}</Text>
+          <Text style={styles.title}>{trainer.trainerNickname}</Text>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color="#FFD700" />
             <Text style={styles.reviewText}>
@@ -77,7 +143,7 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

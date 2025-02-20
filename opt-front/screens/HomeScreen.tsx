@@ -10,6 +10,7 @@ import {
   FlatList,
   ViewToken,
   ImageBackground,
+  Alert,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,6 +18,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
 import ResetStorageButton from "components/reset";
+import { searchTrainers, getRecommendedTrainers, TrainerResponse } from "../api/searchTrainer";
+import { LocationObject, requestForegroundPermissionsAsync, getForegroundPermissionsAsync, getLastKnownPositionAsync } from 'expo-location';
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = WINDOW_WIDTH;
@@ -28,6 +31,7 @@ type RootStackParamList = {
   DMScreen: undefined;
   Profile: undefined;
   LoginNeedScreen: undefined;
+  ProfileScreen: { profileData: any };
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -56,20 +60,52 @@ const CHALLENGE_DATA = [
   },
 ];
 
-const TrainerCard = () => (
-  <View style={styles.trainerCard}>
-    <Image
-      source={require("../assets/trainer-placeholder.png")}
-      style={styles.trainerImage}
-      defaultSource={require("../assets/trainer-placeholder.png")}
-    />
-    <View style={styles.trainerContent}>
-      <Text style={styles.trainerName}>임성진 트레이너</Text>
-      <Text style={styles.trainerDescription}>0.4km · 경력 4년</Text>
-      <Text style={styles.trainerPrice}>1회당 60,000원</Text>
-    </View>
-  </View>
-);
+interface TrainerCardProps {
+  trainer: TrainerResponse;
+  compact?: boolean;
+}
+
+const TrainerCard: React.FC<TrainerCardProps> = ({ trainer, compact = true }) => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+
+  const lowestPriceMenu = trainer.menus.length > 0 
+    ? trainer.menus.reduce((prev, curr) => 
+        prev.price < curr.price ? prev : curr
+      ) 
+    : null;
+
+  const roundedRating = Math.round(trainer.averageRating * 10) / 10;
+
+  const handlePress = () => {
+    navigation.navigate("ProfileScreen", { profileData: trainer });
+  };
+
+  return (
+    <TouchableOpacity 
+      style={[styles.trainerCard, compact && styles.trainerCardCompact]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      <Image 
+        source={{ uri: trainer.trainerProfileImage }}
+        style={[styles.trainerImage, compact && styles.trainerImageCompact]}
+        defaultSource={require("../assets/trainer-placeholder.png")}
+      />
+      
+      <View style={styles.trainerContent}>
+        <Text style={styles.trainerName} numberOfLines={1}>{trainer.trainerNickname}</Text>
+        <Text style={styles.trainerDescription} numberOfLines={1}>
+          {trainer.keywords.join(', ')}
+        </Text>
+        {lowestPriceMenu && (
+          <Text style={styles.trainerPrice}>
+            {lowestPriceMenu.totalSessions}회 {lowestPriceMenu.price.toLocaleString()}원
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 interface SpecialtyButtonProps {
   title: string;
@@ -165,11 +201,75 @@ const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [selectedSpecialty, setSelectedSpecialty] = useState("다이어트");
   const [selectedTab, setSelectedTab] = useState("nearby");
+  const [nearbyTrainers, setNearbyTrainers] = useState<TrainerResponse[]>([]);
+  const [popularTrainers, setPopularTrainers] = useState<TrainerResponse[]>([]);
+  const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [streak, setStreak] = useState(0);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<string[]>([]);
   const [todaySchedules, setTodaySchedules] = useState<Schedule[]>([]);
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
+
+  const fetchLocation = async () => {
+    try {
+      const { status } = await getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: newStatus } = await requestForegroundPermissionsAsync();
+        if (newStatus !== 'granted') {
+          Alert.alert('위치 권한이 필요합니다');
+          return;
+        }
+      }
+
+      const locationResult = await getLastKnownPositionAsync({});
+      if (!locationResult) {
+        Alert.alert('위치 정보를 가져올 수 없습니다');
+        return;
+      }
+      
+      setLocation({
+        latitude: locationResult.coords.latitude,
+        longitude: locationResult.coords.longitude
+      });
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('위치 정보를 가져올 수 없습니다');
+    }
+  };
+
+  const fetchTrainers = async () => {
+    try {
+      // Fetch nearby trainers
+      if (location) {
+        const nearbyResponse = await searchTrainers({
+          myLatitude: location.latitude,
+          myLongitude: location.longitude,
+          sortBy: 'distance',
+          size: 7
+        });
+        setNearbyTrainers(nearbyResponse.content);
+      }
+
+      // Fetch popular trainers
+      const popularResponse = await getRecommendedTrainers({
+        size: 7
+      });
+      setPopularTrainers(popularResponse.content);
+    } catch (error) {
+      console.error('Error fetching trainers:', error);
+      Alert.alert('트레이너 정보를 불러올 수 없습니다');
+    }
+  };
+
+  useEffect(() => {
+    fetchLocation();
+  }, []);
+
+  useEffect(() => {
+    if (location) {
+      fetchTrainers();
+    }
+  }, [location]);
 
   const flatListRef = useRef<FlatList<ChallengeItem>>(null);
   const viewabilityConfig = useRef({
@@ -343,34 +443,15 @@ const HomeScreen: React.FC = () => {
   );
 
   const renderTrainerSection = () => (
-    <>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.specialtyButtonsContainer}
-      >
-        {specialties.map((specialty) => (
-          <SpecialtyButton
-            key={specialty}
-            title={specialty}
-            isSelected={selectedSpecialty === specialty}
-            onPress={() => setSelectedSpecialty(specialty)}
-          />
-        ))}
-      </ScrollView>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <TrainerCard />
-        <TrainerCard />
-        <TrainerCard />
-        <TrainerCard />
-        <TrainerCard />
-      </ScrollView>
-    </>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {(selectedTab === "nearby" ? nearbyTrainers : popularTrainers).map((trainer) => (
+        <TrainerCard key={trainer.trainerId} trainer={trainer} compact={true} />
+      ))}
+    </ScrollView>
   );
 
   return (
@@ -436,9 +517,9 @@ const HomeScreen: React.FC = () => {
                   onPress={() => setSelectedTab("nearby")}
                 />
                 <TabButton
-                  title="1Day Class 트레이너"
-                  isSelected={selectedTab === "oneday"}
-                  onPress={() => setSelectedTab("oneday")}
+                  title="많이 찾는 트레이너"
+                  isSelected={selectedTab === "popular"}
+                  onPress={() => setSelectedTab("popular")}
                 />
               </View>
             </View>
@@ -575,18 +656,23 @@ const styles = StyleSheet.create({
     shadowRadius: 2.84,
     elevation: 3,
   },
+  trainerCardCompact: {
+    width: 200,
+  },
   trainerImage: {
     width: "100%",
     height: 200,
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
-    backgroundColor: "#f0f0f0",
+  },
+  trainerImageCompact: {
+    height: 150,
   },
   trainerContent: {
     padding: 15,
   },
   trainerName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 5,
   },
@@ -596,7 +682,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   trainerPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#000",
   },

@@ -15,9 +15,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TopHeader } from "../components/TopHeader";
 import PlusButton from '../components/PlusButton';
 import { AddScheduleModal } from '../components/AddScheduleModal';
+import { AddTicketModal } from '../components/AddTicketModal';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
+const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
 
 interface Schedule {
   id: number;
@@ -26,23 +28,37 @@ interface Schedule {
   endTime: Date;
 }
 
-interface SessionHistory {
+interface Session {
   id: number;
-  completed: boolean;
-  date: string;
+  ticketId: number;
+  number: number;
+  startAt: string;
+  endAt: string;
+  trainerSigned: boolean;
+  memberSigned: boolean;
 }
 
-interface TicketCard {
+interface Ticket {
   id: number;
-  status: 'active' | 'completed';
-  image: string;
-  ptName: string;
+  trainerName: string | null;
+  studentName: string | null;
+  price: number;
   totalSessions: number;
-  completedSessions: number;
-  contractDate: string;
-  trainer: string;
-  member: string;
-  sessionHistory: SessionHistory[];
+  startDate: string;
+  lastUsedDate: string;
+  usedSessions: number;
+  status: string;
+  sessions: Session[];
+}
+
+interface PageableResponse {
+  content: Ticket[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  totalElements: number;
+  totalPages: number;
 }
 
 interface Props {
@@ -50,100 +66,73 @@ interface Props {
   route: any;
 }
 
-interface Schedule {
-  id: number;
-  nickname: string;
-  startTime: Date;
-  endTime: Date;
-}
-
 export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(today);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isScheduleModalVisible, setIsScheduleModalVisible] = useState(false);
+  const [isTicketModalVisible, setIsTicketModalVisible] = useState(false);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
   const [animationHeight] = useState(new Animated.Value(0));
+  const [userRole, setUserRole] = useState<string>('');
+  const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
+  const [completedTickets, setCompletedTickets] = useState<Ticket[]>([]);
 
-  const [tickets] = useState<TicketCard[]>([
-    {
-      id: 1,
-      status: 'active',
-      image: 'workout_image.jpg',
-      ptName: 'PT 30회',
-      totalSessions: 30,
-      completedSessions: 10,
-      contractDate: '2024.12.22',
-      trainer: '김원장',
-      member: '김문식',
-      sessionHistory: [
-        { id: 1, completed: true, date: '2025.01.02' },
-        { id: 2, completed: true, date: '2025.01.04' },
-        { id: 3, completed: true, date: '2025.01.08' },
-        { id: 4, completed: true, date: '2025.01.10' },
-        { id: 5, completed: false, date: '' },
-      ]
-    },
-    {
-      id: 2,
-      status: 'active',
-      image: 'workout_image.jpg',
-      ptName: 'PT 20회',
-      totalSessions: 20,
-      completedSessions: 5,
-      contractDate: '2024.12.15',
-      trainer: '이트레이너',
-      member: '박회원',
-      sessionHistory: [
-        { id: 1, completed: true, date: '2025.01.03' },
-        { id: 2, completed: true, date: '2025.01.05' },
-        { id: 3, completed: true, date: '2025.01.07' },
-        { id: 4, completed: false, date: '' },
-        { id: 5, completed: false, date: '' },
-      ]
-    },
-    {
-      id: 3,
-      status: 'active',
-      image: 'workout_image.jpg',
-      ptName: 'PT 40회',
-      totalSessions: 40,
-      completedSessions: 15,
-      contractDate: '2024.12.10',
-      trainer: '박트레이너',
-      member: '이회원',
-      sessionHistory: [
-        { id: 1, completed: true, date: '2025.01.01' },
-        { id: 2, completed: true, date: '2025.01.03' },
-        { id: 3, completed: true, date: '2025.01.06' },
-        { id: 4, completed: false, date: '' },
-        { id: 5, completed: false, date: '' },
-      ]
-    },
-    {
-      id: 4,
-      status: 'completed',
-      image: 'workout_image.jpg',
-      ptName: 'PT 15회',
-      totalSessions: 15,
-      completedSessions: 15,
-      contractDate: '2024.11.10',
-      trainer: '최트레이너',
-      member: '정회원',
-      sessionHistory: [
-        { id: 1, completed: true, date: '2024.11.15' },
-        { id: 2, completed: true, date: '2024.11.20' },
-        { id: 3, completed: true, date: '2024.11.25' },
-      ]
-    },
-  ]);
+  useEffect(() => {
+    const getUserRole = async () => {
+      try {
+        const role = await AsyncStorage.getItem('role');
+        setUserRole(role || '');
+      } catch (error) {
+        console.error('Failed to get user role:', error);
+      }
+    };
+    getUserRole();
+    loadSchedules();
+    loadTickets();
+  }, []);
+
+  const loadTickets = async () => {
+    try {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${refreshToken}`,
+        'Content-Type': 'application/json',
+      };
+
+      // 진행중인 티켓 로드
+      const activeEndpoint = userRole === 'ROLE_TRAINER' 
+        ? '/tickets/trainer-not-used'
+        : '/tickets/student-not-used';
+      const activeResponse = await fetch(`${BASE_URL}${activeEndpoint}`, {
+        headers,
+      });
+      const activeData: PageableResponse = await activeResponse.json();
+      setActiveTickets(activeData.content);
+
+      // 완료된 티켓 로드
+      const completedEndpoint = userRole === 'ROLE_TRAINER'
+        ? '/tickets/trainer-used'
+        : '/tickets/student-used';
+      const completedResponse = await fetch(`${BASE_URL}${completedEndpoint}`, {
+        headers,
+      });
+      const completedData: PageableResponse = await completedResponse.json();
+      setCompletedTickets(completedData.content);
+    } catch (error) {
+      console.error('Failed to load tickets:', error);
+    }
+  };
 
   const loadSchedules = async () => {
     try {
       const savedSchedules = await AsyncStorage.getItem('schedules');
       if (savedSchedules) {
         const parsedSchedules = JSON.parse(savedSchedules);
-        // Date 문자열을 Date 객체로 변환
         const schedulesWithDates = parsedSchedules.map((schedule: Schedule) => ({
           ...schedule,
           startTime: new Date(schedule.startTime),
@@ -156,7 +145,6 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  // 시간 표시 형식 포맷팅
   const formatScheduleTime = (startTime: Date, endTime: Date) => {
     const formatTime = (date: Date) => {
       return date.toLocaleTimeString('ko-KR', {
@@ -166,7 +154,6 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
       }).replace(/\s+/g, ' ');
     };
 
-    // 날짜가 다른 경우
     if (startTime.getDate() !== endTime.getDate() ||
         startTime.getMonth() !== endTime.getMonth()) {
       return `${startTime.getMonth() + 1}월 ${startTime.getDate()}일 ${formatTime(startTime)} - ${endTime.getMonth() + 1}월 ${endTime.getDate()}일 ${formatTime(endTime)}`;
@@ -175,35 +162,61 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
     return `${formatTime(startTime)} - ${formatTime(endTime)}`;
   };
 
-  // 일정 필터링
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    if (!date || isNaN(date.getTime())) {
+      return '-';
+    }
+    
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\. /g, '.').slice(0, -1);
+  };
+
+  const formatSessionDateTime = (dateString: string | null) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    if (!date || isNaN(date.getTime())) {
+      return '';
+    }
+    
+    return date.toLocaleString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   const filteredSchedules = schedules
-  .filter((schedule: Schedule) => {
-    const startDate = new Date(schedule.startTime);
-    const endDate = new Date(schedule.endTime);
-    const checkDate = new Date(selectedDate);
+    .filter((schedule: Schedule) => {
+      const startDate = new Date(schedule.startTime);
+      const endDate = new Date(schedule.endTime);
+      const checkDate = new Date(selectedDate);
 
-    // 시작일, 종료일, 체크일을 날짜만 비교하기 위해 시간 초기화
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    checkDate.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      checkDate.setHours(0, 0, 0, 0);
 
-    // 선택한 날짜가 시작일과 종료일 사이에 있는지 확인
-    return checkDate >= startDate && checkDate <= endDate;
-  })
-  .sort((a: Schedule, b: Schedule) => {
-    // 시작 시간을 기준으로 정렬
-    const timeA = new Date(a.startTime).getTime();
-    const timeB = new Date(b.startTime).getTime();
-    return timeA - timeB;
-  });
+      return checkDate >= startDate && checkDate <= endDate;
+    })
+    .sort((a: Schedule, b: Schedule) => {
+      const timeA = new Date(a.startTime).getTime();
+      const timeB = new Date(b.startTime).getTime();
+      return timeA - timeB;
+    });
 
-  // 요일 이름
   const getDayName = (date: Date): string => {
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     return days[date.getDay()];
   };
 
-  // 월/연도 표시
   const formatMonthYear = (date: Date): string => {
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
@@ -211,12 +224,10 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
     });
   };
 
-  // 일정 추가 모달 표시
   const handleAddSchedule = () => {
-    setIsModalVisible(true);
+    setIsScheduleModalVisible(true);
   };
 
-  // 새로운 일정 추가
   const handleScheduleSubmit = async (scheduleData: { 
     nickname: string; 
     startTime: Date;
@@ -231,41 +242,32 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
       };
 
       const updatedSchedules = [...schedules, newSchedule];
-      
-      // AsyncStorage에 저장
       await AsyncStorage.setItem('schedules', JSON.stringify(updatedSchedules));
-      
-      // 상태 업데이트
       setSchedules(updatedSchedules);
-      
-      // 모달 닫기
-      setIsModalVisible(false);
+      setIsScheduleModalVisible(false);
     } catch (error) {
       console.error('Failed to save schedule:', error);
     }
   };
 
-  // 날짜 선택
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
   };
 
   const toggleExpand = (id: number) => {
     const isExpanding = expandedCard !== id;
-    
+    setExpandedCard(isExpanding ? id : null);
+  
     Animated.timing(animationHeight, {
-      toValue: isExpanding ? 150 : 0,
+      toValue: isExpanding ? 200 : 0, // 높이값 증가
       duration: 300,
       useNativeDriver: false,
     }).start();
-
-    setExpandedCard(expandedCard === id ? null : id);
   };
 
-  // 항상 오늘 날짜부터 1주일을 보여주는 고정된 날짜 배열
   const weekDates = useMemo(() => {
     const dates: Date[] = [];
-    const startDate = new Date(today);  // 오늘 날짜로 시작
+    const startDate = new Date(today);
     
     for (let i = 0; i < 7; i++) {
       const day = new Date(startDate);
@@ -273,17 +275,12 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
       dates.push(day);
     }
     return dates;
-  }, [today]); // today만 의존성으로 추가
+  }, [today]);
 
   const handleDeleteSchedule = async (scheduleId: number) => {
     try {
-      // 해당 일정을 제외한 새로운 배열 생성
       const updatedSchedules = schedules.filter(schedule => schedule.id !== scheduleId);
-      
-      // AsyncStorage 업데이트
       await AsyncStorage.setItem('schedules', JSON.stringify(updatedSchedules));
-      
-      // 상태 업데이트
       setSchedules(updatedSchedules);
     } catch (error) {
       console.error('Failed to delete schedule:', error);
@@ -293,13 +290,24 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
   // 진행중인 티켓 섹션
   const renderActiveTickets = () => (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>진행중</Text>
+      <View style={styles.sectionHeaderContainer}>
+        <Text style={styles.sectionTitle}>진행중</Text>
+        {userRole === 'ROLE_TRAINER' && (
+          <TouchableOpacity
+            style={styles.addTicketButton}
+            onPress={() => setIsTicketModalVisible(true)}
+          >
+            <Ionicons name="add-circle-outline" size={24} color="#0047FF" />
+            <Text style={styles.addTicketButtonText}>이용권 추가</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <FlatList
         horizontal
         pagingEnabled
         nestedScrollEnabled={true}
         showsHorizontalScrollIndicator={false}
-        data={tickets.filter(ticket => ticket.status === 'active')}
+        data={activeTickets}
         renderItem={({ item: ticket }) => (
           <View style={[
             styles.card,
@@ -321,22 +329,22 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
 
                 <View style={styles.infoContainer}>
-                  <Text style={styles.ptName}>{ticket.ptName}</Text>
+                  <Text style={styles.ptName}>{ticket.totalSessions}회 이용권</Text>
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>세션</Text>
-                    <Text style={styles.value}>{ticket.completedSessions}/{ticket.totalSessions}</Text>
+                    <Text style={styles.value}>{ticket.usedSessions}/{ticket.totalSessions}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.label}>계약일</Text>
-                    <Text style={styles.value}>{ticket.contractDate}</Text>
+                    <Text style={styles.label}>시작일</Text>
+                    <Text style={styles.value}>{formatDate(ticket.startDate)}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>트레이너</Text>
-                    <Text style={styles.value}>{ticket.trainer}</Text>
+                    <Text style={styles.value}>{ticket.trainerName || '-'}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>회원</Text>
-                    <Text style={styles.value}>{ticket.member}</Text>
+                    <Text style={styles.value}>{ticket.studentName || '-'}</Text>
                   </View>
                 </View>
               </View>
@@ -368,20 +376,22 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                   <ScrollView 
                     style={styles.historyScroll}
                     nestedScrollEnabled={true}
-                    scrollEventThrottle={16}  // 스크롤 이벤트 최적화
-                    bounces={false}  // iOS에서 바운스 효과 제거
+                    scrollEventThrottle={16}
+                    bounces={false}
                   >
-                    {ticket.sessionHistory.map((session) => (
+                    {ticket.sessions.map((session) => (
                       <View key={session.id} style={styles.historyItem}>
-                        <Text style={styles.sessionNumber}>{session.id}회</Text>
+                        <Text style={styles.sessionNumber}>{session.number}회</Text>
                         <View style={styles.sessionStatus}>
-                          {session.completed ? (
+                          {session.trainerSigned && session.memberSigned ? (
                             <>
                               <Text style={styles.completedText}>완료</Text>
-                              <Text style={styles.sessionDate}>{session.date}</Text>
+                              <Text style={styles.sessionDate}>
+                                {formatSessionDateTime(session.startAt)}
+                              </Text>
                             </>
                           ) : (
-                            <Text style={styles.pendingText}>예정</Text>
+                            <Text style={styles.pendingText}>진행중</Text>
                           )}
                         </View>
                       </View>
@@ -393,6 +403,13 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
         keyExtractor={item => item.id.toString()}
+        ListEmptyComponent={() => (
+          <View style={styles.card}>
+            <Text style={[styles.ptName, { textAlign: 'center', marginTop: 100 }]}>
+              진행중인 이용권이 없습니다
+            </Text>
+          </View>
+        )}
       />
     </View>
   );
@@ -405,20 +422,20 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        data={tickets.filter(ticket => ticket.status === 'completed')}
+        data={completedTickets}
         renderItem={({ item: ticket }) => (
           <View style={[
             styles.card,
             styles.completedCard,
             expandedCard === ticket.id ? styles.cardExpanded : styles.cardCollapsed
           ]}>
-            {/* 카드 내용은 active와 동일하되 status만 "종료"로 변경 */}
             <View style={styles.mainContent}>
               <View style={styles.cardHeader}>
                 <View style={styles.statusContainer}>
                   <Text style={styles.status}>종료</Text>
                 </View>
               </View>
+
               <View style={styles.cardContent}>
                 <View style={styles.imageContainer}>
                   <Image
@@ -428,22 +445,22 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
 
                 <View style={styles.infoContainer}>
-                  <Text style={styles.ptName}>{ticket.ptName}</Text>
+                  <Text style={styles.ptName}>{ticket.totalSessions}회 이용권</Text>
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>세션</Text>
-                    <Text style={styles.value}>{ticket.completedSessions}/{ticket.totalSessions}</Text>
+                    <Text style={styles.value}>{ticket.usedSessions}/{ticket.totalSessions}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.label}>계약일</Text>
-                    <Text style={styles.value}>{ticket.contractDate}</Text>
+                    <Text style={styles.label}>시작일</Text>
+                    <Text style={styles.value}>{formatDate(ticket.startDate)}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>트레이너</Text>
-                    <Text style={styles.value}>{ticket.trainer}</Text>
+                    <Text style={styles.value}>{ticket.trainerName || '-'}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>회원</Text>
-                    <Text style={styles.value}>{ticket.member}</Text>
+                    <Text style={styles.value}>{ticket.studentName || '-'}</Text>
                   </View>
                 </View>
               </View>
@@ -475,38 +492,43 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
                   <ScrollView 
                     style={styles.historyScroll}
                     nestedScrollEnabled={true}
-                    scrollEventThrottle={16}  // 스크롤 이벤트 최적화
-                    bounces={false}  // iOS에서 바운스 효과 제거
+                    scrollEventThrottle={16}
+                    bounces={false}
                   >
-                    {ticket.sessionHistory.map((session) => (
+                    {ticket.sessions.map((session) => (
                       <View key={session.id} style={styles.historyItem}>
-                        <Text style={styles.sessionNumber}>{session.id}회</Text>
+                        <Text style={styles.sessionNumber}>{session.number}회</Text>
                         <View style={styles.sessionStatus}>
-                          {session.completed ? (
+                          {session.trainerSigned && session.memberSigned ? (
                             <>
                               <Text style={styles.completedText}>완료</Text>
-                              <Text style={styles.sessionDate}>{session.date}</Text>
+                              <Text style={styles.sessionDate}>
+                                {formatSessionDateTime(session.startAt)}
+                              </Text>
                             </>
                           ) : (
-                            <Text style={styles.pendingText}>예정</Text>
+                            <Text style={styles.pendingText}>진행중</Text>
                           )}
                         </View>
                       </View>
                     ))}
                   </ScrollView>
                 </Animated.View>
-              )}  
+              )}
             </View>
           </View>
         )}
         keyExtractor={item => item.id.toString()}
+        ListEmptyComponent={() => (
+          <View style={[styles.emptyContainer, { backgroundColor: '#808080' }]}>
+            <Text style={styles.emptyText}>
+              종료된 이용권이 없습니다
+            </Text>
+          </View>
+        )}
       />
     </View>
   );
-
-  useEffect(() => {
-    loadSchedules();
-  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -583,13 +605,21 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </ScrollView>
       </View>
-      {/* 일정 추가 모달 */}
+
       <AddScheduleModal
-          visible={isModalVisible}
-          onClose={() => setIsModalVisible(false)}
-          onSubmit={handleScheduleSubmit}
-          selectedDate={selectedDate}
-        />
+        visible={isScheduleModalVisible}
+        onClose={() => setIsScheduleModalVisible(false)}
+        onSubmit={handleScheduleSubmit}
+        selectedDate={selectedDate}
+      />
+      <AddTicketModal
+        visible={isTicketModalVisible}
+        onClose={() => setIsTicketModalVisible(false)}
+        onSuccess={() => {
+          loadTickets();
+          setIsTicketModalVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -695,26 +725,47 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
   },
-  ticketContainer: {
-    marginTop: 10,
-    marginBottom: 20,
+  sectionContainer: {
+    marginTop: 20,
+    marginBottom: 10,
   },
-  ticketContent: {
-    paddingHorizontal: 20,
-    alignItems: 'flex-start',
+  sectionHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  addTicketButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  addTicketButtonText: {
+    color: '#0047FF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
   },
   card: {
-    width: WINDOW_WIDTH - 80, // 패딩 고려
+    width: WINDOW_WIDTH - 40,
     backgroundColor: '#FF6B6B',
     borderRadius: 15,
     overflow: 'hidden',
-    marginHorizontal: 20, // 좌우 패딩
+    marginRight: 0,
   },
   cardCollapsed: {
     height: 250,
   },
   cardExpanded: {
     height: 'auto',
+  },
+  completedCard: {
+    backgroundColor: '#808080',
   },
   mainContent: {
     height: 200,
@@ -752,17 +803,16 @@ const styles = StyleSheet.create({
   infoContainer: {
     flex: 1,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
   ptName: {
     color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
   },
   label: {
     color: '#fff',
@@ -775,6 +825,9 @@ const styles = StyleSheet.create({
   },
   cardFooter: {
     width: '100%',
+    position: 'absolute',  // 추가
+    bottom: 0,            // 추가
+    left: 0,              // 추가
   },
   historyButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -785,7 +838,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 4,
   },
   historyButtonText: {
     color: '#fff',
@@ -794,6 +846,13 @@ const styles = StyleSheet.create({
   },
   historyContainer: {
     backgroundColor: '#fff',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '100%', // 카드 아래에 위치하도록
+    zIndex: 1,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
   },
   historyScroll: {
     maxHeight: 150,
@@ -801,6 +860,7 @@ const styles = StyleSheet.create({
   historyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
@@ -808,34 +868,36 @@ const styles = StyleSheet.create({
   sessionNumber: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#333',
   },
   sessionStatus: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   completedText: {
     color: '#0047FF',
-    marginRight: 10,
   },
   pendingText: {
     color: '#666',
   },
   sessionDate: {
     color: '#666',
+    fontSize: 12,
   },
-  sectionContainer: {
-    marginTop: 20,
-    marginBottom: 10,
+  emptyContainer: {
+    width: WINDOW_WIDTH - 40,
+    height: 250, // card와 동일한 높이로 수정
+    backgroundColor: '#808080', // 종료된 카드와 동일한 색상
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 20, // 양쪽 여백 추가
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    paddingHorizontal: 20,
-    color: '#333',
-  },
-  completedCard: {
-    backgroundColor: '#808080',  // 종료된 카드는 회색으로 표시
+  emptyText: {
+    color: '#fff', // 텍스트 색상을 흰색으로
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

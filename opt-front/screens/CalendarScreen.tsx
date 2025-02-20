@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   selectedDay: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0C508B',
   },
   dayText: {
     fontSize: 14,

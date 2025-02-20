@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
     width: 45,
   },
   selectedDay: {
-    backgroundColor: '#0047FF',
+    backgroundColor: '#0C508B',
     borderRadius: 8,
   },
   dayText: {
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#0047FF',
+    backgroundColor: '#0C508B',
     marginRight: 15,
   },
   scheduleContent: {

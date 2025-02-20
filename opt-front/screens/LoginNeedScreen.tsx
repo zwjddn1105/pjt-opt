@@ -60,8 +60,7 @@ const LoginNeedScreen: React.FC = () => {
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
-      await AsyncStorage.setItem("gymId", gymId.toString());
-
+      
       await login(
         refreshToken,
         String(id),

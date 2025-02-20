@@ -274,14 +274,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E0E0E0',
   },
   activeTab: {
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#0C508B',
   },
   tabText: {
     fontSize: 16,
     color: '#666',
   },
   activeTabText: {
-    color: '#007AFF',
+    color: '#0C508B',
     fontWeight: '600',
   },
   loadingContainer: {
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   analyzeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0C508B',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0C508B',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

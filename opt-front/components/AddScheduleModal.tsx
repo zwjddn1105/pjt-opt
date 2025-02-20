@@ -595,7 +595,7 @@ export const styles = StyleSheet.create({
     color: '#666',
   },
   selectedPickerItemText: {
-    color: '#0047FF',
+    color: '#0C508B',
     fontWeight: '600',
   },
   pickerSeparator: {
@@ -616,7 +616,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   submitButton: {
-    backgroundColor: '#0047FF',
+    backgroundColor: '#0C508B',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

@@ -18,22 +18,29 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { EXPO_PUBLIC_BASE_URL } from "@env";
-import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import InterestModal from "components/InterestModal";
 import * as ImagePicker from "expo-image-picker";
 import ReviewModal from "screens/profile/ReviewModal";
 import ReviewComponent from "./ReviewComponent";
+import MapScreen from "./MapScreen";
+import PriceModal from "./PriceModal";
+import { chatApi } from "api/chatApi";
+import ChatService from "services/ChatService";
 
 type SortType = "id,desc" | "rate,desc" | "rate,asc";
-import MapScreen from "./MapScreen"; 
 
 type RootStackParamList = {
   LoginNeedScreen: { returnScreen: string } | undefined;
   ProfileScreen: { profileData: any };
   Badge: undefined;
   SettingScreen: undefined;
+  Chat: {
+    roomId: string;
+    otherUserName: string;
+    otherUserType: "TRAINER" | "USER" | "ADMIN"; // 필요에 따라 다른 타입도 추가 가능
+  };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -67,13 +74,7 @@ interface Profile {
   following: number;
   certification: string;
   licenses: string[];
-  prices: {
-    single: number;
-    bulk: {
-      count: number;
-      price: number;
-    };
-  };
+
   rating: number;
   interests?: Interest[];
   reviews: Review[];
@@ -130,15 +131,33 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   const [modalType, setModalType] = useState<"followers" | "following" | null>(
     null
   );
-  const [location, setLocation] = useState<Location.LocationObject | null>(
-    null
-  );
   const [average, setAverage] = useState<{
     count: number;
     averageRate: number;
   }>({ count: 0, averageRate: 0 });
   const [newNickname, setNewNickname] = useState("");
   const [cityDistrict, setCityDistrict] = useState("위치 정보 없음");
+  useEffect(() => {
+    const loadCityDistrict = async () => {
+      try {
+        // AsyncStorage에서 city와 district 값 가져오기
+        const city = await AsyncStorage.getItem("city");
+        const district = await AsyncStorage.getItem("district");
+
+        // city와 district가 모두 있으면 합쳐서 cityDistrict에 저장
+        if (city && district) {
+          setCityDistrict(`${city} ${district}`);
+        } else {
+          setCityDistrict("위치 정보 없음");
+        }
+      } catch (error) {
+        console.error("AsyncStorage에서 값을 가져오는 중 오류 발생", error);
+      }
+    };
+
+    loadCityDistrict();
+  }, []); // 빈 배열로 한 번만 실행되도록 설정
+
   const [certificateData, setCertificateData] = useState<Certificate[] | null>(
     null
   );
@@ -146,6 +165,15 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   const [reviews, setReviews] = useState<Review[]>([]); // 리뷰 데이터를 저장할 상태
   const [isSortedReviewModalVisible, setIsSortedReviewModalVisible] =
     useState(false); // 정렬된 리뷰 모달 표시 여부 상태
+
+  const [isPriceModalVisible, setIsPriceModalVisible] = useState(false);
+  const openPriceModal = () => {
+    setIsPriceModalVisible(true);
+  };
+
+  const closePriceModal = () => {
+    setIsPriceModalVisible(false);
+  };
   const fetchReviews = async (sort: SortType) => {
     try {
       const refreshToken = await AsyncStorage.getItem("refreshToken");
@@ -185,13 +213,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
     following: 0,
     certification: "",
     licenses: [],
-    prices: {
-      single: 0,
-      bulk: {
-        count: 0,
-        price: 0,
-      },
-    },
+
     rating: 0,
     interests: [],
     reviews: [],
@@ -255,13 +277,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       following: following.length,
       certification: profileData.intro || null,
       licenses: [],
-      prices: {
-        single: 30000,
-        bulk: {
-          count: 30,
-          price: 55000,
-        },
-      },
+
       rating: parseFloat(average.averageRate.toFixed(1)),
       interests: profileData.interests || [],
       reviews: [],
@@ -269,42 +285,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       isFollow: profileData.isFollow,
     });
   }, [profileData, followers, following, average]);
-
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("위치 정보 권한이 거부되었습니다.");
-        return;
-      }
-
-      let currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
-
-      // Geocoding을 통해 주소 정보 가져오기
-      try {
-        let geocode = await Location.reverseGeocodeAsync({
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-        });
-        if (geocode && geocode.length > 0) {
-          const address = geocode[0];
-          // "시" 정보 추출
-          const city = address.city || "";
-          // "구" 정보 추출 (address.district가 없는 경우 address.street를 사용할 수도 있습니다)
-          const district = address.district || address.street || "";
-
-          if (city && district) {
-            setCityDistrict(`${city} ${district}`);
-          } else if (city) {
-            setCityDistrict(city);
-          }
-        }
-      } catch (e) {
-        console.log("Geocoding 에러:", e);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     const saveGymId = async () => {
@@ -319,7 +299,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         console.warn("⚠️ profileData.gymId 값이 존재하지 않음");
       }
     };
-  
+
     saveGymId();
   }, [profileData.gymId]);
 
@@ -656,6 +636,29 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
     } catch (error) {
       console.error("리뷰 등록 오류:", error);
       Alert.alert("오류", "리뷰 등록 중 문제가 발생했습니다.");
+    }
+  };
+  const handleChatButtonPress = async () => {
+    try {
+      // 채팅방 생성
+      const chatRoomResponse = await chatApi.createChatRoom(profileData.id);
+
+      // 생성된 채팅방 ID 추출
+      const roomId = String(chatRoomResponse.id);
+
+      // 채팅방 구독
+      await ChatService.subscribeToRoom(roomId, (message) => {
+        console.log("New message received:", message);
+      });
+
+      // 채팅방으로 이동
+      navigation.navigate("Chat", {
+        roomId: roomId,
+        otherUserName: profileData.nickname,
+        otherUserType: "TRAINER",
+      });
+    } catch (error) {
+      console.error("채팅방 생성 중 오류 발생:", error);
     }
   };
 
@@ -1000,35 +1003,28 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
             />
           </View>
 
-          {/* Pricing Section */}
-          <View style={styles.pricingContainer}>
-            <TouchableOpacity style={styles.pricingButton}>
-              <View style={styles.priceItem}>
-                <Text style={styles.priceCount}>1회</Text>
-                <Text style={styles.priceAmount}>
-                  {profile.prices.single}원
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.pricingButton, styles.pricingButtonGreen]}
-            >
-              <View style={styles.priceItem}>
-                <Text style={styles.priceCount}>
-                  {profile.prices.bulk.count}회
-                </Text>
-                <Text style={styles.priceAmount}>
-                  {profile.prices.bulk.price}원
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.pricingButton}
+            onPress={openPriceModal}
+          >
+            <Text style={styles.buttonText}>가격표 정보 보기</Text>
+          </TouchableOpacity>
+
+          {/* PriceModal 추가 */}
+          <PriceModal
+            isVisible={isPriceModalVisible}
+            onClose={closePriceModal}
+            trainerId={profileData.id}
+          />
 
           <View style={styles.bottomPadding} />
         </ScrollView>
 
         <View style={styles.fixedBottomButtons}>
-          <TouchableOpacity style={styles.chatButton}>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={handleChatButtonPress}
+          >
             <Text style={styles.buttonText}>채팅상담</Text>
           </TouchableOpacity>
         </View>
@@ -1217,28 +1213,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   pricingButton: {
-    flex: 1,
     backgroundColor: "#FF6B6B",
     padding: 16,
     borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  pricingButtonGreen: {
-    backgroundColor: "#4CD964",
-  },
-  priceItem: {
+    marginHorizontal: 16,
     alignItems: "center",
+    marginBottom: 20,
   },
-  priceCount: {
-    color: "#fff",
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  priceAmount: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+
   bottomPadding: {
     height: 80,
   },

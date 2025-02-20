@@ -3,10 +3,13 @@ import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, Alert, Text } from "react-native";
 import { WebView } from "react-native-webview";
 import axios from "axios";
+import { EXPO_PUBLIC_BASE_URL } from "@env";
 
-const BASE_URL = "https://i12a309.p.ssafy.io";
-const KAKAO_API_KEY = process.env.EXPO_PUBLIC_KAKAO_API_KEY || "YOUR_JAVASCRIPT_KEY";
-const KAKAO_REST_API_KEY = process.env.EXPO_PUBLIC_KAKAO_REST_API_KEY || "YOUR_REST_KEY";
+const BASE_URL = EXPO_PUBLIC_BASE_URL;
+const KAKAO_API_KEY =
+  process.env.EXPO_PUBLIC_KAKAO_API_KEY || "YOUR_JAVASCRIPT_KEY";
+const KAKAO_REST_API_KEY =
+  process.env.EXPO_PUBLIC_KAKAO_REST_API_KEY || "YOUR_REST_KEY";
 
 const MapScreen = () => {
   const webViewRef = useRef(null);
@@ -28,14 +31,23 @@ const MapScreen = () => {
         }
       );
 
-      if (response.data.documents.length > 0) { 
-        const { region_1depth_name, region_2depth_name } = response.data.documents[0].address;
-        console.log("📌 변환된 주소 데이터:", region_1depth_name, region_2depth_name);
+      if (response.data.documents.length > 0) {
+        const { region_1depth_name, region_2depth_name } =
+          response.data.documents[0].address;
+        console.log(
+          "📌 변환된 주소 데이터:",
+          region_1depth_name,
+          region_2depth_name
+        );
 
         await AsyncStorage.setItem("city", region_1depth_name);
         await AsyncStorage.setItem("district", region_2depth_name);
 
-        console.log("✅ 시/구 정보 저장 완료:", region_1depth_name, region_2depth_name);
+        console.log(
+          "✅ 시/구 정보 저장 완료:",
+          region_1depth_name,
+          region_2depth_name
+        );
       } else {
         console.warn("⚠️ REST API 응답: 주소 데이터 없음");
       }
@@ -58,23 +70,25 @@ const MapScreen = () => {
         console.log(gymId);
         const response = await axios.get(`${BASE_URL}/gyms/${gymId}`);
         if (response.data.latitude && response.data.longitude) {
-            const lat = Number(response.data.latitude);
-            const lng = Number(response.data.longitude);
+          const lat = Number(response.data.latitude);
+          const lng = Number(response.data.longitude);
 
-            
-            console.log("📍 변환된 위도:", lat);
-            console.log("📍 변환된 경도:", lng);
-            
-            setLatitude(lat);
-            setLongitude(lng);
+          console.log("📍 변환된 위도:", lat);
+          console.log("📍 변환된 경도:", lng);
 
-            console.log("🛠️ [DEBUG] fetchAddressFromAPI() 호출 직전 | 위도:", lat, "경도:", lng);
-            await AsyncStorage.removeItem("city");
-            await AsyncStorage.removeItem("district");
-            fetchAddressFromAPI(lat, lng);
-            console.log("✅ [DEBUG] Kakao API 응답 데이터:", response.data);
+          setLatitude(lat);
+          setLongitude(lng);
 
-            
+          console.log(
+            "🛠️ [DEBUG] fetchAddressFromAPI() 호출 직전 | 위도:",
+            lat,
+            "경도:",
+            lng
+          );
+          await AsyncStorage.removeItem("city");
+          await AsyncStorage.removeItem("district");
+          fetchAddressFromAPI(lat, lng);
+          console.log("✅ [DEBUG] Kakao API 응답 데이터:", response.data);
         } else {
           setErrorMessage("체육관의 위치 정보가 없습니다.");
           Alert.alert("오류", "체육관의 위치 정보가 없습니다.");
@@ -87,11 +101,13 @@ const MapScreen = () => {
       }
     };
 
-    fetchGymLocation(); 
+    fetchGymLocation();
   }, []);
 
   if (isLoading) {
-    return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
+    return (
+      <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+    );
   }
 
   if (errorMessage) {
@@ -107,7 +123,7 @@ const MapScreen = () => {
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>위치 정보를 불러올 수 없습니다.</Text>
       </View>
-    ); 
+    );
   }
 
   const html = `
@@ -146,7 +162,6 @@ const MapScreen = () => {
         </body>
     </html>    
 `;
-
 
   return (
     <View style={styles.mapContainer}>

@@ -15,7 +15,9 @@ import lombok.NoArgsConstructor;
 public class TicketTrainerResponse {
 
     private int id;
+    private int trainerId;
     private String trainerName;
+    private int studentId;
     private String studentName;
     private int price;
     private int totalSessions;
@@ -27,7 +29,9 @@ public class TicketTrainerResponse {
 
     public TicketTrainerResponse(Ticket ticket) {
         this.id = ticket.getId();
+        this.trainerId = ticket.getTrainer().getId();
         this.trainerName = ticket.getTrainer().getName();
+        this.studentId = ticket.getStudent().getId();
         this.studentName = ticket.getStudent().getName();
         this.price = ticket.getPrice();
         this.totalSessions = ticket.getTotalSessions();

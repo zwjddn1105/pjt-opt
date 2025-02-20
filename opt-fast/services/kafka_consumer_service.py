@@ -199,12 +199,13 @@ class KafkaConsumerService:
             # ✅ scan_document() 호출 (파일 경로 대신 OpenCV 이미지 배열 전달)
             scanned_image = scan_document(image)
             if scanned_image is None:
-                logger.error("❌ 문서 영역을 찾을 수 없습니다.")
-                final_result_with_id2 = {}
-                final_result_with_id2["status"] = "error"
-                final_result_with_id2["message"] = "문서를 인식할 수 없습니다. 문서가 전체가 보이도록 다시 촬영해주세요"
-                await self.send_kafka_message("certificate_response", final_result_with_id2)
-                return
+                scanned_image = image
+                # logger.error("❌ 문서 영역을 찾을 수 없습니다.")
+                # final_result_with_id2 = {}
+                # final_result_with_id2["status"] = "error"
+                # final_result_with_id2["message"] = "문서를 인식할 수 없습니다. 문서가 전체가 보이도록 다시 촬영해주세요"
+                # await self.send_kafka_message("certificate_response", final_result_with_id2)
+                # return
 
             # ✅ OCR 수행
             # scanned_image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

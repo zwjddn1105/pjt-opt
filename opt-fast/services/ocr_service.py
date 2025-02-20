@@ -19,12 +19,12 @@ async def process_ocr(file: BytesIO):
         return {"error": "올바른 이미지 파일이 아닙니다."}
 
     # 이미지 보정 수행
-    # processed_image = scan_document(image)  # 여기서 image를 넘겨야 함
+    processed_image = scan_document(image)  # 여기서 image를 넘겨야 함
 
-    # if processed_image is None:
-    #     return {"error": "문서 영역을 찾을 수 없습니다."}
+    if processed_image is None:
+        processed_image = image
 
-    document = run_ocr(image)
+    document = run_ocr(processed_image)
     
     print(document.text)
     extracted = extract_colon_key_values(document.text) # :이 들어간 데이터만 뽑은 후 dictionary형태로 변환

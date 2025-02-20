@@ -22,9 +22,8 @@ public class FollowService {
     private final UserDetailsServiceImpl userDetailsService;
 
     @Transactional(readOnly = true)
-    public List<FollowResponse> getFollowingList() {
-        Member member = userDetailsService.getMemberByContextHolder();
-        List<Follow> following = followRepository.findByMember(member.getId());
+    public List<FollowResponse> getFollowingList(int memberId) {
+        List<Follow> following = followRepository.findByMember(memberId);
 
         // 중복 제거 및 DTO 변환
         return following.stream()
@@ -33,9 +32,8 @@ public class FollowService {
     }
 
     @Transactional(readOnly = true)
-    public List<FollowResponse> getFollowerList() {
-        Member member = userDetailsService.getMemberByContextHolder();
-        List<Follow> followers = followRepository.findByTarget(member.getId());
+    public List<FollowResponse> getFollowerList(int memberId) {
+        List<Follow> followers = followRepository.findByTarget(memberId);
 
         // 중복 제거 및 DTO 변환
         return followers.stream()

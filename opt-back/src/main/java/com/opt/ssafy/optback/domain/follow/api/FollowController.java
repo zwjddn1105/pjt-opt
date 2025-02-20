@@ -15,13 +15,13 @@ public class FollowController {
     private final FollowService followService;
 
     @GetMapping("/following")
-    public ResponseEntity<List<FollowResponse>> getFollowing() {
-        return ResponseEntity.ok(followService.getFollowingList());
+    public ResponseEntity<List<FollowResponse>> getFollowing(@RequestParam int memberId) {
+        return ResponseEntity.ok(followService.getFollowingList(memberId));
     }
 
     @GetMapping("/follower")
-    public ResponseEntity<List<FollowResponse>> getFollower() {
-        return ResponseEntity.ok(followService.getFollowerList());
+    public ResponseEntity<List<FollowResponse>> getFollower(@RequestParam int memberId) {
+        return ResponseEntity.ok(followService.getFollowerList(memberId));
     }
 
 

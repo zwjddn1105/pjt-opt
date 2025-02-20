@@ -35,7 +35,6 @@ const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
   } catch (error) {
-    console.error("Error retrieving refresh token:", error);
     return null;
   }
 };
@@ -61,7 +60,6 @@ const OngoingChallengesScreen = () => {
         );
         setChallenges(response.data);
       } catch (error) {
-        console.error("참여 중인 챌린지 불러오기 실패:", error);
       }
     };
 

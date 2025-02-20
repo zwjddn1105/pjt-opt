@@ -246,7 +246,6 @@ const HomeScreen: React.FC = () => {
           const data = await response.json();
           setMonthlyRecords(data);
         } catch (error) {
-          console.error('Failed to load monthly records:', error);
         }
       };
   
@@ -268,7 +267,6 @@ const HomeScreen: React.FC = () => {
 
       const locationResult = await getLastKnownPositionAsync({});
       if (!locationResult) {
-        Alert.alert('위치 정보를 가져올 수 없습니다');
         return;
       }
       
@@ -277,8 +275,6 @@ const HomeScreen: React.FC = () => {
         longitude: locationResult.coords.longitude
       });
     } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert('위치 정보를 가져올 수 없습니다');
     }
   };
 
@@ -326,11 +322,8 @@ const HomeScreen: React.FC = () => {
         const data = await response.json();
         setMonthlyRecords(data);
       } catch (error) {
-        console.error('Failed to load monthly records:', error);
       }
     } catch (error) {
-      console.error('Error fetching trainers:', error);
-      Alert.alert('트레이너 정보를 불러올 수 없습니다');
     }
   };
 
@@ -438,7 +431,6 @@ const HomeScreen: React.FC = () => {
         weeklyDates.filter((date) => exerciseDates.includes(date))
       );
     } catch (error) {
-      console.error("Failed to calculate workout stats:", error);
     }
   };
 
@@ -471,7 +463,6 @@ const HomeScreen: React.FC = () => {
         setTodaySchedules(todaySchedules);
       }
     } catch (error) {
-      console.error('Failed to load today schedules:', error);
     }
   };
 

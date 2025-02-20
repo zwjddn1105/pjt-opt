@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EXPO_PUBLIC_BASE_URL } from "@env";
 
-// Response Types
 export interface ExerciseRecord {
   id: number;
   exerciseId: number;
@@ -22,7 +21,6 @@ export interface Media {
   createdAt: string | null;
 }
 
-// Request Types
 export interface CreateExerciseRecordRequest {
   exerciseId: number;
   set: number;
@@ -42,131 +40,84 @@ export interface UpdateExerciseRecordRequest {
   mediaIdsToDelete?: number[];
 }
 
-// API Functions
 export const fetchExerciseRecords = async (date: string): Promise<ExerciseRecord[]> => {
-  try {
-    const refreshToken = await AsyncStorage.getItem('refreshToken');
-    if (!refreshToken) throw new Error('No refresh token found');
+  const refreshToken = await AsyncStorage.getItem('refreshToken');
+  if (!refreshToken) throw new Error('No refresh token found');
 
-    const formattedDate = date.replace(/-/g, '');
-    const url = `${EXPO_PUBLIC_BASE_URL}/exercise-records?date=${formattedDate}`;
+  const formattedDate = date.replace(/-/g, '');
+  const url = `${EXPO_PUBLIC_BASE_URL}/exercise-records?date=${formattedDate}`;
 
-    console.log('Fetching exercise records:', url);
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${refreshToken}`,
+      'Content-Type': 'application/json'
+    },
+  });
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${refreshToken}`,
-        'Content-Type': 'application/json'
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Server error:', response.status, errorText);
-      throw new Error(`Failed to fetch exercise records: ${errorText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error in fetchExerciseRecords:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to fetch exercise records`);
   }
+
+  return await response.json();
 };
 
 export const createExerciseRecord = async (formData: FormData): Promise<ExerciseRecord> => {
-  try {
-    const refreshToken = await AsyncStorage.getItem('refreshToken');
-    if (!refreshToken) throw new Error('No refresh token found');
+  const refreshToken = await AsyncStorage.getItem('refreshToken');
+  if (!refreshToken) throw new Error('No refresh token found');
 
-    console.log('Creating exercise record...');
+  const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${refreshToken}`,
+      'Content-Type': 'multipart/form-data'
+    },
+    body: formData
+  });
 
-    const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${refreshToken}`,
-        // 이 부분을 추가하세요
-        'Content-Type': 'multipart/form-data'
-      },
-      body: formData
-    });
-
-    if (!response.ok) {
-      const responseText = await response.text();
-      console.error('Server response:', response.status, responseText);
-      throw new Error(`Server error: ${response.status} ${responseText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error in createExerciseRecord:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Server error`);
   }
+
+  return await response.json();
 };
 
 export const deleteExerciseRecord = async (id: number): Promise<void> => {
-  try {
-    const refreshToken = await AsyncStorage.getItem('refreshToken');
-    if (!refreshToken) throw new Error('No refresh token found');
+  const refreshToken = await AsyncStorage.getItem('refreshToken');
+  if (!refreshToken) throw new Error('No refresh token found');
 
-    console.log('Deleting exercise record:', id);
+  const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${refreshToken}`,
+      'Content-Type': 'application/json'
+    },
+  });
 
-    const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${refreshToken}`,
-        'Content-Type': 'application/json'
-      },
-    });
-
-    const responseText = await response.text();
-    
-    if (!response.ok) {
-      console.error('Delete error response:', responseText);
-      throw new Error(`Failed to delete exercise record: ${responseText}`);
-    }
-  } catch (error) {
-    console.error('Error in deleteExerciseRecord:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to delete exercise record`);
   }
 };
 
 export const updateExerciseRecord = async (id: number, formData: FormData): Promise<ExerciseRecord> => {
+  const refreshToken = await AsyncStorage.getItem('refreshToken');
+  if (!refreshToken) throw new Error('No refresh token found');
+
+  const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${refreshToken}`,
+      'Content-Type': 'multipart/form-data'
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update exercise record`);
+  }
+
   try {
-    const refreshToken = await AsyncStorage.getItem('refreshToken');
-    if (!refreshToken) throw new Error('No refresh token found');
-
-    console.log('Updating exercise record:', id);
-    console.log('FormData contents:');
-    for (let [key, value] of (formData as any).entries()) {
-      console.log(`${key}: ${value}`);
-    }
-
-    const response = await fetch(`${EXPO_PUBLIC_BASE_URL}/exercise-records/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${refreshToken}`,
-        'Content-Type': 'multipart/form-data'
-      },
-      body: formData,
-    });
-
-    // 응답 내용 로깅
-    const responseText = await response.text();
-    console.log('Server response:', responseText);
-
-    if (!response.ok) {
-      throw new Error(`Failed to update exercise record: ${responseText}`);
-    }
-
-    // 응답이 JSON이 아닐 수 있으므로 조건부로 파싱
-    try {
-      return JSON.parse(responseText);
-    } catch {
-      // JSON이 아닌 경우 성공으로 처리하고 빈 객체 반환
-      return {} as ExerciseRecord;
-    }
-  } catch (error) {
-    console.error('Error in updateExerciseRecord:', error);
-    throw error;
+    return await response.json();
+  } catch {
+    return {} as ExerciseRecord;
   }
 };

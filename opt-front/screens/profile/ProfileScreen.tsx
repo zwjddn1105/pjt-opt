@@ -124,8 +124,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
   const BASE_URL = EXPO_PUBLIC_BASE_URL;
   const profileData = route.params.profileData;
-  console.log(profileData.id, "프로필주인");
-  console.log(memberId, "로그인한애");
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [following, setFollowing] = useState<Follower[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -152,7 +150,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           setCityDistrict("위치 정보 없음");
         }
       } catch (error) {
-        console.error("AsyncStorage에서 값을 가져오는 중 오류 발생", error);
       }
     };
 
@@ -193,8 +190,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       );
       setReviews(response.data.content); // 리뷰 데이터 설정
     } catch (error) {
-      console.error("리뷰 데이터를 가져오는 중 오류 발생:", error);
-      Alert.alert("오류", "리뷰를 불러오는 데 실패했습니다.");
     }
   };
   const handleSortTypeChange = (sort: SortType) => {
@@ -263,7 +258,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
           setCertificateData(response.data);
         }
       } catch (error) {
-        console.error("Error fetching certificate:", error);
       }
     };
 
@@ -292,12 +286,9 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       if (profileData.gymId) {
         try {
           await AsyncStorage.setItem("gymId", profileData.gymId.toString()); // 문자열로 변환 후 저장
-          console.log("✅ GymId 저장 완료:", profileData.gymId);
         } catch (error) {
-          console.error("❌ GymId 저장 실패:", error);
         }
       } else {
-        console.warn("⚠️ profileData.gymId 값이 존재하지 않음");
       }
     };
 
@@ -318,7 +309,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         );
         setAverage(response.data);
       } catch (error) {
-        console.error("평균 평점을 가져오는 데 실패했습니다:", error);
       }
     };
 
@@ -339,7 +329,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error("Error fetching follow list:", error);
       return [];
     }
   };
@@ -371,7 +360,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   const updateNickname = async () => {
     try {
       const refreshToken = await AsyncStorage.getItem("refreshToken");
-      console.log(refreshToken);
       await axios.patch(
         `${BASE_URL}/members/nickname`,
         { nickname: newNickname },
@@ -385,7 +373,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       setNewNickname(""); // 입력 필드 초기화
     } catch (error) {
       Alert.alert("닉네임은 20자까지만 설정이 가능합니다!");
-      console.error("닉네임 업데이트 실패:", error);
     }
   };
 
@@ -446,7 +433,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         alert("트레이너 등록 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      console.error("트레이너 등록 오류:", error);
       alert("트레이너 등록 중 문제가 발생했습니다.");
     }
   };
@@ -488,7 +474,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         alert("자격증 등록 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      console.error("자격증 등록 오류:", error);
       alert("자격증 등록 중 문제가 발생했습니다.");
     }
   };
@@ -523,7 +508,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         alert("업데이트 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      console.error("학력사항 업데이트 오류:", error);
       alert("업데이트 중 문제가 발생했습니다.");
     }
   };
@@ -573,7 +557,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         alert("관심사 업데이트 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      console.error("관심사 업데이트 오류:", error);
       alert("관심사 업데이트 중 문제가 발생했습니다.");
     } finally {
       closeInterestModal();
@@ -588,7 +571,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         ? `${BASE_URL}/follows/${profileData.id}`
         : `${BASE_URL}/follows?targetId=${profileData.id}`;
       const method = profileData.isFollow ? "delete" : "post";
-      console.log("aaaaaaaaa");
       // const data = profileData.isFollow ? {} : { targetId: profileData.id };
 
       await axios({
@@ -597,7 +579,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         // data: data,
         headers: { Authorization: `Bearer ${refreshToken}` },
       });
-      console.log("bbbbbbbbb");
       alert("완료");
       setProfile((prev) => ({
         ...prev,
@@ -605,7 +586,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         followers: prev.isFollow ? prev.followers - 1 : prev.followers + 1,
       }));
     } catch (error) {
-      console.error("팔로우/언팔로우 중 오류 발생:", error);
       Alert.alert("오류", "팔로우/언팔로우 중 문제가 발생했습니다.");
     }
   };
@@ -632,7 +612,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         setIsReviewModalVisible(false);
       }
     } catch (error) {
-      console.error("리뷰 등록 오류:", error);
       Alert.alert("오류", "리뷰 등록 중 문제가 발생했습니다.");
     }
   };
@@ -646,7 +625,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
 
       // 채팅방 구독
       await ChatService.subscribeToRoom(roomId, (message) => {
-        console.log("New message received:", message);
       });
 
       // 채팅방으로 이동
@@ -656,7 +634,6 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
         otherUserType: "TRAINER",
       });
     } catch (error) {
-      console.error("채팅방 생성 중 오류 발생:", error);
     }
   };
 

@@ -83,7 +83,6 @@ const fetchChallenges = async (
     setPage(page + 1);
     setHasMore(!response.data.last);
   } catch (error) {
-    console.error(`${status} 챌린지 불러오기 실패:`, error);
     throw error;
   }
 };
@@ -147,7 +146,6 @@ const AllChallengeScreen: React.FC = () => {
           ),
         ]);
       } catch (error) {
-        console.error("챌린지 데이터 불러오기 실패:", error);
       }
     };
 

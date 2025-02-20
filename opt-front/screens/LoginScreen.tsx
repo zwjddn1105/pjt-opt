@@ -52,8 +52,6 @@ const LoginScreen: React.FC = () => {
         await AsyncStorage.setItem("isOnboarded", String(isOnboarded));
         await AsyncStorage.setItem("nickname", nickname);
 
-        console.log(response.data);
-
         Alert.alert("로그인 성공", "환영합니다!", [
           {
             text: "확인",
@@ -67,7 +65,6 @@ const LoginScreen: React.FC = () => {
           },
         ]);
       } catch (error) {
-        console.error("토큰 요청 중 에러 발생:", error);
       }
     }
   };

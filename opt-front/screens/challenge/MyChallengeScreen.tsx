@@ -62,7 +62,6 @@ const fetchOngoingChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("내가 참여 중인 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
@@ -81,7 +80,6 @@ const fetchAppliedChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("내가 신청한 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
@@ -100,7 +98,6 @@ const fetchPastChallenges = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("내가 참여했던 챌린지 불러오기 실패:", error);
     throw error;
   }
 };
@@ -139,7 +136,6 @@ const MyChallengeScreen: React.FC = () => {
         setIsLoggedIn(refreshToken !== null);
         setUserRole(role);
       } catch (error) {
-        console.error("Error checking login status:", error);
         setIsLoggedIn(false);
       }
     };
@@ -167,7 +163,6 @@ const MyChallengeScreen: React.FC = () => {
         const past = await fetchPastChallenges();
         setPastChallenges(past);
       } catch (error) {
-        console.error("챌린지 데이터 불러오기 실패:", error);
       }
     };
 

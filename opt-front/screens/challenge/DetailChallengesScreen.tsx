@@ -71,7 +71,6 @@ const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
   } catch (error) {
-    console.error("Error retrieving refresh token:", error);
     return null;
   }
 };
@@ -105,7 +104,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       setIsParticipating(response.data.currentParticipants > 0);
       setLoading(false);
     } catch (error) {
-      console.error("챌린지 상세 정보 불러오기 실패:", error);
       setError("챌린지 정보를 불러오는데 실패했습니다.");
       setLoading(false);
     }
@@ -150,7 +148,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
           }
         }
       } catch (error) {
-        console.error("챌린지 기록 불러오기 실패:", error);
       }
     };
 
@@ -186,7 +183,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         fetchChallengeDetails();
       }
     } catch (error) {
-      console.error("API 호출 중 오류 발생:", error);
       Alert.alert("오류", "작업 중 문제가 발생했습니다. 다시 시도해주세요.");
     }
   };
@@ -221,10 +217,8 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       if (response.status === 200) {
         navigation.navigate("ProfileScreen", { profileData: response.data });
       } else {
-        console.error("프로필 데이터를 가져오는데 실패했습니다.");
       }
     } catch (error) {
-      console.error("프로필 요청 중 오류 발생:", error);
     }
   };
   return (

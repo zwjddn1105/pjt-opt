@@ -43,14 +43,12 @@ const LoginNeedScreen: React.FC = () => {
 
   const loginWithEmail = async () => {
     try {
-      console.log(EXPO_PUBLIC_BASE_URL);
       const response = await axios.post(
         `${EXPO_PUBLIC_BASE_URL}/auth/sign-in`,
         {
           email,
         }
       );
-      console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;
@@ -63,9 +61,6 @@ const LoginNeedScreen: React.FC = () => {
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
       await AsyncStorage.setItem("gymId", gymId.toString());
-      console.log(refreshToken);
-      console.log(role);
-      console.log(id);
 
       await login(
         refreshToken,
@@ -87,13 +82,11 @@ const LoginNeedScreen: React.FC = () => {
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error("Axios error:", error.response?.data);
         Alert.alert(
           "로그인 실패",
           error.response?.data?.message || "이메일을 확인해주세요."
         );
       } else {
-        console.error("Unexpected error:", error);
         Alert.alert("로그인 실패", "알 수 없는 오류가 발생했습니다.");
       }
     }

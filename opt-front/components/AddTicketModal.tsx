@@ -71,7 +71,6 @@ export const AddTicketModal: React.FC<AddTicketModalProps> = ({
       });
   
       const responseText = await response.text();
-      console.log('Response from ticket creation:', responseText);  // 응답 로깅
   
       if (!response.ok) {
         let errorMessage = '이용권 생성에 실패했습니다.';
@@ -89,7 +88,6 @@ export const AddTicketModal: React.FC<AddTicketModalProps> = ({
       let ticketData;
       try {
         ticketData = JSON.parse(responseText);
-        console.log('Created ticket data:', ticketData);  // 파싱된 데이터 로깅
       } catch (e) {
         console.error('Failed to parse ticket response:', e);
         throw new Error('서버 응답을 처리하는데 실패했습니다.');
@@ -99,13 +97,6 @@ export const AddTicketModal: React.FC<AddTicketModalProps> = ({
       onSuccess();
       handleClose();
     } catch (error) {
-      console.error('Error creating ticket:', error);
-      Alert.alert(
-        '오류',
-        error instanceof Error ? 
-          error.message : 
-          '이용권 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      );
     } finally {
       setIsLoading(false);
     }

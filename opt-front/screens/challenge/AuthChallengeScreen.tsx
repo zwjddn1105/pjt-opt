@@ -24,7 +24,6 @@ const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
   } catch (error) {
-    console.error("Error retrieving refresh token:", error);
     return null;
   }
 };

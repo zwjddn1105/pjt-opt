@@ -94,8 +94,6 @@ const DMScreen = () => {
         addRoom(chatRoom);
       });
     } catch (error) {
-      console.error("채팅방 목록 로드 오류:", error);
-      Alert.alert("오류", "채팅방 목록을 불러오는데 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -108,12 +106,10 @@ const DMScreen = () => {
 
         roomsArray.forEach((room) => {
           ChatService.subscribeToRoom(room.id, (message) => {
-            console.log(`Received message in room ${room.id}:`, message);
           });
         });
       }
     } catch (error) {
-      console.error("WebSocket setup error:", error);
     }
   }, [roomsArray]);
 
@@ -139,7 +135,6 @@ const DMScreen = () => {
       }
 
       ChatService.subscribeToRoom(chatRoomData.id, (message) => {
-        console.log("New message received:", message);
       });
 
       setShowUserList(false);
@@ -150,7 +145,6 @@ const DMScreen = () => {
         otherUserType: chatRoomData.userType,
       });
     } catch (error) {
-      console.error("채팅방 생성 오류:", error);
       if (error instanceof Error) {
         Alert.alert("오류", `채팅방 생성에 실패했습니다: ${error.message}`);
       } else {
@@ -181,7 +175,6 @@ const DMScreen = () => {
 
           roomsArray.forEach((room) => {
             ChatService.subscribeToRoom(room.id, (message) => {
-              console.log(`Received message in room ${room.id}:`, message);
             });
           });
         }

@@ -96,7 +96,6 @@ const OnboardingInterestsScreen: React.FC = () => {
         Alert.alert('온보딩 실패', result.message || '다시 시도해주세요.');
       }
     } catch (error) {
-      console.error('온보딩 중 오류:', error);
       Alert.alert('오류', '네트워크 연결을 확인해주세요.');
     }
   };

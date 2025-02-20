@@ -64,7 +64,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         scrollToBottom();
       });
     } catch (error) {
-      console.error('WebSocket connection failed:', error);
       setError('채팅 서버 연결에 실패했습니다.');
       setIsConnected(false);
     }
@@ -152,16 +151,6 @@ const renderMessage = ({ item }: { item: Message }) => {
     item.content.includes('세션') && 
     item.content.includes('완료를 요청했습니다') &&
     item.content.match(/\|\d+\|/);
-  
-  // 디버그 로그 추가
-  console.log('Message Debug:', {
-      content: item.content,
-      isSessionConfirmMessage,
-      currentUserId,
-      senderId: item.senderId,
-      isOwnMessage,
-      otherUserType
-  });
 
   const sessionNumberMatch = item.content.match(/(\d+)회차/);
   const sessionNumber = sessionNumberMatch ? sessionNumberMatch[1] : null;
@@ -218,11 +207,6 @@ const renderMessage = ({ item }: { item: Message }) => {
               DeviceEventEmitter.emit('refreshTickets');
               
             } catch (error) {
-              console.error('Error:', error);
-              Alert.alert(
-                '오류',
-                error instanceof Error ? error.message : '처리 중 오류가 발생했습니다.'
-              );
             }
           },
         },

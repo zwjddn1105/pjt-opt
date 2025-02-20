@@ -158,12 +158,6 @@ export const CalendarScreen = () => {
       const data = await response.json();
       setMonthlyRecords(data);
     } catch (error) {
-      console.error('Failed to load monthly records:', error);
-      Alert.alert(
-        "오류",
-        "월간 기록을 불러오는데 실패했습니다.",
-        [{ text: "확인" }]
-      );
     }
   };
 
@@ -173,12 +167,6 @@ export const CalendarScreen = () => {
       const records = await fetchExerciseRecords(date);
       setExerciseRecords(records);
     } catch (error) {
-      console.error("Failed to load exercise records:", error);
-      Alert.alert(
-        "오류",
-        "운동 기록을 불러오는데 실패했습니다.",
-        [{ text: "확인" }]
-      );
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +179,6 @@ export const CalendarScreen = () => {
         setFoodRecords(JSON.parse(records));
       }
     } catch (error) {
-      console.error("Failed to load food records:", error);
     }
   };
 
@@ -218,12 +205,6 @@ export const CalendarScreen = () => {
       const report = await fetchAIReport(year, month, weekNumber);
       setAiReportContent(report);
     } catch (error) {
-      console.error('Failed to fetch AI report:', error);
-      Alert.alert(
-        "오류",
-        "AI 리포트를 불러오는데 실패했습니다.",
-        [{ text: "확인" }]
-      );
     } finally {
       setIsAiReportLoading(false);
     }
@@ -252,7 +233,6 @@ export const CalendarScreen = () => {
             const monthDate = `${year}-${month}-01`;
             await loadMonthlyRecords(monthDate);
           } catch (error) {
-            console.error("Failed to delete exercise record:", error);
             Alert.alert("오류", "삭제 중 문제가 발생했습니다.");
           }
         },
@@ -302,7 +282,6 @@ export const CalendarScreen = () => {
       
       setModalVisible(false);
     } catch (error) {
-      console.error("Failed to update records after save:", error);
       Alert.alert("오류", "기록 업데이트 중 문제가 발생했습니다.");
     }
   };

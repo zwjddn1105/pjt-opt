@@ -58,7 +58,6 @@ const AllEndedChallengesScreen = () => {
       setPage((prev) => prev + 1);
       setHasMore(!response.data.last);
     } catch (error) {
-      console.error("종료된 챌린지 불러오기 실패:", error);
     }
   };
 

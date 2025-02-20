@@ -48,8 +48,6 @@ export const MealRecords = ({
       if (error.message && error.message.includes('404')) {
         return null;
       }
-      // 404가 아닌 다른 에러의 경우만 콘솔에 출력
-      console.error('Failed to load meal record:', error);
       return null;
     }
   };
@@ -67,7 +65,6 @@ export const MealRecords = ({
         저녁: dinnerData
       });
     } catch (error) {
-      console.error('Failed to load meal records:', error);
     } finally {
       setLoading(false);
     }
@@ -156,7 +153,6 @@ export const MealRecords = ({
         }
       }
     } catch (error) {
-      console.error('Error updating image:', error);
       Alert.alert('오류', '이미지 업데이트 중 문제가 발생했습니다.');
     }
   };

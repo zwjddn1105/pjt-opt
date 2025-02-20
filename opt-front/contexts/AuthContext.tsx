@@ -40,7 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setUserType(storedUserType);
         }
       } catch (error) {
-        console.error('Failed to load auth info:', error);
       }
     };
 
@@ -60,7 +59,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserId(id);
       setUserType(type);
     } catch (error) {
-      console.error('Failed to save auth info:', error);
       throw error;
     }
   };
@@ -71,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserId(null);
       setUserType(null);
     } catch (error) {
-      console.error('Failed to remove auth info:', error);
       throw error;
     }
   };

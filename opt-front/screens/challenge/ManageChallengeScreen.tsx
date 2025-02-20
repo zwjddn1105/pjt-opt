@@ -42,7 +42,6 @@ const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
   } catch (error) {
-    console.error("Error retrieving refresh token:", error);
     return null;
   }
 };
@@ -73,7 +72,6 @@ const ManageChallengesScreen = () => {
         );
         setChallenges(response.data);
       } catch (error) {
-        console.error("챌린지 불러오기 실패:", error);
       }
     };
 
@@ -113,7 +111,6 @@ const ManageChallengesScreen = () => {
         setModalVisible(false);
         Alert.alert("삭제 완료", "챌린지가 성공적으로 삭제되었습니다.");
       } catch (error) {
-        console.error("챌린지 삭제 실패:", error);
         Alert.alert("삭제 실패", "챌린지 삭제 중 오류가 발생했습니다.");
       }
     }

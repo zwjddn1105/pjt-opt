@@ -91,12 +91,10 @@ const FoodScreen = ({ route, navigation }: Props) => {
           type: 'image/jpeg',  // 명시적으로 타입 지정
           name: `meal_${Date.now()}.jpg`  // 명시적으로 이름 지정
         };
-        
-        console.log('Selected image info:', imageInfo);  // 디버깅용 로그
+
         setSelectedImage(imageInfo);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Alert.alert('오류', '사진을 선택하는 중 오류가 발생했습니다.');
     }
   };
@@ -123,8 +121,6 @@ const FoodScreen = ({ route, navigation }: Props) => {
         name: selectedImage.name || `meal_${Date.now()}.jpg`
       };
   
-      console.log('Saving with data:', { mealData, imageDetails });
-  
       if (existingRecord) {
         await updateMealRecord(
           {
@@ -139,7 +135,6 @@ const FoodScreen = ({ route, navigation }: Props) => {
   
       navigation.goBack();
     } catch (error: any) {
-      console.error('Save error details:', error);
       Alert.alert('오류', error.message || '저장 중 문제가 발생했습니다.');
     } finally {
       setLoading(false);

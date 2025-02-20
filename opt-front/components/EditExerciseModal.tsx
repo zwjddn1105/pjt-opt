@@ -95,7 +95,6 @@ const EditExerciseModal = ({ visible, onClose, onSave, record }: EditExerciseMod
         setSelectedMedias([...selectedMedias, ...newMedias]);
       }
     } catch (error) {
-      console.error('Error selecting media:', error);
       Alert.alert('오류', '미디어 선택 중 문제가 발생했습니다.');
     }
   };
@@ -134,19 +133,12 @@ const EditExerciseModal = ({ visible, onClose, onSave, record }: EditExerciseMod
           name: media.fileName || `image${index}.jpg`
         } as any);
       });
-
-      console.log('Sending FormData:');
-      for (let [key, value] of (formData as any).entries()) {
-        console.log(`${key}: ${value}`);
-      }
   
       await updateExerciseRecord(record.id, formData);
       onSave();
       onClose();
       Alert.alert('성공', '운동 기록이 수정되었습니다.');
     } catch (error) {
-      console.error('Failed to update exercise record:', error);
-      Alert.alert('오류', '운동 기록 수정에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
     }

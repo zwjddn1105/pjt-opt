@@ -89,7 +89,6 @@ export const ManageScreen: React.FC<Props> = ({ navigation, route }) => {
         const role = await AsyncStorage.getItem('role');
         setUserRole(role || '');
       } catch (error) {
-        console.error('Failed to get user role:', error);
       }
     };
     
@@ -227,11 +226,6 @@ const loadTickets = async () => {
 
     setCompletedTickets(completedTicketsWithSessions);
   } catch (error) {
-    console.error('Failed to load tickets:', error);
-    Alert.alert(
-      '오류',
-      error instanceof Error ? error.message : '티켓 로드 중 오류가 발생했습니다.'
-    );
   }
 };
 
@@ -248,7 +242,6 @@ const loadTickets = async () => {
         setSchedules(schedulesWithDates);
       }
     } catch (error) {
-      console.error('Failed to load schedules:', error);
     }
   };
 
@@ -353,7 +346,6 @@ const loadTickets = async () => {
       setSchedules(updatedSchedules);
       setIsScheduleModalVisible(false);
     } catch (error) {
-      console.error('Failed to save schedule:', error);
     }
   };
 
@@ -390,7 +382,6 @@ const loadTickets = async () => {
       await AsyncStorage.setItem('schedules', JSON.stringify(updatedSchedules));
       setSchedules(updatedSchedules);
     } catch (error) {
-      console.error('Failed to delete schedule:', error);
     }
   };
 
@@ -465,7 +456,6 @@ const loadTickets = async () => {
               loadTickets();
   
             } catch (error) {
-              console.error('Error:', error);
               Alert.alert(
                 '오류',
                 error instanceof Error ? error.message : '처리 중 오류가 발생했습니다.'
@@ -562,14 +552,6 @@ const loadTickets = async () => {
                     const sessionNumber = index + 1;
                     const session = ticket.sessions.find(s => s.number === sessionNumber);
 
-                    // 디버그 로그 추가
-                    console.log('Session Debug:', {
-                      sessionNumber,
-                      ticketSessions: ticket.sessions,
-                      foundSession: session,
-                      isComplete: session?.trainerSigned && session?.memberSigned
-                    });
-
                     const isComplete = session?.trainerSigned && session?.memberSigned;
 
                     return (
@@ -581,12 +563,6 @@ const loadTickets = async () => {
                         ]}
                         onPress={() => {
                           if (!session) {
-                            console.error('Session data:', {
-                              number: sessionNumber,
-                              allSessions: ticket.sessions,
-                              ticket: ticket
-                            });
-                            Alert.alert('오류', '세션 정보를 찾을 수 없습니다.');
                             return;
                           }
                           handleSessionClick(session, ticket);

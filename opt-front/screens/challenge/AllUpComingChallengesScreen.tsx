@@ -58,7 +58,6 @@ const AllUpComingChallengesScreen = () => {
       setPage((prev) => prev + 1);
       setHasMore(!response.data.last);
     } catch (error) {
-      console.error("개최예정정인 챌린지 불러오기 실패:", error);
     }
   };
 

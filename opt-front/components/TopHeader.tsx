@@ -28,7 +28,6 @@ export const TopHeader = () => {
   const handleProfilePress = async () => {
     try {
       const id = await AsyncStorage.getItem("memberId");
-      console.log(id);
       if (id) {
         const numericId = parseInt(id, 10); // 문자열을 숫자로 변환
         if (isNaN(numericId)) {
@@ -38,7 +37,6 @@ export const TopHeader = () => {
         if (response.status === 200) {
           navigation.navigate("ProfileScreen", { profileData: response.data });
         } else {
-          console.error("프로필 데이터를 가져오는데 실패했습니다.");
         }
       } else {
         navigation.navigate("LoginNeedScreen", {
@@ -46,7 +44,6 @@ export const TopHeader = () => {
         });
       }
     } catch (error) {
-      console.error("프로필 요청 중 오류 발생:", error);
       navigation.navigate("LoginNeedScreen", { returnScreen: "ProfileScreen" });
     }
   };
@@ -59,7 +56,6 @@ export const TopHeader = () => {
         routes: [{ name: "Main", params: { screen: "홈" } }],
       });
     } catch (error) {
-      console.error("로그아웃 중 오류 발생:", error);
     }
   };
 

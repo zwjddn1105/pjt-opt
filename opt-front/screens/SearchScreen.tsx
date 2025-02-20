@@ -271,7 +271,6 @@ const SearchScreen = () => {
         });
       }
     } catch (err) {
-      console.error('Error getting location:', err);
     }
   };
 
@@ -295,7 +294,6 @@ const SearchScreen = () => {
       setCurrentPage(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : '트레이너 목록을 불러오는데 실패했습니다.');
-      console.error('Failed to load trainers:', err);
     } finally {
       setLoading(false);
     }
@@ -333,7 +331,6 @@ const SearchScreen = () => {
       setCurrentPage(prev => prev + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : '추가 트레이너 목록을 불러오는데 실패했습니다.');
-      console.error('Failed to load more trainers:', err);
     } finally {
       setLoading(false);
     }
@@ -376,7 +373,6 @@ const SearchScreen = () => {
       setCurrentPage(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : '트레이너 목록을 불러오는데 실패했습니다.');
-      console.error('Failed to search trainers:', err);
     } finally {
       setLoading(false);
     }
@@ -526,13 +522,6 @@ const SearchScreen = () => {
                 {trainers.map((trainer, index) => {
                   // trainerId가 없거나 중복될 수 있으므로 index를 조합하여 유니크한 key 생성
                   const uniqueKey = `trainer-${trainer.trainerId}-${index}`;
-                  
-                  console.log("Rendering trainer:", {
-                    uniqueKey,
-                    trainerId: trainer.trainerId,
-                    index,
-                    trainerNickname: trainer.trainerNickname
-                  });
                   
                   return (
                     <TrainerCard 

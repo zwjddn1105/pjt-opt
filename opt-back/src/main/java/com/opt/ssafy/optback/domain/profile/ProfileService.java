@@ -53,7 +53,7 @@ public class ProfileService {
         // 트레이너인지 확인
         if (targetMember.getRole() == Role.ROLE_TRAINER) {
             Integer gymId = targetMember.getTrainerDetail() != null ? targetMember.getTrainerDetail().getGym().getId() : null;
-            return TrainerProfileResponse.from(targetMember, mainBadgeResponse, gymId); // `BadgeResponse` 그대로 전달
+            return TrainerProfileResponse.from(targetMember, mainBadgeResponse, gymId, isFollow); // `BadgeResponse` 그대로 전달
         }
 
         // 일반 사용자 응답 생성

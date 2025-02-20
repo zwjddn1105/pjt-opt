@@ -1,15 +1,6 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  Image,
-} from "react-native";
-import axios from "axios";
-import { EXPO_PUBLIC_BASE_URL } from "@env";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React from "react";
+import { View, Text, Modal, StyleSheet, FlatList, Image } from "react-native";
+import { Rating } from "react-native-ratings";
 
 interface Review {
   id: number;
@@ -17,58 +8,21 @@ interface Review {
   comment: string;
   createdAt: string;
   rate: number;
+  imageUrls: string[];
 }
 
-interface ReviewComponentProps {
-  trainerId: number;
+interface ReviewModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  reviews: Review[]; // 리뷰 데이터를 props로 받음
 }
 
-const ReviewComponent: React.FC<ReviewComponentProps> = ({ trainerId }) => {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [page, setPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-
-  const fetchReviews = async (pageNumber: number) => {
-    if (!hasMore || isLoading) return;
-
-    setIsLoading(true);
-    try {
-      const refreshToken = await AsyncStorage.getItem("refreshToken");
-      const response = await axios.get(
-        `${EXPO_PUBLIC_BASE_URL}/trainer-reviews/${trainerId}`,
-        {
-          params: {
-            page: pageNumber,
-            size: 10,
-            sort: "id,desc", // 최신순
-          },
-          headers: {
-            Authorization: `Bearer ${refreshToken}`,
-          },
-        }
-      );
-
-      const newReviews = response.data.content;
-      setReviews((prevReviews) => [...prevReviews, ...newReviews]);
-      setHasMore(!response.data.last); // 마지막 페이지 여부 확인
-    } catch (error) {
-      console.error("리뷰 데이터를 가져오는 중 오류 발생:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReviews(page);
-  }, [page]);
-
-  const loadMoreReviews = () => {
-    if (!isLoading && hasMore) {
-      setPage((prevPage) => prevPage + 1);
-    }
-  };
-
+const ReviewComponent: React.FC<ReviewModalProps> = ({
+  isVisible,
+  onClose,
+  reviews,
+}) => {
+  // 리뷰 아이템 렌더링 함수
   const renderReviewItem = ({ item }: { item: Review }) => (
     <View style={styles.reviewItem}>
       <View style={styles.reviewHeader}>
@@ -82,32 +36,61 @@ const ReviewComponent: React.FC<ReviewComponentProps> = ({ trainerId }) => {
             {new Date(item.createdAt).toLocaleDateString()}
           </Text>
         </View>
-        <Text style={styles.reviewRating}>{item.rate}점</Text>
+        {/* 별점 표시 */}
+        <Rating
+          type="star"
+          ratingCount={5}
+          imageSize={20}
+          readonly // 수정 불가능하도록 설정
+          startingValue={item.rate} // 초기값 설정
+          fractions={1} // 소수점 한 자리까지 표시
+          style={styles.rating}
+        />
+        <Text style={styles.reviewRating}>{item.rate.toFixed(1)}</Text>
       </View>
       <Text style={styles.reviewContent}>{item.comment}</Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={reviews}
-        renderItem={renderReviewItem}
-        keyExtractor={(item) => item.id.toString()}
-        onEndReached={loadMoreReviews}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          isLoading ? <ActivityIndicator size="small" color="#0000ff" /> : null
-        }
-      />
-    </View>
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.centeredView}>
+        <View style={styles.modalView}>
+          <Text style={styles.modalTitle}>리뷰 목록</Text>
+          <FlatList
+            data={reviews}
+            renderItem={renderReviewItem}
+            keyExtractor={(item) => item.id.toString()}
+          />
+        </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalView: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    width: "80%",
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
   },
   reviewItem: {
     marginBottom: 16,
@@ -151,6 +134,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: "#333",
+  },
+  rating: {
+    marginLeft: "auto", // Rating 컴포넌트 오른쪽 정렬
   },
 });
 

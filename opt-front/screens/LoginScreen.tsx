@@ -37,12 +37,12 @@ const LoginScreen: React.FC = () => {
         const { refreshToken, role, email, id, imagePath, gymId } =
           await response.data;
 
-        await AsyncStorage.setItem("gymId", gymId);
         await AsyncStorage.setItem("refreshToken", refreshToken);
         await AsyncStorage.setItem("role", role);
         await AsyncStorage.setItem("email", email);
         await AsyncStorage.setItem("imagePath", imagePath);
         await AsyncStorage.setItem("memberId", String(id));
+        await AsyncStorage.setItem("gymId", gymId);
 
         console.log(response.data);
 

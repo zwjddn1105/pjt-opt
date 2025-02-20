@@ -14,11 +14,11 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../navigation/StackNavigator";
-import { useChatStore } from '../../stores/chatStore';
-import { User, ApiChatRoom, ChatRoom } from '../../types/chat';
-import ChatService from '../../services/ChatService';
-import { chatApi } from '../../api/chatApi';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useChatStore } from "../../stores/chatStore";
+import { User, ApiChatRoom, ChatRoom } from "../../types/chat";
+import ChatService from "../../services/ChatService";
+import { chatApi } from "../../api/chatApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -28,7 +28,7 @@ const DMScreen = () => {
   const [showUserList, setShowUserList] = useState(false);
   const { rooms, roomIds, addRoom, clearRooms } = useChatStore();
   const [isLoading, setIsLoading] = useState(true);
-  const roomsArray = roomIds.map(id => rooms[id]);
+  const roomsArray = roomIds.map((id) => rooms[id]);
 
   const users: User[] = [
     { id: 1, email: "a" },
@@ -46,25 +46,25 @@ const DMScreen = () => {
   const formatMessageTime = (dateString: string): string => {
     const messageDate = new Date(dateString);
     const now = new Date();
-    
+
     // 날짜가 같은 경우 시간만 표시
     if (messageDate.toDateString() === now.toDateString()) {
-      return messageDate.toLocaleTimeString('ko-KR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return messageDate.toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
     }
-    
+
     // 1주일 이내인 경우 요일 표시
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     if (messageDate > weekAgo) {
-      return messageDate.toLocaleDateString('ko-KR', { weekday: 'short' });
+      return messageDate.toLocaleDateString("ko-KR", { weekday: "short" });
     }
-    
+
     // 그 외의 경우 날짜 표시
-    return messageDate.toLocaleDateString('ko-KR', {
-      month: 'short',
-      day: 'numeric'
+    return messageDate.toLocaleDateString("ko-KR", {
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -72,30 +72,30 @@ const DMScreen = () => {
     try {
       const apiRooms = await chatApi.getChatRooms();
       clearRooms();
-      
+
       apiRooms.forEach((apiRoom: ApiChatRoom) => {
-        let userType: 'USER' | 'TRAINER' | 'ADMIN' = 'USER';
-        
+        let userType: "USER" | "TRAINER" | "ADMIN" = "USER";
+
         if (apiRoom.participants.includes(0)) {
-          userType = 'ADMIN';
+          userType = "ADMIN";
         }
-        
+
         const chatRoom: ChatRoom = {
           id: apiRoom.id,
-          name: apiRoom.otherMemberNickname || apiRoom.roomName || '알 수 없음',
+          name: apiRoom.otherMemberNickname || apiRoom.roomName || "알 수 없음",
           lastMessage: apiRoom.lastMessage || "새로운 채팅방이 생성되었습니다.",
-          time: apiRoom.lastMessageTime 
+          time: apiRoom.lastMessageTime
             ? formatMessageTime(apiRoom.lastMessageTime)
             : formatMessageTime(new Date().toISOString()),
           userType: userType,
-          unreadCount: 0
+          unreadCount: 0,
         };
-  
+
         addRoom(chatRoom);
       });
     } catch (error) {
-      console.error('채팅방 목록 로드 오류:', error);
-      Alert.alert('오류', '채팅방 목록을 불러오는데 실패했습니다.');
+      console.error("채팅방 목록 로드 오류:", error);
+      Alert.alert("오류", "채팅방 목록을 불러오는데 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -105,15 +105,15 @@ const DMScreen = () => {
     try {
       if (!ChatService.isConnected()) {
         await ChatService.connect();
-        
-        roomsArray.forEach(room => {
+
+        roomsArray.forEach((room) => {
           ChatService.subscribeToRoom(room.id, (message) => {
             console.log(`Received message in room ${room.id}:`, message);
           });
         });
       }
     } catch (error) {
-      console.error('WebSocket setup error:', error);
+      console.error("WebSocket setup error:", error);
     }
   }, [roomsArray]);
 
@@ -121,41 +121,40 @@ const DMScreen = () => {
     try {
       const apiRoom = await chatApi.createChatRoom(user.id);
       const currentTime = new Date().toISOString();
-      
+
       const chatRoomData: ChatRoom = {
         id: apiRoom.id,
         name: user.email,
         lastMessage: "새로운 채팅방이 생성되었습니다.",
         time: formatMessageTime(currentTime),
-        userType: 'USER',
-        unreadCount: 0
+        userType: "USER",
+        unreadCount: 0,
       };
-  
+
       addRoom(chatRoomData);
       await loadChatRooms();
-  
+
       if (!ChatService.isConnected()) {
         await ChatService.connect();
       }
-      
+
       ChatService.subscribeToRoom(chatRoomData.id, (message) => {
-        console.log('New message received:', message);
+        console.log("New message received:", message);
       });
-  
+
       setShowUserList(false);
-      
-      navigation.navigate('Chat', {
+
+      navigation.navigate("Chat", {
         roomId: chatRoomData.id,
         otherUserName: chatRoomData.name,
-        otherUserType: chatRoomData.userType
+        otherUserType: chatRoomData.userType,
       });
-  
     } catch (error) {
-      console.error('채팅방 생성 오류:', error);
+      console.error("채팅방 생성 오류:", error);
       if (error instanceof Error) {
-        Alert.alert('오류', `채팅방 생성에 실패했습니다: ${error.message}`);
+        Alert.alert("오류", `채팅방 생성에 실패했습니다: ${error.message}`);
       } else {
-        Alert.alert('오류', '채팅방 생성에 실패했습니다.');
+        Alert.alert("오류", "채팅방 생성에 실패했습니다.");
       }
     }
   };
@@ -179,8 +178,8 @@ const DMScreen = () => {
       if (!wsCleanup && roomsArray.length > 0) {
         if (!ChatService.isConnected()) {
           await ChatService.connect();
-          
-          roomsArray.forEach(room => {
+
+          roomsArray.forEach((room) => {
             ChatService.subscribeToRoom(room.id, (message) => {
               console.log(`Received message in room ${room.id}:`, message);
             });
@@ -194,7 +193,7 @@ const DMScreen = () => {
     return () => {
       isMounted = false;
       wsCleanup = true;
-      roomsArray.forEach(room => {
+      roomsArray.forEach((room) => {
         ChatService.unsubscribeFromRoom(room.id);
       });
     };
@@ -218,21 +217,26 @@ const DMScreen = () => {
 
   const renderChatRoom = ({ item }: { item: ChatRoom }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate('Chat', {
-        roomId: item.id,
-        otherUserName: item.name,
-        otherUserType: item.userType
-      })}
+      onPress={() =>
+        navigation.navigate("Chat", {
+          roomId: item.id,
+          otherUserName: item.name,
+          otherUserType: item.userType,
+        })
+      }
     >
-      <View style={[
-        styles.chatRoomContainer,
-        item.userType === 'TRAINER' && styles.trainerChatRoom
-      ]}>
+      <View
+        style={[
+          styles.chatRoomContainer,
+          item.userType === "TRAINER" && styles.trainerChatRoom,
+        ]}
+      >
         <Image
-          source={{ 
-            uri: item.userType === 'TRAINER' 
-              ? "trainer-profile-image" 
-              : "user-profile-image" 
+          source={{
+            uri:
+              item.userType === "TRAINER"
+                ? "trainer-profile-image"
+                : "user-profile-image",
           }}
           style={styles.profileImage}
         />
@@ -279,7 +283,7 @@ const DMScreen = () => {
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {showUserList ? '팔로우 목록' : '채팅'}
+            {showUserList ? "팔로우 목록" : "채팅"}
           </Text>
           <View style={styles.addButtonContainer}>
             {!showUserList && (
@@ -361,11 +365,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "bold",
-    textAlign: 'center',
+    textAlign: "center",
   },
   addButtonContainer: {
     width: 32,
-    alignItems: 'center',
+    alignItems: "center",
   },
   addButton: {
     padding: 4,
@@ -429,31 +433,31 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   trainerChatRoom: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "#f8f8f8",
   },
   userItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   userEmail: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 12,
   },
   userType: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginLeft: 12,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
 });

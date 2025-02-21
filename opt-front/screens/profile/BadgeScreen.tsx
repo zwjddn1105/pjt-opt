@@ -10,7 +10,6 @@ import {
   StatusBar,
   Image,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -59,8 +58,6 @@ const BadgeScreen = () => {
       setAllBadges(allBadgesResponse.data);
       setMyBadges(myBadgesResponse.data);
     } catch (error) {
-      console.error("Error fetching badges:", error);
-      Alert.alert("Error", "Failed to fetch badges. Please try again.");
     } finally {
       setLoading(false);
     }

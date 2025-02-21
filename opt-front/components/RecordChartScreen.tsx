@@ -32,7 +32,6 @@ const RecordChartScreen = () => {
     try {
       return await AsyncStorage.getItem("refreshToken");
     } catch (error) {
-      console.error("Error retrieving refresh token:", error);
       return null;
     }
   };
@@ -57,7 +56,6 @@ const RecordChartScreen = () => {
         setChartData(formattedData);
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching chart data:", error);
         setLoading(false);
       }
     };

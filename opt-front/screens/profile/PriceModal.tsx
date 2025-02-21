@@ -61,8 +61,6 @@ const PriceModal: React.FC<PriceModalProps> = ({
       );
       setPrices(response.data);
     } catch (error) {
-      console.error("Failed to fetch prices:", error);
-      Alert.alert("Error", "Failed to load price information.");
     }
   };
 
@@ -83,7 +81,6 @@ const PriceModal: React.FC<PriceModalProps> = ({
       fetchPrices();
       setShowAddForm(false);
     } catch (error) {
-      console.error("Failed to create price:", error);
       Alert.alert("Error", "Failed to create price.");
     }
   };
@@ -101,7 +98,6 @@ const PriceModal: React.FC<PriceModalProps> = ({
       fetchPrices();
       setEditPrice(null);
     } catch (error) {
-      console.error("Failed to update price:", error);
       Alert.alert("Error", "Failed to update price.");
     }
   };
@@ -117,7 +113,6 @@ const PriceModal: React.FC<PriceModalProps> = ({
       setPrices(prices.filter((price) => price.id !== id));
       fetchPrices();
     } catch (error) {
-      console.error("Failed to delete price:", error);
       Alert.alert("Error", "Failed to delete price.");
     }
   };

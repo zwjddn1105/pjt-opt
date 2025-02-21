@@ -43,29 +43,23 @@ const LoginNeedScreen: React.FC = () => {
 
   const loginWithEmail = async () => {
     try {
-      console.log(EXPO_PUBLIC_BASE_URL);
       const response = await axios.post(
         `${EXPO_PUBLIC_BASE_URL}/auth/sign-in`,
         {
           email,
         }
       );
-      console.log(response.data);
       const refreshToken = response.data.refreshToken;
       const role = response.data.role;
       const id = response.data.id;
       const response2 = await axios.get(
-        `${EXPO_PUBLIC_BASE_URL}/profile/${id}`,
+        `${EXPO_PUBLIC_BASE_URL}/profile/${id}`
       );
       const gymId = response2.data.gymId;
 
       await AsyncStorage.setItem("refreshToken", refreshToken);
       await AsyncStorage.setItem("role", role);
       await AsyncStorage.setItem("memberId", String(id));
-      await AsyncStorage.setItem("gymId", gymId.toString());
-      console.log(refreshToken);
-      console.log(role);
-      console.log(id);
 
       await login(
         refreshToken,
@@ -87,13 +81,11 @@ const LoginNeedScreen: React.FC = () => {
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error("Axios error:", error.response?.data);
         Alert.alert(
           "로그인 실패",
           error.response?.data?.message || "이메일을 확인해주세요."
         );
       } else {
-        console.error("Unexpected error:", error);
         Alert.alert("로그인 실패", "알 수 없는 오류가 발생했습니다.");
       }
     }
@@ -124,7 +116,7 @@ const LoginNeedScreen: React.FC = () => {
         <View style={styles.optContainer}>
           <Text style={styles.optText}>OPT</Text>
         </View>
-
+        {/* 
         <TextInput
           style={styles.input}
           placeholder="이메일을 입력하세요"
@@ -135,7 +127,7 @@ const LoginNeedScreen: React.FC = () => {
         />
         <TouchableOpacity style={styles.loginButton} onPress={loginWithEmail}>
           <Text style={styles.loginButtonText}>로그인</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={styles.button}
@@ -189,18 +181,18 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#FEE500",
-    paddingVertical: 20,
+    paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 12,
     flexDirection: "row",
-    alignItems: "center",
+    // alignItems: "center",
     width: "80%",
     justifyContent: "center",
   },
   buttonText: {
-    fontSize: 22,
+    fontSize: 20,
     color: "#000",
-    fontWeight: "800",
+    fontWeight: "700",
   },
   icon: {
     marginRight: 24,

@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  ImageBackground,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -54,7 +55,7 @@ type Challenge = {
   maxParticipants: number;
   frequency: number;
   progress: number | null;
-  imagePath: string | null;
+  imagePath: string;
   exerciseType: string;
   exerciseCount: number | null;
   exerciseDuration: number | null;
@@ -71,7 +72,6 @@ const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
   } catch (error) {
-    console.error("Error retrieving refresh token:", error);
     return null;
   }
 };
@@ -105,7 +105,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       setIsParticipating(response.data.currentParticipants > 0);
       setLoading(false);
     } catch (error) {
-      console.error("챌린지 상세 정보 불러오기 실패:", error);
       setError("챌린지 정보를 불러오는데 실패했습니다.");
       setLoading(false);
     }
@@ -149,9 +148,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
             setContributions(contributionsResponse.data);
           }
         }
-      } catch (error) {
-        console.error("챌린지 기록 불러오기 실패:", error);
-      }
+      } catch (error) {}
     };
 
     fetchChallengeRecords();
@@ -186,7 +183,6 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
         fetchChallengeDetails();
       }
     } catch (error) {
-      console.error("API 호출 중 오류 발생:", error);
       Alert.alert("오류", "작업 중 문제가 발생했습니다. 다시 시도해주세요.");
     }
   };
@@ -221,11 +217,8 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
       if (response.status === 200) {
         navigation.navigate("ProfileScreen", { profileData: response.data });
       } else {
-        console.error("프로필 데이터를 가져오는데 실패했습니다.");
       }
-    } catch (error) {
-      console.error("프로필 요청 중 오류 발생:", error);
-    }
+    } catch (error) {}
   };
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -254,11 +247,7 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
             </TouchableOpacity>
             <View style={styles.hostInfoTextContainer}>
               <Text style={styles.hostNameText}>
-                개최자: {challenge.hostRealName}
-              </Text>
-
-              <Text style={styles.hostSubtitleText}>
-                {challenge.hostNickname}
+                개최자: {challenge.hostNickname}
               </Text>
             </View>
             {challenge.status === "OPEN" && (
@@ -275,36 +264,45 @@ const DetailChallengeScreen: React.FC<DetailChallengeProps> = ({ route }) => {
           {/* 챌린지 카드 */}
           <View style={styles.rowContainer}>
             <View style={styles.challengeCard}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{challenge.title}</Text>
-                <Text style={styles.cardSubtitle}>{challenge.type}</Text>
-              </View>
-              <View style={styles.cardContent}>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>기간</Text>
-                  <Text
-                    style={styles.infoValue}
-                  >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+              <ImageBackground
+                source={{ uri: challenge.imagePath }}
+                style={styles.cardBackground}
+                imageStyle={{ borderRadius: 12 }}
+              >
+                <View style={styles.cardOverlay}>
+                  <Text style={styles.cardTitle}>{challenge.title}</Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>상태</Text>
-                  <Text style={styles.infoValue}>{challenge.status}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>보상</Text>
-                  <Text style={styles.infoValue}>{challenge.reward}</Text>
-                </View>
-              </View>
+              </ImageBackground>
             </View>
 
             {/* 챌린지 설명 */}
             <View style={styles.challengeDescription}>
               <Text style={styles.descriptionTitle}>상세정보</Text>
-              <Text style={styles.descriptionContent}>
-                {challenge.description}
-              </Text>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>유형</Text>
+                <Text style={styles.infoValue}>{challenge.type}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>보상</Text>
+                <Text style={styles.infoValue}>{challenge.reward}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>기간</Text>
+                <Text
+                  style={styles.infoValue}
+                >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>빈도</Text>
+                <Text
+                  style={styles.infoValue}
+                >{`${challenge.frequency}회`}</Text>
+              </View>
             </View>
           </View>
+
+          <Text>{challenge.description}</Text>
+          <View style={{ marginBottom: 10 }}></View>
           {challenge.type === "TEAM" && contributions && (
             <View style={styles.rowContainer}>
               <Text style={styles.rankText}>챌린지 진행도</Text>
@@ -469,6 +467,7 @@ const styles = StyleSheet.create({
   },
   challengeCard: {
     flex: 1,
+    height: 220,
     backgroundColor: "#f9f9f9",
     borderRadius: 12,
     padding: 20,
@@ -478,14 +477,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     marginRight: 10,
+    overflow: "hidden",
   },
   cardHeader: {
     marginBottom: 10,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 12,
     fontWeight: "bold",
-    color: "#000",
+    color: "#FFFFFF",
   },
   cardSubtitle: {
     fontSize: 14,
@@ -602,6 +602,14 @@ const styles = StyleSheet.create({
   },
   goalNumber: {
     fontSize: 14,
+  },
+  cardBackground: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  cardOverlay: {
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: 10,
   },
 });
 

@@ -5,9 +5,6 @@ import LoginScreen from "../screens/LoginScreen";
 import DMScreen from "../screens/chat/DMScreen";
 import LoginNeedScreen from "../screens/LoginNeedScreen";
 import FoodScreen from "../screens/FoodScreen";
-import ManagerChatScreen from "../screens/chat/ManagerChatScreen";
-import TrainerChatScreen from "../screens/chat/TrainerChatScreen";
-import UserChatScreen from "../screens/chat/UserChatScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import OngoingChallengesScreen from "../screens/challenge/OngoingChallengesScreen";
 import AppliedChallengesScreen from "../screens/challenge/AppliedChallengesScreen";
@@ -25,12 +22,19 @@ import AllEndedChallengesScreen from "../screens/challenge/AllEndedChallengesScr
 import DetailChallengeScreen from "../screens/challenge/DetailChallengesScreen";
 import OtherProfileScreen from "screens/profile/OtherProfileScreen";
 import AuthChallengeScreen from "screens/challenge/AuthChallengeScreen";
+import { MealRecord } from '../api/mealRecords';
+import OnboardingInterestsScreen from "screens/OnboardingInterestsScreen";
+
 export type RootStackParamList = {
   Main: undefined;
   LoginScreen: undefined;
   DMScreen: undefined;
   LoginNeedScreen: undefined;
-  Food: { date: string };
+  Food: { 
+    date: string;
+    type: "아침" | "점심" | "저녁";
+    existingRecord?: MealRecord;
+  };
   ManagerChat: undefined;
   TrainerChat: undefined;
   UserChat: undefined;
@@ -55,6 +59,7 @@ export type RootStackParamList = {
   SettingScreen: undefined;
   OtherProfileScreen: { hostId: number };
   AuthChallengeScreen: { challengeId: number };
+  OnBoardingInterest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -67,9 +72,6 @@ export const StackNavigator = () => {
       <Stack.Screen name="DMScreen" component={DMScreen} />
       <Stack.Screen name="LoginNeedScreen" component={LoginNeedScreen} />
       <Stack.Screen name="Food" component={FoodScreen} />
-      <Stack.Screen name="ManagerChat" component={ManagerChatScreen} />
-      <Stack.Screen name="TrainerChat" component={TrainerChatScreen} />
-      <Stack.Screen name="UserChat" component={UserChatScreen} />
       <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
       <Stack.Screen name="OtherProfileScreen" component={OtherProfileScreen} />
       <Stack.Screen
@@ -105,6 +107,7 @@ export const StackNavigator = () => {
       <Stack.Screen name="Badge" component={BadgeScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="SettingScreen" component={SettingScreen} />
+      <Stack.Screen name="OnBoardingInterest" component={OnboardingInterestsScreen} />
     </Stack.Navigator>
   );
 };

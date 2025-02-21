@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  ImageBackground,
+  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -35,6 +37,7 @@ type Challenge = {
   progress: number;
   exerciseType: string;
   exerciseCount: number;
+  imagePath: string;
 };
 const BASE_URL = EXPO_PUBLIC_BASE_URL;
 
@@ -42,7 +45,6 @@ const getRefreshToken = async () => {
   try {
     return await AsyncStorage.getItem("refreshToken");
   } catch (error) {
-    console.error("Error retrieving refresh token:", error);
     return null;
   }
 };
@@ -72,9 +74,7 @@ const ManageChallengesScreen = () => {
           }
         );
         setChallenges(response.data);
-      } catch (error) {
-        console.error("챌린지 불러오기 실패:", error);
-      }
+      } catch (error) {}
     };
 
     fetchChallenges();
@@ -113,7 +113,6 @@ const ManageChallengesScreen = () => {
         setModalVisible(false);
         Alert.alert("삭제 완료", "챌린지가 성공적으로 삭제되었습니다.");
       } catch (error) {
-        console.error("챌린지 삭제 실패:", error);
         Alert.alert("삭제 실패", "챌린지 삭제 중 오류가 발생했습니다.");
       }
     }
@@ -125,26 +124,15 @@ const ManageChallengesScreen = () => {
       style={styles.challengeCard}
       onPress={() => openModal(challenge)}
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{challenge.title}</Text>
-        <Text style={styles.cardSubtitle}>{challenge.type}</Text>
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>기간</Text>
-          <Text
-            style={styles.infoValue}
-          >{`${challenge.startDate} ~ ${challenge.endDate}`}</Text>
+      <ImageBackground
+        source={{ uri: challenge.imagePath }}
+        style={styles.challengeCard}
+        imageStyle={{ borderRadius: 15 }}
+      >
+        <View style={styles.overlay}>
+          <Text style={styles.cardTitle}>{challenge.title}</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>상태</Text>
-          <Text style={styles.infoValue}>{challenge.status}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>설명</Text>
-          <Text style={styles.infoValue}>{challenge.description}</Text>
-        </View>
-      </View>
+      </ImageBackground>
     </TouchableOpacity>
   );
 
@@ -263,6 +251,8 @@ const ManageChallengesScreen = () => {
     </SafeAreaView>
   );
 };
+const { width } = Dimensions.get("window");
+const cardWidth = (width - 60) / 2;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -272,6 +262,12 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 10,
     flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)", // 반투명한 오버레이
+    justifyContent: "center",
+    alignItems: "center",
   },
   section: {
     marginTop: 10,
@@ -308,11 +304,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   challengeCard: {
-    width: "48%",
+    width: cardWidth,
     height: 220,
     backgroundColor: "#fff",
     borderRadius: 15,
-    padding: 16,
+    // padding: 16,
     borderWidth: 1,
     borderColor: "#eee",
     shadowColor: "#000",
@@ -323,14 +319,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginBottom: 14,
+    overflow: "hidden",
   },
+  // challengeCard: {
+  //   flex: 1,
+  //   height: 220,
+  //   backgroundColor: "#f9f9f9",
+  //   borderRadius: 12,
+  //   padding: 20,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3,
+  //   marginRight: 10,
+  //   overflow: "hidden",
+  // },
   cardHeader: {
     marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 4,
+    color: "#FFFFFF", // 흰색 텍스트
+    textAlign: "center",
+    padding: 10,
   },
   cardSubtitle: {
     fontSize: 14,

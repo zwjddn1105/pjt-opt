@@ -98,12 +98,19 @@ public class TrainerDetailService {
     private int compareByRecommendation(TrainerDetail t1, TrainerDetail t2, Double userLatitude, Double userLongitude,
                                         Integer memberId) {
         // 로그인한 경우 관심사 활용
-        if (memberId != null) {
-            int matchCount1 = countInterestMatches(memberId, t1);
-            int matchCount2 = countInterestMatches(memberId, t2);
-            if (matchCount1 != matchCount2) {
-                return Integer.compare(matchCount2, matchCount1);
-            }
+//        if (memberId != null) {
+//            int matchCount1 = countInterestMatches(memberId, t1);
+//            int matchCount2 = countInterestMatches(memberId, t2);
+//            if (matchCount1 != matchCount2) {
+//                return Integer.compare(matchCount2, matchCount1);
+//            }
+//        }
+
+        // 높은 점수가 먼저 오도록 정렬
+        if (memberId == null) {
+            double score1 = calculateTrainerScore(t1, memberId, userLatitude, userLongitude);
+            double score2 = calculateTrainerScore(t2, memberId, userLatitude, userLongitude);
+            return Double.compare(score2, score1);
         }
         return compareByDistance(t1, t2, userLatitude, userLongitude);
     }
@@ -136,6 +143,43 @@ public class TrainerDetailService {
                 .collect(Collectors.toSet());
 
         return (int) userInterests.stream().filter(trainerInterests::contains).count();
+    }
+
+    // 트레이너 추천 점수 계산
+    private double calculateTrainerScore(TrainerDetail trainer, Integer memberId, double userLatitude,
+                                         double userLongitude) {
+        double score = 0.0;
+
+        // 관심사 매칭 점수
+        int interestMatches = countInterestMatches(memberId, trainer);
+        score += (interestMatches * 2);
+
+        // 평점 + 리뷰 수 반영 (평균 평점 조정)
+        double averageRating = trainerReviewRepository.findAverageRatingByTrainerId(trainer.getTrainerId());
+        int reviewCount = trainerReviewRepository.countReviewsByTrainerId(trainer.getTrainerId());
+        double weightedRating =
+                ((averageRating * reviewCount) + (4.0 * 10)) / (reviewCount + 10); // Bayesian Average 방식
+        score += (weightedRating * 5);  // 평점 가중치 적용
+
+        // 거리 가중치 반영(가까울수록 높은 점수)
+        if (userLatitude != 0 && userLongitude != 0 && trainer.getGym() != null) {
+            double distance = calculateDistance(userLatitude, userLongitude, trainer.getGym().getLatitude(),
+                    trainer.getGym().getLongitude());
+            double distanceWeight = calculateDistanceWeight(distance);  // 거리 가중치 계산
+            score += distanceWeight;  // 거리 점수 추가
+        }
+
+        // 하루 이용 가능 여부 가산점
+        if (trainer.getIsOneDayAvailable()) {
+            score += 2;
+        }
+
+        return score;
+    }
+
+    // 거리 반비례 함수 적용
+    private double calculateDistanceWeight(double distance) {
+        return 10 / (1 + distance);
     }
 
     // 거리순
@@ -208,7 +252,7 @@ public class TrainerDetailService {
     public TrainerDetailResponse getResponse(TrainerDetail trainer) {
         double averageRating = trainerReviewRepository.findAverageRatingByTrainerId(trainer.getTrainerId());
         Integer reviewCount = trainerReviewRepository.countReviewsByTrainerId(trainer.getTrainerId());
-        
+
         return new TrainerDetailResponse(
                 trainer,
                 trainerSpecialtyRepository.findKeywordsByTrainerId(trainer.getTrainerId()),

@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    environment {
+        JAVA_HOME = "/var/jenkins_home/java-21-openjdk"
+        PATH = "${JAVA_HOME}/bin:${PATH}"
+        GIT_REPO = 'https://lab.ssafy.com/s12-webmobile2-sub1/S12P11A309.git'
+        BRANCH = 'BackEnd'
+    }
+
+    stages {
+
+        stage('Clean Workspace') {
+            steps {
+                sh 'rm -rf ${WORKSPACE}/*'  // 기존 워크스페이스 삭제
+            }
+        }
+
+        stage('git clone repository') {
+            steps {
+                sh 'echo $JAVA_HOME'
+                sh 'java -version'
+                git branch: "${BRANCH}", url: "${GIT_REPO}", credentialsId: 'gitlab-token'
+            }
+        }
+        stage('build') {
+            steps {
+                dir("${WORKSPACE}/opt-back") {
+                    sh "chmod +x gradlew"
+                    sh "./gradlew clean build -x test"
+                }
+            }
+        }
+
+        stage('deploy') {
+            steps {
+                withCredentials([sshUserPrivateKey(credentialsId: 'aws-key', keyFileVariable: 'SSH_KEY')]) {
+                    sh '''
+                        echo "Removing existing project files from remote server..."
+                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@172.26.13.75 "rm -rf /home/ubuntu/docker/backend-src/*"
+                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@172.26.13.75 "rm -rf /home/ubuntu/docker/opt-fast/*"
+
+
+                        scp -i $SSH_KEY -r ${WORKSPACE}/opt-back/* ubuntu@172.26.13.75:/home/ubuntu/docker/backend-src/
+                        scp -i $SSH_KEY -r ${WORKSPACE}/opt-fast ubuntu@172.26.13.75:/home/ubuntu/docker/
+
+                        echo "Executing deploy script on remote server..."
+                        ssh -i $SSH_KEY -o ubuntu@172.26.13.75 << 'EOF'
+                        mkdir -p /home/ubuntu/docker/backend-src/src/main/resources
+                        cp /home/ubuntu/.env.infastapi /home/ubuntu/docker/opt-fast/
+                        cp /home/ubuntu/S12P11A309/application.properties /home/ubuntu/docker/backend-src/src/main/resources/
+                        /home/ubuntu/docker/deploy.sh
+                    '''
+                }
+            }
+        }
+    }
+}

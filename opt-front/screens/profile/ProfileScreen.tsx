@@ -136,6 +136,7 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
   }>({ count: 0, averageRate: 0 });
   const [newNickname, setNewNickname] = useState("");
   const [cityDistrict, setCityDistrict] = useState("위치 정보 없음");
+
   useEffect(() => {
     const loadCityDistrict = async () => {
       try {
@@ -190,6 +191,36 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
       setReviews(response.data.content); // 리뷰 데이터 설정
     } catch (error) {}
   };
+
+  const [specialties, setSpecialties] = useState<string[]>([]); // specialties 상태
+  const SpecialtiesList = () => {
+    useEffect(() => {
+      const fetchSpecialties = async () => {
+        try {
+          const refreshToken = await AsyncStorage.getItem("refreshToken");
+          const response = await axios.get(
+            `${BASE_URL}/trainers/${profileData.id}/specialties`,
+            {
+              headers: {
+                Authorization: `Bearer ${refreshToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (response.data && Array.isArray(response.data)) {
+            setSpecialties(response.data);
+          } else {
+            throw new Error("Invalid response data");
+          }
+        } catch (error) {}
+      };
+
+      fetchSpecialties();
+    }, []);
+  };
+  SpecialtiesList();
+
   const handleSortTypeChange = (sort: SortType) => {
     setSortType(sort); // 정렬 방식 상태 업데이트
     fetchReviews(sort); // 선택된 정렬 방식으로 리뷰 데이터 가져오기
@@ -881,6 +912,15 @@ const ProfileScreen = ({ route }: { route: ProfileScreenRouteProp }) => {
               ) : (
                 <Text style={styles.certificationText}>
                   {profile.certification}
+                  <View></View>
+
+                  {specialties.length > 0 ? (
+                    specialties.map((specialty, index) => (
+                      <Text key={index}> {specialty}</Text>
+                    ))
+                  ) : (
+                    <Text>(No specialties available)</Text>
+                  )}
                 </Text>
               )}
             </View>

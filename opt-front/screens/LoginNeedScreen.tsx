@@ -116,7 +116,7 @@ const LoginNeedScreen: React.FC = () => {
         <View style={styles.optContainer}>
           <Text style={styles.optText}>OPT</Text>
         </View>
-
+        {/* 
         <TextInput
           style={styles.input}
           placeholder="이메일을 입력하세요"
@@ -127,7 +127,7 @@ const LoginNeedScreen: React.FC = () => {
         />
         <TouchableOpacity style={styles.loginButton} onPress={loginWithEmail}>
           <Text style={styles.loginButtonText}>로그인</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={styles.button}

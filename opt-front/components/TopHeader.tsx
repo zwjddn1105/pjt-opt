@@ -70,9 +70,9 @@ export const TopHeader = () => {
             resizeMode="contain"
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+        {/* <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Text style={styles.logoutButtonText}>로그아웃</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       <View style={styles.topButtons}>
         <ProfileButton onPress={handleProfilePress} />

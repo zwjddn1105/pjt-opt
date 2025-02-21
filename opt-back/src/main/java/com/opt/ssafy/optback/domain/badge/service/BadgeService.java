@@ -94,7 +94,7 @@ public class BadgeService {
         Member member = userDetailsService.getMemberByContextHolder();
         return memberBadgeRepository.findMemberBadgeByMemberId(member.getId());
     }
-    
+
     @Transactional
     public void saveBadge(Member member, BadgeDefinition badgeDefinition) {
         Badge badge = badgeRepository.findById(badgeDefinition.getBadgeId())
@@ -130,6 +130,17 @@ public class BadgeService {
             e.printStackTrace();
             throw new BadgeException("새로운 뱃지 획득 메시지를 보내는 데 실패하였습니다");
         }
+    }
+
+
+    @Transactional
+    public void addBadge(Member member, Integer badgeId) {
+        Badge badge = badgeRepository.findById(badgeId).orElse(null);
+        MemberBadge memberBadge = MemberBadge.builder()
+                .member(member)
+                .badge(badge)
+                .build();
+        memberBadgeRepository.save(memberBadge);
     }
 
 }

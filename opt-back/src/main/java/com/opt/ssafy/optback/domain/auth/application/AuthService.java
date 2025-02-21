@@ -6,6 +6,7 @@ import com.opt.ssafy.optback.domain.auth.dto.SignInRequest;
 import com.opt.ssafy.optback.domain.auth.dto.SignInResponse;
 import com.opt.ssafy.optback.domain.auth.dto.SignUpRequest;
 import com.opt.ssafy.optback.domain.auth.exception.DuplicatedSignUpException;
+import com.opt.ssafy.optback.domain.badge.service.BadgeService;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.entity.Role;
 import com.opt.ssafy.optback.domain.member.exception.MemberNotFoundException;
@@ -39,6 +40,7 @@ public class AuthService {
     private final RestTemplate restTemplate;
     private final TokenBlacklistService tokenBlacklistService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final BadgeService badgeService;
 
     public void signUp(SignUpRequest signUpRequest) {
         try {
@@ -111,7 +113,9 @@ public class AuthService {
                 .email(kakaoMember.getEmail())
                 .imagePath(kakaoMember.getProfileImageUrl())
                 .role(Role.ROLE_USER)
+                .mainBadgeId(1)
                 .build();
+        badgeService.addBadge(newMember, 1);
         return memberRepository.save(newMember);
     }
 

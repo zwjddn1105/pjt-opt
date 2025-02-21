@@ -19,4 +19,6 @@ public interface TrainerSpecialtyRepository extends JpaRepository<TrainerSpecial
 
     @Query("SELECT ts.keyword FROM TrainerSpecialty ts WHERE ts.trainerId = :trainerId")
     List<String> findKeywordsByTrainerId(@Param("trainerId") Integer trainerId);
+
+    List<TrainerSpecialty> findByTrainerId(int trainerId);
 }

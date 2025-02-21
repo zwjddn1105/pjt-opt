@@ -32,6 +32,12 @@ public class TrainerDetailController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{id}/specialties")
+    public ResponseEntity<List<String>> getTrainerSpecialties(@PathVariable int id) {
+        List<String> specialties = trainerService.getTrainerSpecialties(id);
+        return ResponseEntity.ok(specialties);
+    }
+
     // 트레이너 검색
     @PostMapping("/search")
     public ResponseEntity<Page<TrainerDetailResponse>> getSearchTrainers(

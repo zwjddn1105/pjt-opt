@@ -4,6 +4,7 @@ import com.opt.ssafy.optback.domain.auth.application.UserDetailsServiceImpl;
 import com.opt.ssafy.optback.domain.counsel.exception.TrainerNotFoundException;
 import com.opt.ssafy.optback.domain.member.entity.Member;
 import com.opt.ssafy.optback.domain.member.entity.MemberInterest;
+import com.opt.ssafy.optback.domain.member.entity.TrainerSpecialty;
 import com.opt.ssafy.optback.domain.member.repository.MemberRepository;
 import com.opt.ssafy.optback.domain.member.repository.TrainerSpecialtyRepository;
 import com.opt.ssafy.optback.domain.menu.dto.MenuResponse;
@@ -36,6 +37,11 @@ public class TrainerDetailService {
     private final TrainerSpecialtyRepository trainerSpecialtyRepository;
     private final MenuRepository menuRepository;
 
+
+    public List<String> getTrainerSpecialties(int trainerId) {
+        List<TrainerSpecialty> specialties = trainerSpecialtyRepository.findByTrainerId(trainerId);
+        return specialties.stream().map(TrainerSpecialty::getKeyword).collect(Collectors.toList());
+    }
     public TrainerDetailResponse getTrainerDetail(int trainerId) {
         TrainerDetail trainerDetail = trainerDetailRepository.findById(trainerId)
                 .orElseThrow(() -> new TrainerNotFoundException("해당 트레이너 정보를 찾을 수 없습니다: " + trainerId));

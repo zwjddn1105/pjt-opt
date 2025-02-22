@@ -7,6 +7,11 @@ build/
 .env.infastapi
 .env.outfastapi
 .env
+application.properties
+Dockerfile
+deploy.sh
+Jenkinsfile
+docker-compose.yml
 
 ### STS ###
 .apt_generated
@@ -38,5 +43,4 @@ out/
 
 ### VS Code ###
 .vscode/
-/src/main/resources/application.properties
-/src/main/resources/docker-compose.yml
+
